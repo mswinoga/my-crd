@@ -1,0 +1,8 @@
+# Maps value-tree paths to the group responsible for reviewing changes to
+# them. Paths not listed default to dev-owned. Enforcement is via a
+# separate CI script (not part of this task) that diffs an MR's
+# values.yaml and checks changed paths against this map.
+ops-owned:
+  - resources.limits
+  - securityContext
+  - networkPolicy.egress
