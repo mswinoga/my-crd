@@ -25,6 +25,6 @@ http, ...) land here later, each populating whatever ctx.model fields
 they need the same way.
 */}}
 {{- define "mycrd.integration.demo" -}}
-{{- include "crdkit.dictMerge" (list .ctx.model "labels" (dict "platform.company.io/integration-demo" "true")) -}}
+{{- include "crdkit.dictMerge" (list .ctx.model "metadata" "labels" (dict "platform.company.io/integration-demo" "true")) -}}
 {{- include "crdkit.integrations.chain" . -}}
 {{- end -}}

@@ -1,0 +1,8 @@
+# Smallest valid values: just target + empty tokens. Should render
+# cleanly with no diagnostics.
+target: prod-01
+
+tokens: {}
+
+spec:
+  replicas: 1

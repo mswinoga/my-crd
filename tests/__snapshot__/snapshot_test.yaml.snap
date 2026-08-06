@@ -1,0 +1,15 @@
+minimal values render matches the committed example snapshot:
+  1: |
+    apiVersion: platform.company.io/v1
+    kind: SomeCR
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: harness
+        helm.sh/chart: harness-0.0.0
+        platform.company.io/integration-demo: "true"
+        platform.company.io/library-version: 0.0.0
+      name: RELEASE-NAME
+    spec:
+      replicas: 1

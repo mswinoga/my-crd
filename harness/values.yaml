@@ -1,0 +1,11 @@
+# Minimal example values, used for a plain `helm template .` with no -f
+# override. Kept deliberately sparse: `helm template -f <fixture>` deep-
+# merges each fixture in ci/test-values/ on top of these defaults rather
+# than replacing them outright, so anything added here would leak into
+# every fixture's rendered output.
+target: dev-01
+
+tokens: {}
+
+spec:
+  replicas: 1

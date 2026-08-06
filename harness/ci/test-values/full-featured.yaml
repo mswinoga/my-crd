@@ -1,0 +1,41 @@
+# Exercises every token feature at once:
+#  - SCALAR_TOKEN: plain scalar, same in every env
+#  - ENV_TOKEN: dict with a "default" fallback AND an env-specific override
+#  - NO_DEFAULT_TOKEN: dict with no entry for env "prod" and no "default"
+#    -> must produce an "# ERROR:" comment
+#  - CHAINED_TOKEN: references two other tokens (one-level reference)
+#  - AT_USAGE: exercises the built-in @AT@ -> "@" escape
+#  - the "missingRefLooksLikeATypo" reference below points at a token
+#    name that doesn't exist -> must produce a "# WARNING:" comment
+#    (possible typo)
+#  - DB_HOST: declares targetContainer (opt-in, see crdkit's CLAUDE.md) —
+#    its VALUE still resolves/substitutes normally; targetContainer
+#    itself isn't surfaced in the rendered CR yet (that wiring is still
+#    a TODO), this just proves declaring it doesn't break anything.
+target: prod-01
+
+tokens:
+  SCALAR_TOKEN: "hello-world"
+  ENV_TOKEN:
+    default: "nonprod-value"
+    prod: "prod-value"
+  NO_DEFAULT_TOKEN:
+    dev: "dev-only-value"
+  CHAINED_TOKEN: "chain: @SCALAR_TOKEN@ + @ENV_TOKEN@"
+  AT_USAGE: "literal at sign lives here: @AT@"
+  DB_HOST:
+    value: "db.internal"
+    targetContainer: main
+
+metadata:
+  labels:
+    team: platform-eng
+    cost-center: "cc-@ENV_TOKEN@-1234"
+
+spec:
+  replicas: 3
+  message: "@CHAINED_TOKEN@"
+  atLiteral: "user@AT@example.com"
+  missingRefLooksLikeATypo: "@THIS_TOKEN_DOES_NOT_EXIST@"
+  brokenToken: "@NO_DEFAULT_TOKEN@"
+  dbHost: "@DB_HOST@"

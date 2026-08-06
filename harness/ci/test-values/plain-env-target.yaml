@@ -1,0 +1,10 @@
+# The common case for most CRDs built on crdkit: "target" IS "env"
+# directly, with no sequence suffix at all. Must resolve cleanly with no
+# diagnostics — @ENV@ resolves to "staging" verbatim, and the
+# family/super-tier fallback still works normally off of it.
+target: staging
+
+tokens: {}
+
+spec:
+  region: "@ENV@"

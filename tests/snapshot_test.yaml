@@ -1,0 +1,25 @@
+# Full end-to-end rendered examples, committed as helm-unittest
+# snapshots (__snapshot__/snapshot_test.yaml.snap) — unlike
+# token_resolution_test.yaml's targeted per-path assertions, the point
+# here is a complete, realistic rendered document: both a regression
+# test (if the render ever drifts unexpectedly, this fails and forces a
+# deliberate look) and a browsable, always-current example of what
+# my-crd actually produces, in one artifact.
+#
+# Snapshot tests are only as good as the review given when they're
+# regenerated — never run `helm unittest -u` without reading the diff
+# first, or this stops catching anything.
+#
+# Start small (minimal.yaml only) and add one `it:` per additional
+# fixture worth snapshotting as they become useful — each gets its own
+# entry in the same .snap file, keyed by test name, so this suite can
+# grow without restructuring.
+suite: my-crd end-to-end rendered examples
+templates:
+  - call.yaml
+tests:
+  - it: minimal values render matches the committed example snapshot
+    values:
+      - ../harness/ci/test-values/minimal.yaml
+    asserts:
+      - matchSnapshot: {}

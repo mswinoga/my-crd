@@ -1,0 +1,9 @@
+apiVersion: v2
+name: harness
+description: Local dev/test harness for my-crd's own templates (not published)
+type: application
+version: 0.0.0
+dependencies:
+  - name: my-crd
+    version: 0.0.0
+    repository: file://../

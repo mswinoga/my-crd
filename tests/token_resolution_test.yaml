@@ -1,0 +1,178 @@
+suite: my-crd token resolution
+templates:
+  - call.yaml
+tests:
+  - it: resolves a simple scalar token
+    set:
+      target: prod-01
+      tokens.GREETING: "hello"
+      spec.message: "@GREETING@"
+    asserts:
+      - equal:
+          path: spec.message
+          value: "hello"
+
+  - it: dict resolves the env-specific value when present
+    set:
+      target: prod-01
+      tokens.COLOR.default: "blue"
+      tokens.COLOR.prod: "red"
+      spec.color: "@COLOR@"
+    asserts:
+      - equal:
+          path: spec.color
+          value: "red"
+
+  - it: dict falls back to default when the specific env isn't listed
+    set:
+      # "test" is a recognized rung in my-crd's own escalation taxonomy
+      # (mycrd.parentTarget: test -> TEST -> NONPROD -> default) — an
+      # entirely UNRECOGNIZED target would have nowhere to escalate to
+      # and would legitimately ERROR instead, see crd/CLAUDE.md.
+      target: test-01
+      tokens.COLOR.default: "blue"
+      tokens.COLOR.prod: "red"
+      spec.color: "@COLOR@"
+    asserts:
+      - equal:
+          path: spec.color
+          value: "blue"
+
+  - it: a token referencing another token (one level) resolves correctly
+    set:
+      target: prod-01
+      tokens.A: "foo"
+      tokens.B: "@A@-bar"
+      spec.message: "@B@"
+    asserts:
+      - equal:
+          path: spec.message
+          value: "foo-bar"
+
+  - it: a chain of 3+ tokens resolves via the iterative fixed-point resolver
+    set:
+      target: prod-01
+      tokens.T1: "one"
+      tokens.T2: "@T1@-two"
+      tokens.T3: "@T2@-three"
+      tokens.T4: "@T3@-four"
+      spec.message: "@T4@"
+    asserts:
+      - equal:
+          path: spec.message
+          value: "one-two-three-four"
+
+  - it: "@AT@ resolves to a literal @ character"
+    set:
+      target: prod-01
+      spec.email: "user@AT@example.com"
+    asserts:
+      - equal:
+          path: spec.email
+          value: "user@example.com"
+
+  - it: consumer overriding a default (non-locked) token wins, no diagnostic needed
+    set:
+      target: prod-01
+      tokens.LOG_LEVEL: "debug"
+      spec.level: "@LOG_LEVEL@"
+    asserts:
+      - equal:
+          path: spec.level
+          value: "debug"
+      - matchRegex:
+          path: spec.level
+          pattern: "ERROR|WARNING"
+        not: true
+
+  - it: a locked-token collision resolves to the library's value, not the consumer's
+    set:
+      target: prod-01
+      tokens.API_GROUP: "hijacked.example.com"
+      spec.group: "@API_GROUP@"
+    asserts:
+      - equal:
+          path: spec.group
+          value: "platform.company.io"
+
+  - it: the env-family tier fallback resolves when the exact env is unlisted
+    set:
+      target: qap1-01
+      tokens.REGION.NONPROD: "us-west-2"
+      tokens.REGION.PROD: "us-east-1"
+      spec.region: "@REGION@"
+    asserts:
+      - equal:
+          path: spec.region
+          value: "us-west-2"
+
+  - it: standard labels are always present regardless of consumer input
+    set:
+      target: prod-01
+      tokens: {}
+    asserts:
+      - exists:
+          path: metadata.labels["app.kubernetes.io/name"]
+      - exists:
+          path: metadata.labels["app.kubernetes.io/instance"]
+
+  - it: the integration chain runs and its label contribution is present
+    set:
+      target: prod-01
+      tokens: {}
+    asserts:
+      - equal:
+          path: metadata.labels["platform.company.io/integration-demo"]
+          value: "true"
+
+  - it: a consumer-defined 'ENV' token collides with the reserved built-in and is discarded
+    set:
+      target: prod-01
+      tokens.ENV: "hijacked"
+      spec.env: "@ENV@"
+    asserts:
+      - equal:
+          path: spec.env
+          value: "prod"
+
+  - it: the match tier wins over env/tier/default, evaluated against the full target string
+    values:
+      - ../harness/ci/test-values/target-match.yaml
+    asserts:
+      - equal:
+          path: spec.subenv
+          value: "canary"
+
+  - it: match rule values can reference capture groups from the pattern
+    values:
+      - ../harness/ci/test-values/target-match.yaml
+    asserts:
+      - equal:
+          path: spec.envFromTarget
+          value: "qam1"
+
+  - it: "@ENV@ is a reserved built-in token derived from target"
+    values:
+      - ../harness/ci/test-values/target-match.yaml
+    asserts:
+      - equal:
+          path: spec.builtinEnv
+          value: "qam1"
+
+  - it: a regular token can chain off the built-in ENV token deterministically
+    set:
+      target: prod-01
+      tokens.ENV_LABEL: "release-@ENV@"
+      spec.envLabel: "@ENV_LABEL@"
+    asserts:
+      - equal:
+          path: spec.envLabel
+          value: "release-prod"
+
+  - it: a token declaring targetContainer still resolves its value normally through the full pipeline
+    values:
+      - ../harness/ci/test-values/full-featured.yaml
+    asserts:
+      - equal:
+          path: spec.dbHost
+          value: "db.internal"

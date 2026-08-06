@@ -1,0 +1,11 @@
+# Direct two-token cycle: a references b, b references a. Expect an
+# "# ERROR:" comment naming the cycle, and the render must NOT hang or
+# exceed the bounded iteration budget.
+target: prod-01
+
+tokens:
+  A: "@B@"
+  B: "@A@"
+
+spec:
+  value: "@A@"

@@ -1,0 +1,26 @@
+# Exercises the "match:" tier — the topmost tier in token resolution,
+# checked before exact env/family-tier/super-tier/default, matched
+# against the full "target" string (not just env):
+#  - SUBENV_TOKEN: only the "qam1"/"qap1" family, sequence 01-09, gets a
+#    distinct value via match:; qa-01 (not qam1/qap1) falls through to
+#    the NONPROD super-tier instead, silently, no diagnostic.
+#  - ENV_FROM_TARGET: derives "env" itself via a capture group, purely
+#    to demonstrate the same primitive crdkit.deriveTargetEnv uses
+#    internally — this is illustrative, not how a consumer would
+#    normally get @ENV@ (that's already a built-in token, see below).
+target: qam1-01
+
+tokens:
+  SUBENV_TOKEN:
+    default: "generic"
+    NONPROD: "nonprod-generic"
+    match:
+      - "qa[pm]1-0[1-9]": "canary"
+  ENV_FROM_TARGET:
+    match:
+      - "(.+)-[0-9]{2}": "$1"
+
+spec:
+  subenv: "@SUBENV_TOKEN@"
+  envFromTarget: "@ENV_FROM_TARGET@"
+  builtinEnv: "@ENV@"

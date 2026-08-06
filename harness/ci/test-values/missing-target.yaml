@@ -1,0 +1,18 @@
+# "target" being entirely unset is no longer proactively checked at
+# all — crdkit dropped that check along with every other env/family/tier
+# concept it used to own (see crdkit's CLAUDE.md/README). An empty
+# target with nothing ever resolved against it now produces ZERO
+# diagnostics (see minimal.yaml for that case, which also uses no
+# tokens). This fixture instead shows what DOES happen once something
+# actually tries to resolve a token against an empty target: my-crd's
+# own escalation taxonomy (mycrd.parentTarget) has nowhere to route an
+# empty string, so the chain is exhausted immediately -> a real ERROR,
+# lazily, only because BROKEN_TOKEN is actually referenced below.
+target: ""
+
+tokens:
+  BROKEN_TOKEN:
+    default: "unreachable-without-a-matching-rung"
+
+spec:
+  value: "@BROKEN_TOKEN@"
