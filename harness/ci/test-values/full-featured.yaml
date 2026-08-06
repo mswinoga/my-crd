@@ -24,8 +24,8 @@ tokens:
   CHAINED_TOKEN: "chain: @SCALAR_TOKEN@ + @ENV_TOKEN@"
   AT_USAGE: "literal at sign lives here: @AT@"
   DB_HOST:
-    value: "db.internal"
     targetContainer: main
+    default: "db.internal"
 
 metadata:
   labels:

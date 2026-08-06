@@ -1,30 +1,20 @@
 {{/*
-Integration filters for this library's CR. Each one is a link in the
-chain passed to crdkit.render (see mycrd.render) — see
-crdkit.integrations.chain in the crdkit chart for the calling
-convention: pre-work on ctx.model/ctx.tokens, recurse into whatever
-chain remains, then post-work once that returns.
+Scope: internal (chain entry, not called directly by consumers)
 
-There is no central, pre-declared ctx.model shape anywhere — not in
-crdkit, not here. Every integration is responsible for its OWN fields:
-prefer `crdkit.dictMerge`/`crdkit.listExtend` — `(list .ctx.model
-"<key1>" ... "<keyN>" <dict-or-list>)`, at least one key, dig-style
-positional args (not crdkit's usual named-dict convention, deliberately
-— see crdkit's CLAUDE.md) — to add entries to a map/list field in one
-call, walking as many nesting levels as needed. Both ensure every level
-of the path exists first, every time, even if you believe an earlier
-integration already created part of it (chain order isn't something to
-depend on). Fall back to the lower-level `crdkit.ensureDictKey` directly
-only for a shape those two don't cover. See crdkit's CLAUDE.md for why
-plain `set`/`append` can't safely skip this (no auto-vivification of
-missing intermediate maps/lists).
+Interface:
+- Params: ctx (see crdkit.integrations.chain).
+- Returns: nothing (mutates ctx.model in place).
+- Placeholder integration proving the chain mechanism end-to-end. Real
+  integrations (database, cos, messaging, outbound http, ...) land here
+  the same way as this library grows.
 
-mycrd.integration.demo is a placeholder proving the chain mechanism
-works end-to-end; real integrations (database, cos, messaging, outbound
-http, ...) land here later, each populating whatever ctx.model fields
-they need the same way.
+Implementation notes:
+- Every integration owns its own ctx.model field(s) via
+  crdkit.dictMerge/listExtend — `(list .model "<key1>" ... <value>)` —
+  which creates every missing intermediate level itself; don't assume
+  an earlier chain entry already created part of the path.
 */}}
 {{- define "mycrd.integration.demo" -}}
-{{- include "crdkit.dictMerge" (list .ctx.model "metadata" "labels" (dict "platform.company.io/integration-demo" "true")) -}}
+{{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dict "platform.company.io/integration-demo" "true")) -}}
 {{- include "crdkit.integrations.chain" . -}}
 {{- end -}}

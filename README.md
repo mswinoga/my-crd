@@ -1,23 +1,17 @@
 # my-crd
 
-A Helm **library chart** that renders a single Kubernetes Custom
-Resource from a standardized, env-aware `values.yaml` shape. It is
-meant to be consumed by application repos as a pinned dependency — never
-deployed on its own.
+A Helm **library chart** rendering a single Kubernetes Custom Resource
+from a standardized, target-aware `values.yaml` shape. Consumed by
+application repos as a pinned dependency — never deployed on its own.
+Renders only the CR manifest; not Deployments/Services/etc.
 
-This chart does **not** render Deployments/Services/etc. It only
-produces the CR manifest that a separate controller reconciles.
-
-Built on top of [`crdkit`](../crdkit), which provides the generic token
-resolution / diagnostics / integration-chaining engine. `my-crd` supplies
-everything crdkit can't know on its own: this CR's `apiVersion`/`kind`
-(set via a "preamble" integration, first in the chain below — not a
-param, crdkit doesn't accept one), its locked/default tokens, its own
-target-escalation taxonomy, and its integration chain.
+Built on [`crdkit`](../crdkit) (generic token resolution / diagnostics /
+integration-chaining engine). `my-crd` supplies everything crdkit can't
+know: this CR's `apiVersion`/`kind` (via a "preamble" integration, first
+in the chain), locked/default tokens, its own target-escalation
+taxonomy, and its integration chain.
 
 ## Usage
-
-In a consuming chart:
 
 ```yaml
 # Chart.yaml
@@ -34,22 +28,20 @@ dependencies:
 
 `mycrd.render` is always called with the consuming chart's own root
 context (`.`) — values live at the root of `.Values`, not nested under
-`.Values.myCrd`. See the worked example in
-[`harness/values.yaml`](harness/values.yaml) and the fixtures in
-[`harness/ci/test-values/`](harness/ci/test-values/).
+`.Values.myCrd`. See [`harness/values.yaml`](harness/values.yaml) and
+[`harness/ci/test-values/`](harness/ci/test-values/) for worked
+examples.
 
 ### Values shape
 
 ```yaml
-target: prod      # required if you reference any token that needs it (no
-                  # proactive check otherwise — see "Diagnostics" below).
-                  # An opaque string as far as crdkit is concerned; THIS
-                  # library recognizes it as either a bare env name, as
-                  # here, or "<env>-<seq>" (seq = 2 digits, e.g. "prod-01")
-                  # if this CRD needs multiple numbered instances of the
-                  # same env — see "Target escalation" below. Typically
-                  # supplied via --set target=... at the CLI rather than
-                  # committed to a values file.
+target: prod      # opaque string to crdkit; this library recognizes a
+                  # bare env name (as here) or "<env>-<seq>" (e.g.
+                  # "prod-01") for CRDs needing multiple numbered
+                  # instances of the same env — see "Target escalation"
+                  # below. Typically supplied via --set target=... at
+                  # the CLI, not committed to a values file. Only
+                  # checked lazily, if a token resolution needs it.
 
 tokens:
   TOKEN1: "val1"                         # scalar: same for every target
@@ -63,9 +55,8 @@ tokens:
       - "prod-0[1-3]": "canary-@AT@1"    # tried once, wins over any literal
                                           # key — see "Target escalation" below
   DB_HOST:
-    value: "db.internal"                 # same dedicated-attribute/match/escalation resolution as any token
-    targetContainer: main                # opt-in: main/side-car/both (default "none") —
-                                          # see "Token model" below
+    targetContainer: main                # opt-in: main/side-car/both (default "none")
+    default: "db.internal"               # same dedicated-attribute/match/escalation resolution as any token
 
 some:
   other:
@@ -79,110 +70,85 @@ some:
 
 Token names must be `UPPER_SNAKE_CASE` (`^[A-Z][A-Z0-9_]*$`) — a
 non-conforming name still resolves and renders, but records a
-`# WARNING:` (see `../crdkit/CLAUDE.md`; this applies to every token,
-including the library's own locked/default ones, not just yours).
+`# WARNING:` (applies to every token, including the library's own
+locked/default ones).
 
-`@AT@` is crdkit's one reserved built-in marker — it always resolves to
-a literal `@`, and `tokens.AT` is discarded with a `# WARNING:` if a
-consumer tries to redefine it. `@ENV@`, by contrast, is NOT a crdkit
-concept at all — it's an ordinary LOCKED token this library defines
-itself (see "Library-owned tokens" below); it behaves the same way
-(consumers can't override it) but for a different reason (it's in
-`system`, not because crdkit reserves the name).
+`@AT@` is crdkit's one reserved built-in marker — always resolves to a
+literal `@`; `tokens.AT` is discarded with a `# WARNING:` if redefined.
+`@ENV@` is NOT a crdkit concept — it's an ordinary locked token this
+library defines itself (see "Library-owned tokens" below); consumers
+can't override it because it's in `system`, not because crdkit reserves
+the name.
 
 ### Token model
 
-Every resolved token is `{value, targetContainer}`, not a bare string.
-A plain scalar or the env-varying dict (as `TOKEN1`–`TOKEN4` above) is
-shorthand for `{value: <that>}` with `targetContainer` implied `"none"`
-— nothing changes for a token that doesn't care about this. Declare
-`targetContainer` explicitly (as `DB_HOST` above) when a token should
-be picked up by the downstream k8s controller as a container env var:
-one of `main`, `side-car`, `both`, or `none` (default). my-crd/crdkit
-don't create the env var themselves — only resolve the value and carry
-`targetContainer` through to the rendered output for the controller to
-read. See `../crdkit/CLAUDE.md` for the full mechanics.
+- A token DECLARATION is a plain scalar (same value everywhere) or a
+  dict, with `targetContainer`/`match` (both optional) coexisting flat
+  alongside however many literal target-name keys the token needs.
+- Resolving a token (`crdkit.resolveValue`) returns a separate shape,
+  `{value, targetContainer}` — the interpolated result for one
+  name+target pair.
+- Declare `targetContainer` (as `DB_HOST` above) when a token should be
+  picked up by the downstream k8s controller as a container env var:
+  `main`, `side-car`, `both`, or `none` (default). my-crd/crdkit don't
+  create the env var themselves — only resolve the value and carry
+  `targetContainer` through for the controller to read.
+
+See `../crdkit/README.md`'s "Token model" for the full mechanics.
 
 ### Target escalation
 
-crdkit itself has no concept of "env"/"family"/"tier" — `target` is an
-opaque string to it (see `../crdkit/CLAUDE.md`/`README.md`). This
-library owns the entire taxonomy, via `templates/_target.tpl`. A
-token's value is looked up in this order, first match wins:
+`target` is opaque to crdkit; this library owns the taxonomy
+(`templates/_target.tpl`). Resolution order, first match wins:
 
-1. a literal key equal to the EXACT `target` string (a "dedicated
-   attribute") — works at any granularity: `"prod-01"`, `"prod"`,
-   `"PROD"`, whatever you used as `target`.
-2. `match:` — an ordered list of `{regex: value}` rules evaluated
-   against the full `target` string, full-string anchored, tried
-   ONCE regardless of what `target` looks like. `value` may reference
-   the pattern's own capture groups (`$1`, `$2`, ...). Lets a token
-   vary by something finer-grained than a single target — a family of
-   instances by sequence number — without enumerating every target
-   string as its own dict key.
-3. walk this library's own escalation chain (`mycrd.parentTarget`),
-   one rung at a time, checking a literal key at each: `<env>-<seq> ->
-   env -> family (qa/qam1/qap1 all collapse to "QA") -> "NONPROD"/
-   "PROD" tier -> "default"`. Every rung visited gets cached, so a
-   later target sharing any of them is instant.
+1. A literal key equal to the EXACT `target` string (a "dedicated
+   attribute") — any granularity: `"prod-01"`, `"prod"`, `"PROD"`.
+2. `match:` — an ordered list of `{regex: value}` rules against the
+   full `target` string, full-string anchored, tried once. `value` may
+   reference capture groups (`$1`, `$2`, ...).
+3. Walk this library's escalation chain (`mycrd.parentTarget`):
+   `<env>-<seq> -> env -> family (qa/qam1/qap1 all collapse to "QA") ->
+   "NONPROD"/"PROD" tier -> "default"`. Every rung visited gets cached.
+4. `default` — a hardcoded, last-resort fallback checked directly,
+   regardless of taxonomy.
 
-If nothing matches anywhere along that chain, rendering does not fail
-— it emits an `# ERROR:` comment (see Diagnostics below) and leaves
-that value empty. A malformed regex under `match:` is the one exception
-in this whole library that **does** abort the render outright (a Helm
-template error, not a diagnostic comment) — see `../crdkit/CLAUDE.md`
-for why that's an accepted, deliberate departure from the "never
-fail()" rule.
+If nothing resolves, rendering emits an `# ERROR:` comment (see
+Diagnostics below) rather than failing — except a malformed `match:`
+regex, which aborts the render outright (a Helm template error, the one
+deliberate departure from "never fail()" in this whole system).
 
 ### Library-owned tokens
 
 - **locked** (`templates/_tokens.system.tpl` → `mycrd.systemTokens`):
   `API_GROUP`, `LIBRARY_VERSION`, `ENV`. Consumers cannot override
-  these — an attempt is discarded with a `# WARNING:` and the library's
-  value wins.
+  these — an attempt is discarded with a `# WARNING:`.
 - **default** (`mycrd.defaultTokens`): `LOG_LEVEL`, `TIMEOUT`. Consumers
-  *can* override these by defining the same key under their own
-  `tokens:`.
+  *can* override these.
 
-`LIBRARY_VERSION` reports **this library chart's own version** (via
-`crdkit.dependencyVersion`), not the consuming chart's version — library
-charts don't get their own root context, so a naive `.Chart.Version`
-would report the wrong thing. `ENV` is this library's own
-`@ENV@`-equivalent (`mycrd.deriveEnv`, `templates/_target.tpl`) — NOT a
-crdkit built-in; crdkit has no such concept anymore (see "Target
-escalation" above).
+`LIBRARY_VERSION` reports this library chart's own version (via
+`crdkit.dependencyVersion`), not the consuming chart's. `ENV` is this
+library's own `@ENV@`-equivalent (`mycrd.deriveEnv`,
+`templates/_target.tpl`) — not a crdkit concept.
 
 ### Integrations
 
-`mycrd.render` (`templates/_render.tpl`) wires a fixed integration chain
-into `crdkit.render`: `mycrd.integration.preamble` ALWAYS first — it's
-the ONLY thing that gives the rendered CR a shape at all, since
-`crdkit.render` itself doesn't read `Values` or assume anything about
-`ctx.model` (see `../crdkit/CLAUDE.md`/`README.md`). It sets
-`apiVersion`/`kind`, `metadata.name`, `metadata.labels` (consumer's own,
-then `crdkit.standardLabels`, then this library's own library-version
-label — see `templates/_integration.preamble.tpl`'s doc comment for why
-that order is the precedence policy), and `spec` (copied straight from
-the consumer's own `Values.spec`) — then `mycrd.integration.demo`, a
-placeholder proving the chain mechanism end-to-end beyond the preamble
-(see `templates/_integrations.tpl`);
-real integrations (database, cos, messaging, outbound http, ...) land
-there as this library grows, each contributing low-level fields (env
-vars, volumes, secretRefs, ...) to the shared model that
-`crdkit.render` assembles. Every integration, `preamble` included, must
-emit no literal text of its own — only mutate `ctx.model`/`ctx.tokens`
-via helpers that are themselves empty-returning
-(`crdkit.ensureDictKey`/`dictMerge`/`listExtend`/`addToken`), then
-recurse into `crdkit.integrations.chain`. See `../crdkit/CLAUDE.md` for
-why mixing real text output into an integration's body is exactly the
-kind of thing that has corrupted render output here before.
+`mycrd.render` wires a fixed chain into `crdkit.render`:
+`mycrd.integration.preamble` always first — the only thing giving the
+rendered CR a shape at all (`apiVersion`/`kind`, `metadata.name`,
+`metadata.labels`, `spec`) — then `mycrd.integration.demo`, a
+proof-of-mechanism stub. Real integrations (database, cos, messaging,
+outbound http, ...) land as `mycrd.integration.*` defines as this
+library grows.
+
+Every integration must emit no literal text of its own — only mutate
+`ctx.model`/`ctx.tokens` via `crdkit.ensureDictKey`/`dictMerge`/
+`listExtend`/`addToken` (all empty-returning), then recurse into
+`crdkit.integrations.chain`.
 
 ### Diagnostics
 
-Problems are never fatal (`fail()` is never called from resolution
-logic) — they're collected and emitted as YAML comments at the top of
-the rendered manifest, so a mistake in one consumer repo can't wedge
-CI-wide re-renders:
+Problems are never fatal — collected and emitted as YAML comments at
+the top of the rendered manifest:
 
 ```
 # ERROR: no value found for 'SOME_TOKEN' — target chain exhausted at 'PROD' starting from 'prod-01'
@@ -191,58 +157,39 @@ CI-wide re-renders:
 
 Downstream tooling greps for the exact prefixes `# ERROR:` / `# WARNING:`.
 
-**Only a token that's actually referenced somewhere gets checked at
-all.** A token declared under `tokens:` but never used anywhere in the
-rest of your values (no `@NAME@` marker referencing it) is never
-resolved, so a mistake in it (e.g. no matching rung anywhere along the
-escalation chain) produces no diagnostic — it's simply never looked at.
-If you want a token validated even when nothing currently references
-it, reference it somewhere rather than relying on it being checked just
-because it's declared.
+Only a token actually referenced somewhere gets checked — a declared
+but unused token produces no diagnostic even if broken. Reference it
+(e.g. via a spare `@NAME@` marker) to get it validated.
 
 ## Local dev / testing
 
-`harness/` (a `type: application` chart depending on `file://../`) +
-`tests/` mirror crdkit's own harness/tests split, and exercise
-`mycrd.render` end to end — real preamble, real integration chain, real
-crdkit underneath.
+`harness/` (`type: application`, depends on `file://../`) + `tests/`
+exercise `mycrd.render` end to end — real preamble, real integration
+chain, real crdkit underneath.
 
 ```sh
 make test              # helm unittest harness -f '../tests/*_test.yaml'
-                        # (targeted per-path assertions, tests/token_resolution_test.yaml)
 make test-diagnostics   # ./tests/diagnostics_test.sh — greps raw output
-                        # for "# ERROR:"/"# WARNING:" comments, which
-                        # helm-unittest can't see (comments don't
-                        # survive YAML parsing)
+                        # for "# ERROR:"/"# WARNING:" (helm-unittest
+                        # can't see comments)
 make dev                # plain-renders every harness/ci/test-values/*.yaml
                         # fixture for quick manual/visual inspection
-make render VALUES=path/to/wip.yaml   # render one arbitrary values
-                        # file — e.g. a work-in-progress one that isn't
-                        # checked in as a fixture yet
+make render VALUES=path/to/wip.yaml   # render one arbitrary values file
 ```
 
-`tests/snapshot_test.yaml` additionally commits full end-to-end rendered
-examples via helm-unittest's `matchSnapshot` (starting with
-`minimal.yaml`) — both a regression test (an unexpected drift fails the
-test) and an always-current, browsable example of real output, in one
-artifact. Review the diff before ever running `helm unittest -u` to
-regenerate a snapshot.
+`tests/snapshot_test.yaml` commits full rendered examples via
+helm-unittest's `matchSnapshot` — both a regression test and a
+browsable example of real output. Review the diff before ever running
+`helm unittest -u`.
 
-This harness sits on top of a two-level `file://` dependency chain
-(`harness → my-crd → crdkit`) — `helm dependency update` is NOT
-transitive, so running it only at the harness level would silently
-bundle a stale crdkit copy if `my-crd`'s own hadn't been refreshed
-first. Every target above (`update-deps`, which `dev`/`render`/`test`/
-`test-diagnostics` all depend on) refreshes both levels, bottom-up,
-automatically — you don't need to remember to `cd` anywhere yourself.
-See `../CLAUDE.md`'s "Layout" section for the full story.
+This harness sits on a two-level `file://` chain (`harness → my-crd →
+crdkit`); `helm dependency update` is NOT transitive. Every Makefile
+target above depends on `update-deps`, which refreshes both levels,
+bottom-up, automatically — see `../CLAUDE.md`'s "Layout" section.
 
 ## Out of scope for now
 
-ArgoCD CMP wiring, GitLab CI pipeline files (env-parity matrix render,
-ownership diff-checker), full `values.schema.json` generation,
-`helm-docs` integration, real integration implementations (database/cos/
-messaging/http), and the real CRD's `apiVersion`/`kind`/`spec` shape
-(currently a placeholder — see `templates/_integration.preamble.tpl`,
-the one place that decision lives now that crdkit has no opinion on it
-at all).
+ArgoCD CMP wiring, GitLab CI pipeline files, full `values.schema.json`
+generation, `helm-docs` integration, real integration implementations,
+and the real CRD's `apiVersion`/`kind`/`spec` shape (currently a
+placeholder — see `templates/_integration.preamble.tpl`).

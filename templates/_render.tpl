@@ -1,21 +1,19 @@
 {{/*
-Thin, product-specific wrapper around crdkit.render. This is the only
-entry point consumers call: `{{ include "mycrd.render" . }}`, always
-passing THEIR root context (per spec, never treat this as a normal
-subchart with values nested under .Values.myCrd.*).
+Scope: public
 
-`apiVersion`/`kind` are NOT hardcoded here — crdkit.render no longer
-accepts them as params at all (crdkit has zero knowledge of any
-specific CRD, see crdkit's CLAUDE.md). Instead they're set on
-ctx.model by `mycrd.integration.preamble` (templates/_integrations.tpl),
-which is always FIRST in the chain below, and crdkit.render reads them
-back from there — the exact same mechanism "labels" already uses, not
-a special case. Every other thing crdkit.render needs that it can't
-know on its own — system/default tokens, the ordered integration chain,
-and this library's own target-escalation taxonomy ("parentTargetTemplate", see
-templates/_target.tpl) — is still supplied explicitly, so crdkit itself
-never has to know this library's template names or its env/family/tier
-conventions.
+Interface:
+- Params: none (uses `.` directly).
+- Returns: the rendered CR as YAML text (see crdkit.render).
+- The only entry point consumers call: `{{ include "mycrd.render" . }}`,
+  always with THEIR root context (never nested under .Values.myCrd.*).
+
+Implementation notes:
+- Thin wrapper supplying crdkit.render everything it can't know itself:
+  system/default tokens, the integration chain (mycrd.integration.*,
+  preamble always first), and this library's own target-escalation
+  taxonomy (mycrd.parentTarget, templates/_target.tpl).
+- apiVersion/kind aren't passed here — mycrd.integration.preamble sets
+  them on ctx.model, same mechanism as labels.
 */}}
 {{- define "mycrd.render" -}}
 {{- include "crdkit.render" (dict

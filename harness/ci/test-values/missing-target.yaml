@@ -8,11 +8,17 @@
 # own escalation taxonomy (mycrd.parentTarget) has nowhere to route an
 # empty string, so the chain is exhausted immediately -> a real ERROR,
 # lazily, only because BROKEN_TOKEN is actually referenced below.
+#
+# Deliberately does NOT use a "default:" key here — "default" is a
+# hardcoded, crdkit-level fallback (see crdkit's CLAUDE.md/README) that
+# resolves regardless of target/taxonomy, so it would defeat the whole
+# point of this fixture by always succeeding. "PROD" only resolves via
+# escalation, which an empty target can never reach.
 target: ""
 
 tokens:
   BROKEN_TOKEN:
-    default: "unreachable-without-a-matching-rung"
+    PROD: "unreachable-without-a-matching-rung"
 
 spec:
   value: "@BROKEN_TOKEN@"
