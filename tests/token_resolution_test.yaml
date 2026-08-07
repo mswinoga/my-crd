@@ -176,3 +176,37 @@ tests:
       - equal:
           path: spec.dbHost
           value: "db.internal"
+
+  - it: "mycrd.integration.variables merges every accepted targetContainer (main/side-car/both) into spec.variables"
+    values:
+      - ../harness/ci/test-values/full-featured.yaml
+    asserts:
+      - equal:
+          path: spec.variables.DB_HOST
+          value:
+            name: "db.internal"
+            targetContainer: "main"
+      - equal:
+          path: spec.variables.SIDECAR_TOKEN
+          value:
+            name: "sidecar-value"
+            targetContainer: "side-car"
+      - equal:
+          path: spec.variables.BOTH_TOKEN
+          value:
+            name: "both-value"
+            targetContainer: "both"
+
+  - it: "mycrd.integration.variables excludes targetContainer: none and tokens with no targetContainer at all"
+    values:
+      - ../harness/ci/test-values/full-featured.yaml
+    asserts:
+      - exists:
+          path: spec.variables.NONE_TOKEN
+        not: true
+      - exists:
+          path: spec.variables.SCALAR_TOKEN
+        not: true
+      - exists:
+          path: spec.variables.ENV_TOKEN
+        not: true

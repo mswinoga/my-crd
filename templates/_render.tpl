@@ -9,10 +9,10 @@ Interface:
 
 Implementation notes:
 - Thin wrapper supplying crdkit.render everything it can't know itself:
-  system/default tokens, the integration chain (mycrd.integration.*,
+  system/default tokens, the integration chain (mycrd.integrations.*,
   preamble always first), and this library's own target-escalation
   taxonomy (mycrd.parentTarget, templates/_target.tpl).
-- apiVersion/kind aren't passed here — mycrd.integration.preamble sets
+- apiVersion/kind aren't passed here — mycrd.integrations.preamble sets
   them on ctx.model, same mechanism as labels.
 */}}
 {{- define "mycrd.render" -}}
@@ -23,6 +23,6 @@ Implementation notes:
       "system" (include "mycrd.systemTokens" . | fromYaml)
       "defaults" (include "mycrd.defaultTokens" . | fromYaml)
       "parentTargetTemplate" "mycrd.parentTarget"
-      "chain" (list "mycrd.integration.preamble" "mycrd.integration.demo")
+      "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.demo" "mycrd.integrations.variables")
     ) -}}
 {{- end -}}

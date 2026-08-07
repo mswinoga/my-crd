@@ -14,7 +14,6 @@ Implementation notes:
   which creates every missing intermediate level itself; don't assume
   an earlier chain entry already created part of the path.
 */}}
-{{- define "mycrd.integration.demo" -}}
+{{- define "mycrd.integrations.demo" -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dict "platform.company.io/integration-demo" "true")) -}}
-{{- include "crdkit.integrations.chain" . -}}
 {{- end -}}

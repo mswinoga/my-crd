@@ -23,15 +23,14 @@ Implementation notes:
 - spec is copied from Values.spec verbatim, markers unresolved — same
   later substitution pass handles it.
 - Mutation-only: every include here is empty-returning
-  (crdkit.dictMerge, crdkit.integrations.chain) — never mix literal
-  text output into a mutation-phase define.
+  (crdkit.dictMerge) — never mix literal text output into a
+  mutation-phase define.
 */}}
-{{- define "mycrd.integration.preamble" -}}
+{{- define "mycrd.integrations.preamble" -}}
 {{- include "crdkit.dictMerge" (list .model (dict "apiVersion" "@API_GROUP@/v1" "kind" "SomeCR")) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" (dict "name" .root.Release.Name)) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dig "metadata" "labels" (dict) (.root.Values | toYaml | fromYaml))) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (include "crdkit.standardLabels" (dict "context" .root) | fromYaml)) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dict "platform.company.io/library-version" "@LIBRARY_VERSION@")) -}}
 {{- include "crdkit.dictMerge" (list .model "spec" (.root.Values.spec | default dict)) -}}
-{{- include "crdkit.integrations.chain" . -}}
 {{- end -}}

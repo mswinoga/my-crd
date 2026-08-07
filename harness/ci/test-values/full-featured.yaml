@@ -8,10 +8,11 @@
 #  - the "missingRefLooksLikeATypo" reference below points at a token
 #    name that doesn't exist -> must produce a "# WARNING:" comment
 #    (possible typo)
-#  - DB_HOST: declares targetContainer (opt-in, see crdkit's CLAUDE.md) —
-#    its VALUE still resolves/substitutes normally; targetContainer
-#    itself isn't surfaced in the rendered CR yet (that wiring is still
-#    a TODO), this just proves declaring it doesn't break anything.
+#  - DB_HOST/SIDECAR_TOKEN/BOTH_TOKEN: declare an accepted targetContainer
+#    (main/side-car/both) -> picked up by mycrd.integration.variables into
+#    spec.variables, in addition to resolving/substituting normally.
+#  - NONE_TOKEN: explicit targetContainer: none -> excluded from
+#    spec.variables (same as SCALAR_TOKEN, which declares none at all).
 target: prod-01
 
 tokens:
@@ -26,6 +27,15 @@ tokens:
   DB_HOST:
     targetContainer: main
     default: "db.internal"
+  SIDECAR_TOKEN:
+    targetContainer: side-car
+    default: "sidecar-value"
+  BOTH_TOKEN:
+    targetContainer: both
+    default: "both-value"
+  NONE_TOKEN:
+    targetContainer: none
+    default: "none-value"
 
 metadata:
   labels:

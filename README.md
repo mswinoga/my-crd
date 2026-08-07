@@ -133,11 +133,11 @@ library's own `@ENV@`-equivalent (`mycrd.deriveEnv`,
 ### Integrations
 
 `mycrd.render` wires a fixed chain into `crdkit.render`:
-`mycrd.integration.preamble` always first — the only thing giving the
+`mycrd.integrations.preamble` always first — the only thing giving the
 rendered CR a shape at all (`apiVersion`/`kind`, `metadata.name`,
-`metadata.labels`, `spec`) — then `mycrd.integration.demo`, a
+`metadata.labels`, `spec`) — then `mycrd.integrations.demo`, a
 proof-of-mechanism stub. Real integrations (database, cos, messaging,
-outbound http, ...) land as `mycrd.integration.*` defines as this
+outbound http, ...) land as `mycrd.integrations.*` defines as this
 library grows.
 
 Every integration must emit no literal text of its own — only mutate
@@ -192,4 +192,4 @@ bottom-up, automatically — see `../CLAUDE.md`'s "Layout" section.
 ArgoCD CMP wiring, GitLab CI pipeline files, full `values.schema.json`
 generation, `helm-docs` integration, real integration implementations,
 and the real CRD's `apiVersion`/`kind`/`spec` shape (currently a
-placeholder — see `templates/_integration.preamble.tpl`).
+placeholder — see `templates/integrations/_preamble.tpl`).
