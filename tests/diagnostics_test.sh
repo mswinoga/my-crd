@@ -53,6 +53,21 @@ check "missing-target.yaml: ERROR once something actually resolves against the e
 check "plain-env-target.yaml: no diagnostics for a target with no sequence suffix" \
   plain-env-target.yaml '^# (ERROR|WARNING):' absent
 
+check "services-basic.yaml: no diagnostics" \
+  services-basic.yaml '^# (ERROR|WARNING):' absent
+
+check "service-collision.yaml: ERROR naming both services, first one kept" \
+  service-collision.yaml "^# ERROR: variable 'SHARED' is declared by services 'alpha' and 'beta' — keeping 'alpha'" present
+
+check "unknown-service-type.yaml: WARNING that the service is skipped" \
+  unknown-service-type.yaml "^# WARNING: service 'mystery' has unknown type 'no-such-type' — service skipped" present
+
+check "invalid-target-container.yaml: ERROR for a targetContainer outside the accepted set" \
+  invalid-target-container.yaml "^# ERROR: invalid targetContainer 'sidecar-typo' for 'BAD_CONTAINER'" present
+
+check "explicit-service-key.yaml: WARNING that an explicit 'service' is ignored" \
+  explicit-service-key.yaml "^# WARNING: variable 'OWNED' in service 'app' sets 'service' explicitly — ignored" present
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always

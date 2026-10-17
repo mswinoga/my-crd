@@ -1,0 +1,14 @@
+# A variable setting 'service' itself. Expect a "# WARNING:" and the
+# parent service ID ('app') to win.
+target: prod-01
+
+services:
+  app:
+    type: environment
+    environment:
+      OWNED:
+        default: "v"
+        service: someone-else
+
+spec:
+  value: "@OWNED@"

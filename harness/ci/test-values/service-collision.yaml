@@ -1,0 +1,17 @@
+# The same variable name declared by two services. Expect an
+# "# ERROR:" naming both services; the alphabetically first service
+# ('alpha') keeps the name, so @SHARED@ resolves to its value.
+target: prod-01
+
+services:
+  beta:
+    type: environment
+    environment:
+      SHARED: "from-beta"
+  alpha:
+    type: environment
+    environment:
+      SHARED: "from-alpha"
+
+spec:
+  shared: "@SHARED@"

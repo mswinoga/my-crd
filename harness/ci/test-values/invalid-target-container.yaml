@@ -1,0 +1,15 @@
+# A variable with a targetContainer outside main/side-car/both/none.
+# Expect an "# ERROR:" and the value corrected to "none" (the variable
+# still resolves).
+target: prod-01
+
+services:
+  app:
+    type: environment
+    environment:
+      BAD_CONTAINER:
+        default: "still-resolves"
+        targetContainer: sidecar-typo
+
+spec:
+  value: "@BAD_CONTAINER@"

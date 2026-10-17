@@ -1,0 +1,165 @@
+# services.<ID>.environment -> tokens (mycrd.serviceTokens). Assertions
+# on resolved values only; diagnostic comments are covered by
+# diagnostics_test.sh.
+suite: my-crd services
+templates:
+  - call.yaml
+tests:
+  - it: a scalar variable of an environment service resolves through @NAME@
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            GREETING: "hello"
+      spec.m: "@GREETING@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "hello"
+
+  - it: a dict variable resolves its target-specific entry for a sequenced target
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            COLOR:
+              default: "blue"
+              prod: "red"
+      spec.m: "@COLOR@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "red"
+
+  - it: a dict variable falls back to default for a target without a specific entry
+    set:
+      target: test-01
+      services:
+        app:
+          type: environment
+          environment:
+            COLOR:
+              default: "blue"
+              prod: "red"
+      spec.m: "@COLOR@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "blue"
+
+  - it: a variable declared by two services keeps the alphabetically first service's value
+    set:
+      target: prod-01
+      services:
+        zeta:
+          type: environment
+          environment:
+            SHARED: "from-zeta"
+        alpha:
+          type: environment
+          environment:
+            SHARED: "from-alpha"
+      spec.m: "@SHARED@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "from-alpha"
+
+  - it: variables of a service with an unknown type are not declared (marker stays unresolved)
+    set:
+      target: prod-01
+      services:
+        mystery:
+          type: no-such-type
+          environment:
+            GHOST: "never"
+      spec.m: "@GHOST@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "@GHOST@"
+
+  - it: variables of a service without a type are not declared
+    set:
+      target: prod-01
+      services:
+        typeless:
+          environment:
+            GHOST: "never"
+      spec.m: "@GHOST@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "@GHOST@"
+
+  - it: variables of different services can reference each other
+    values:
+      - ../harness/ci/test-values/services-basic.yaml
+    asserts:
+      - equal:
+          path: spec.dsn
+          value: "postgres://db.prod/orders?pool=10"
+      - equal:
+          path: spec.currency
+          value: "EUR"
+
+  - it: a service without an environment block is accepted
+    set:
+      target: prod-01
+      services:
+        bare:
+          type: environment
+      spec.m: "ok"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "ok"
+
+  - it: an invalid targetContainer is corrected without losing the variable's value
+    values:
+      - ../harness/ci/test-values/invalid-target-container.yaml
+    asserts:
+      - equal:
+          path: spec.value
+          value: "still-resolves"
+
+  - it: an explicit 'service' key on a variable does not prevent resolution
+    values:
+      - ../harness/ci/test-values/explicit-service-key.yaml
+    asserts:
+      - equal:
+          path: spec.value
+          value: "v"
+
+  - it: a consumer scalar overriding a library default replaces its value
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            LOG_LEVEL: "debug"
+      spec.m: "@LOG_LEVEL@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "debug"
+
+  - it: a consumer dict variable overriding a library default keeps the library default for other targets
+    set:
+      target: test-01
+      services:
+        app:
+          type: environment
+          environment:
+            LOG_LEVEL:
+              prod: "debug"
+      spec.m: "@LOG_LEVEL@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "info"

@@ -1,0 +1,13 @@
+# A service whose type is not in mycrd.serviceTypes. Expect a
+# "# WARNING:" and the whole service skipped, its environment included:
+# GHOST_VAR is never declared, so its marker is left unresolved.
+target: prod-01
+
+services:
+  mystery:
+    type: no-such-type
+    environment:
+      GHOST_VAR: "never-declared"
+
+spec:
+  ghost: "@GHOST_VAR@"
