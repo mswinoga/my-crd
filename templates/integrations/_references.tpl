@@ -19,12 +19,19 @@ Implementation notes:
      which it defines itself — dropped`. Self means: the service's own
      node, a node owned by the service (ctx.mycrd.owners), or a mount
      whose only contributor is the service.
-  2. Node missing in the model (crdkit.model.hasPath) -> ERROR `service
+  2. Node under a disabled service (`ctx.mycrd.disabled`, filled by
+     mycrd.integrations.services) -> ERROR `service '<id>' references
+     '<pointer>', which belongs to disabled service '<disabled>' —
+     dropped`. Checked before the existence check: a disabled service
+     has no node, and the message names the cause. Applies to service
+     and variable pointers; mount and file pointers carry no service, so
+     a mount only disabled services would have created falls under 3.
+  3. Node missing in the model (crdkit.model.hasPath) -> ERROR `service
      '<id>' references '<pointer>', which does not exist — dropped`. A
      variable whose token exists with its service but is not exported
      records `service '<id>' references '<pointer>': variable '<name>'
      is not exported (targetContainer none) — dropped` instead.
-  3. Otherwise kept.
+  4. Otherwise kept.
 - Kept pointers are unique (the registry is keyed by pointer); the
   `references` key is omitted when none is kept.
 - Pointers carry no `@TOKEN@` markers; they are never resolved.
@@ -39,8 +46,17 @@ Implementation notes:
   {{- range $pointer := sortAlpha (keys $refs) -}}
     {{- $descriptor := index $refs $pointer -}}
     {{- $contributors := get $ctx.mycrd.contributors $pointer | default dict -}}
+    {{- $disabledOwner := "" -}}
+    {{- range $disabled := sortAlpha (keys $ctx.mycrd.disabled) -}}
+      {{- $prefix := include "mycrd.paths.pointer" (dict "segments" (include "mycrd.paths.service" (dict "service" $disabled) | fromYaml).value) -}}
+      {{- if and (not $disabledOwner) (or (eq $pointer $prefix) (hasPrefix (printf "%s/" $prefix) $pointer)) -}}
+        {{- $disabledOwner = $disabled -}}
+      {{- end -}}
+    {{- end -}}
     {{- if or (eq $pointer $ownPointer) (eq (get $ctx.mycrd.owners $pointer | default "") $id) (and (eq (len $contributors) 1) (hasKey $contributors $id)) -}}
       {{- $_ := set $ctx.diag "warnings" (append $ctx.diag.warnings (printf "service '%s' references '%s', which it defines itself — dropped" $id $pointer)) -}}
+    {{- else if $disabledOwner -}}
+      {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' references '%s', which belongs to disabled service '%s' — dropped" $id $pointer $disabledOwner)) -}}
     {{- else if include "crdkit.model.hasPath" (concat (list $ctx.model) $descriptor.segments) -}}
       {{- $kept = append $kept $pointer -}}
     {{- else -}}

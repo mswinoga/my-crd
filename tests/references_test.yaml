@@ -102,6 +102,25 @@ tests:
       - notExists:
           path: spec.services.SVC1.environment
 
+  - it: a leader of a disabled greeter drops both references and has no references key
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/references-disabled.yaml
+    asserts:
+      - equal:
+          path: spec.services
+          value:
+            SVC2:
+              type: leader
+              environment:
+                SVC2_SEED:
+                  value: "5"
+                  targetContainer: main
+      - notExists:
+          path: spec.services.SVC2.references
+      - notExists:
+          path: spec.volumeMounts
+
   - it: two leaders of one greeter each list the same targets
     template: call.yaml
     set:

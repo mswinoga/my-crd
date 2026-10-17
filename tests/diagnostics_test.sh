@@ -153,6 +153,15 @@ check "references-not-exported.yaml: ERROR naming the variable that is not expor
 check "references-not-exported.yaml: the kept file reference adds no other diagnostics" \
   references-not-exported.yaml "^# (ERROR|WARNING):.*(volumeMounts|which it defines itself)" absent
 
+check "references-disabled.yaml: ERROR naming the disabled service for the variable reference" \
+  references-disabled.yaml "^# ERROR: service 'SVC2' references '/spec/services/SVC1/environment/SVC1_GREETER', which belongs to disabled service 'SVC1' — dropped" present
+
+check "references-disabled.yaml: generic does-not-exist ERROR for the file reference" \
+  references-disabled.yaml "^# ERROR: service 'SVC2' references '/spec/volumeMounts/SVC1-config/files/message', which does not exist — dropped" present
+
+check_count "references-disabled.yaml: exactly these two diagnostics" \
+  references-disabled.yaml '^# (ERROR|WARNING):' 2
+
 check "full-featured.yaml: exporting variables from several services adds no diagnostics about services" \
   full-featured.yaml "^# (ERROR|WARNING):.*(service|targetContainer)" absent
 
