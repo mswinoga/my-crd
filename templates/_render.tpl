@@ -6,7 +6,10 @@ always with THEIR root context (never nested under .Values.myCrd.*).
 
 Interface:
 - Params: none (uses `.` directly).
-- Returns: the rendered CR as YAML text (see crdkit.render).
+- Returns: the rendered CR as YAML text (see crdkit.render), with
+  diagnostics prepended as `# ERROR:`/`# WARNING:` comments. Deploy
+  mode with at least one error fails instead, with the control data
+  (mycrd.controlData).
 
 Implementation notes:
 - Thin wrapper supplying crdkit.render everything it can't know itself:
@@ -14,6 +17,11 @@ Implementation notes:
   preamble always first), this library's own target-escalation
   taxonomy (mycrd.parentTarget, templates/_target.tpl), the annotation
   names it owns (service, targetContainer) and a fresh diagnostics seed.
+- The mode comes from the values key `renderMode` (mycrd.renderMode):
+  `validate` always prints the output (CI greps it for `# ERROR:`);
+  `deploy` (default) aborts on errors, warnings never abort. This is
+  the one place a render calls `fail`: crdkit and every helper only
+  collect diagnostics, and this final decision turns them into an abort.
 - The `diag` dict is created here, first recorded into by
   mycrd.serviceTokens (pre-render), then seeded into crdkit.render, which
   appends to it and emits everything.
@@ -42,7 +50,52 @@ Implementation notes:
       "diag" $diag
       "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.services" "mycrd.integrations.references")
     ) -}}
+{{- if and (eq $mode "deploy") $diag.errors -}}
+  {{- fail (include "mycrd.controlData" (dict "context" . "diag" $diag)) -}}
+{{- end -}}
 {{- $output -}}
+{{- end -}}
+
+{{/*
+mycrd.controlData (internal)
+
+Builds the text of the abort message mycrd.render fails with in deploy
+mode when errors exist: a summary, the render's context, every
+diagnostic and a hint.
+
+Interface:
+- Params (dict): { "context": <root $>, "diag": <diag dict with
+  "errors"/"warnings" lists> }
+- Returns: text of the form
+  ```
+  my-crd: render aborted — <E> error(s), <W> warning(s)
+  release: <name>   namespace: <ns>   target: <target>   library: my-crd <version>
+  # ERROR: <message>      (one line per error)
+  # WARNING: <message>    (one line per warning)
+  re-run with renderMode: validate to see the rendered object
+  ```
+
+Implementation notes:
+- Diagnostics are de-duplicated (`uniq`, order-preserving) and use the
+  `# ERROR:`/`# WARNING:` prefixes crdkit emits; the counts are of the
+  de-duplicated lists, matching the lines shown.
+- Library version comes from crdkit.dependencyVersion (`unknown` when
+  the consumer does not declare my-crd as a dependency).
+*/}}
+{{- define "mycrd.controlData" -}}
+{{- $root := .context -}}
+{{- $errors := uniq .diag.errors -}}
+{{- $warnings := uniq .diag.warnings -}}
+{{- $version := include "crdkit.dependencyVersion" (dict "name" "my-crd" "context" $root) -}}
+my-crd: render aborted — {{ len $errors }} error(s), {{ len $warnings }} warning(s)
+release: {{ $root.Release.Name }}   namespace: {{ $root.Release.Namespace }}   target: {{ $root.Values.target }}   library: my-crd {{ $version }}
+{{- range $errors }}
+# ERROR: {{ . }}
+{{- end }}
+{{- range $warnings }}
+# WARNING: {{ . }}
+{{- end }}
+re-run with renderMode: validate to see the rendered object
 {{- end -}}
 
 {{/*

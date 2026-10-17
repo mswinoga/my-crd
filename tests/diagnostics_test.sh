@@ -60,6 +60,15 @@ check_count() {
   fi
 }
 
+check "render-deploy-clean.yaml: deploy mode renders when only warnings exist" \
+  render-deploy-clean.yaml '^kind: SomeCR' present
+
+check "render-deploy-clean.yaml: the WARNING stays as a comment" \
+  render-deploy-clean.yaml '^# WARNING:' present
+
+check "render-deploy-clean.yaml: no ERROR" \
+  render-deploy-clean.yaml '^# ERROR:' absent
+
 check "full-featured.yaml: ERROR for the no-default/no-matching-env token" \
   full-featured.yaml '^# ERROR:' present
 
@@ -206,5 +215,20 @@ check_fails() {
 
 check_fails "malformed-match-regex.yaml: render aborts on invalid regex, doesn't hang or silently swallow it" \
   harness/ci/failure-cases/malformed-match-regex.yaml "error parsing regexp"
+
+check_fails "render-deploy-errors.yaml: deploy mode aborts on an ERROR, control data carries summary, context, diagnostics and hint" \
+  harness/ci/failure-cases/render-deploy-errors.yaml "render aborted — 1 error\(s\), 1 warning\(s\)"
+
+check_fails "render-deploy-errors.yaml: control data lists the ERROR line" \
+  harness/ci/failure-cases/render-deploy-errors.yaml "^# ERROR: variable 'SHARED' is declared by services"
+
+check_fails "render-deploy-errors.yaml: control data lists the WARNING line" \
+  harness/ci/failure-cases/render-deploy-errors.yaml "^# WARNING: '@NOT_A_TOKEN@'"
+
+check_fails "render-deploy-errors.yaml: control data ends with the validate hint" \
+  harness/ci/failure-cases/render-deploy-errors.yaml "^re-run with renderMode: validate to see the rendered object"
+
+check_fails "render-mode-invalid.yaml: invalid renderMode aborts as deploy mode with its ERROR" \
+  harness/ci/failure-cases/render-mode-invalid.yaml "^# ERROR: values key 'renderMode' must be 'validate' or 'deploy' — rendering in deploy mode"
 
 exit $fail

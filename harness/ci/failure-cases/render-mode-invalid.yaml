@@ -1,0 +1,12 @@
+# Deliberately kept OUT of ci/test-values/ — an invalid renderMode is
+# recorded as an ERROR and the render runs in deploy mode, so it aborts
+# with control data. Exercised by tests/render_mode_test.yaml and
+# tests/diagnostics_test.sh.
+renderMode: validte
+
+target: prod-01
+
+services: {}
+
+spec:
+  replicas: 1

@@ -1,0 +1,11 @@
+# Deploy mode (renderMode overrides harness/values.yaml) with warnings
+# only: warnings never abort, so the object renders with the WARNING
+# comment on top. The unresolved marker below is the warning.
+renderMode: deploy
+
+target: prod-01
+
+services: {}
+
+spec:
+  value: "@NOT_A_TOKEN@"

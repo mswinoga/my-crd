@@ -1,0 +1,86 @@
+suite: my-crd render mode
+templates:
+  - call.yaml
+tests:
+  - it: deploy mode with no diagnostics renders the object
+    set:
+      renderMode: deploy
+      target: prod-01
+    asserts:
+      - equal:
+          path: kind
+          value: SomeCR
+
+  - it: deploy mode with warnings only still renders the object
+    set:
+      renderMode: deploy
+      target: prod-01
+      spec.value: "@NOT_A_TOKEN@"
+    asserts:
+      - equal:
+          path: spec.value
+          value: "@NOT_A_TOKEN@"
+
+  - it: validate mode renders the object even with errors
+    set:
+      renderMode: validate
+      target: prod-01
+      services.alpha.type: environment
+      services.alpha.environment.SHARED: "one"
+      services.beta.type: environment
+      services.beta.environment.SHARED: "two"
+    asserts:
+      - equal:
+          path: kind
+          value: SomeCR
+
+  # helm-unittest drops the first line of a multi-line `fail` message
+  # before matching, so the summary line (counts) is asserted in
+  # diagnostics_test.sh instead; the rest of the control data is
+  # matched exactly here.
+  - it: deploy mode with errors fails with the control data
+    set:
+      renderMode: deploy
+      target: prod-01
+      services.alpha.type: environment
+      services.alpha.environment.SHARED: "one"
+      services.beta.type: environment
+      services.beta.environment.SHARED: "two"
+      spec.value: "@NOT_A_TOKEN@"
+    asserts:
+      - failedTemplate:
+          errorMessage: |-
+            release: RELEASE-NAME   namespace: NAMESPACE   target: prod-01   library: my-crd 0.0.0
+            # ERROR: variable 'SHARED' is declared by services 'alpha' and 'beta' — keeping 'alpha'
+            # WARNING: '@NOT_A_TOKEN@' in the rendered model does not match any known token after resolution — possible typo
+            re-run with renderMode: validate to see the rendered object
+
+  - it: an absent renderMode means deploy mode
+    set:
+      renderMode: null
+      target: prod-01
+      services.alpha.type: environment
+      services.alpha.environment.SHARED: "one"
+      services.beta.type: environment
+      services.beta.environment.SHARED: "two"
+    asserts:
+      - failedTemplate:
+          errorPattern: "# ERROR: variable 'SHARED' is declared by services"
+
+  - it: an invalid renderMode fails and names the ERROR
+    set:
+      renderMode: validte
+      target: prod-01
+    asserts:
+      - failedTemplate:
+          errorPattern: "# ERROR: values key 'renderMode' must be 'validate' or 'deploy' — rendering in deploy mode"
+      - failedTemplate:
+          errorPattern: "re-run with renderMode: validate to see the rendered object"
+
+  - it: a non-string renderMode is invalid too
+    set:
+      renderMode: true
+      target: prod-01
+    asserts:
+      - failedTemplate:
+          errorPattern: "values key 'renderMode' must be"
