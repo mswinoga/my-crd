@@ -35,6 +35,9 @@ examples.
 ### Values shape
 
 ```yaml
+renderMode: deploy  # optional: "deploy" (default) or "validate" — see
+                    # "Render mode" below
+
 target: prod      # opaque string to crdkit; this library recognizes a
                   # bare env name (as here) or "<env>-<seq>" (e.g.
                   # "prod-01") for CRDs needing multiple numbered
@@ -340,8 +343,9 @@ service of an unknown type, and a disabled service, are skipped.
 
 ### Diagnostics
 
-Problems are never fatal — collected and emitted as YAML comments at
-the top of the rendered manifest:
+Problems are collected and emitted as YAML comments at the top of the
+rendered manifest (in deploy mode, errors abort instead — see "Render
+mode"):
 
 ```
 # ERROR: no value found for 'SOME_TOKEN' — target chain exhausted at 'PROD' starting from 'prod-01'
@@ -358,6 +362,37 @@ reported the same way.
 Only a token actually referenced somewhere gets checked — a declared
 but unused token produces no diagnostic even if broken. Reference it
 (e.g. via a spare `@NAME@` marker) to get it validated.
+
+### Render mode
+
+The values key `renderMode` selects what a render does with errors:
+
+| Value | Mode | Output | Exit |
+|---|---|---|---|
+| `validate` | validation (CI checking a values file) | rendered object plus `# ERROR:`/`# WARNING:` comments | 0, always |
+| absent or `deploy` | deployment (Helm, ArgoCD) | no errors: rendered object (warnings stay as comments); at least one error: the render fails with control data | 0 / 1 |
+| anything else | deployment | ERROR `values key 'renderMode' must be 'validate' or 'deploy' — rendering in deploy mode`; the render fails | 1 |
+
+- Only errors abort a deployment; warnings never do.
+- Helm cannot set an exit code from a template: `fail` always exits 1
+  and empties stdout. Validation mode never fails; CI detects errors by
+  grepping `^# ERROR:` in the output:
+
+  ```sh
+  helm template … --set renderMode=validate | tee out.yaml; ! grep -q '^# ERROR:' out.yaml
+  ```
+
+- The control data (the `fail` message):
+
+  ```
+  my-crd: render aborted — <E> error(s), <W> warning(s)
+  release: <name>   namespace: <ns>   target: <target>   library: my-crd <version>
+  # ERROR: <message>
+  # WARNING: <message>
+  re-run with renderMode: validate to see the rendered object
+  ```
+
+  All errors, then all warnings, de-duplicated.
 
 ## Local dev / testing
 
@@ -377,7 +412,11 @@ make render VALUES=path/to/wip.yaml   # render one arbitrary values file
 
 Suites under `tests/`: `token_resolution_test.yaml`,
 `services_test.yaml`, `references_test.yaml`, `helpers_test.yaml`,
-`paths_test.yaml`, `annotation_policy_test.yaml`, `snapshot_test.yaml`.
+`paths_test.yaml`, `annotation_policy_test.yaml`, `render_mode_test.yaml`,
+`snapshot_test.yaml`. `harness/values.yaml` sets `renderMode: validate`,
+so fixtures with deliberate errors keep rendering; deploy-mode fixtures
+override it, and the ones expected to abort live in
+`harness/ci/failure-cases/`.
 Harness probes (`annotation_policy_probe.yaml` via `policyProbe`,
 `paths_probe.yaml` via `pathsProbe`, `helpers_probe.yaml` via
 `helpersProbe`, all under `harness/templates/`) render only when their
