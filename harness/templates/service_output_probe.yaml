@@ -1,0 +1,22 @@
+{{- /*
+Test probe for mycrd.integrations.serviceOutput. Renders ONLY when
+.Values.outputProbe is set (never in harness/values.yaml or a fixture),
+so `make dev` and snapshots are unaffected.
+
+Input:  outputProbe: { target: <string>, adds: [ {name, value,
+        annotations} ... ] } plus ordinary `services:` values.
+        Each `adds` entry is applied with crdkit.token.add to an empty
+        token map, so a token without `service` can be provoked.
+Output: a YAML document { model: <ctx.model after the integration>,
+        diag: { errors, warnings } }
+*/ -}}
+{{- if .Values.outputProbe }}
+{{- $probe := .Values.outputProbe | toYaml | fromYaml }}
+{{- $diag := dict "errors" (list) "warnings" (list) }}
+{{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 }}
+{{- range $add := ($probe.adds | default (list)) }}
+  {{- include "crdkit.token.add" (list $ctx $add.name $add.value ($add.annotations | default dict)) }}
+{{- end }}
+{{- include "mycrd.integrations.serviceOutput" $ctx }}
+{{- dict "model" $ctx.model "diag" $diag | toYaml }}
+{{- end }}

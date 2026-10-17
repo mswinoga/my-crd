@@ -10,10 +10,11 @@
 #    name that doesn't exist -> must produce a "# WARNING:" comment
 #    (possible typo)
 #  - DB_HOST/SIDECAR_TOKEN/BOTH_TOKEN: declare an accepted targetContainer
-#    (main/side-car/both) -> picked up by mycrd.integration.variables into
-#    spec.variables, in addition to resolving/substituting normally.
+#    (main/side-car/both) -> exported by mycrd.integrations.serviceOutput
+#    under spec.services.app.environment, in addition to
+#    resolving/substituting normally.
 #  - NONE_TOKEN: explicit targetContainer: none -> excluded from
-#    spec.variables (same as SCALAR_TOKEN, which declares none at all).
+#    spec.services (same as SCALAR_TOKEN, which declares none at all).
 target: prod-01
 
 services:

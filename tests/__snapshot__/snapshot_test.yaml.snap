@@ -8,9 +8,7 @@ minimal values render matches the committed example snapshot:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: harness
         helm.sh/chart: harness-0.0.0
-        platform.company.io/integration-demo: "true"
         platform.company.io/library-version: 0.0.0
       name: RELEASE-NAME
     spec:
       replicas: 1
-      variables: {}

@@ -124,15 +124,6 @@ tests:
       - exists:
           path: metadata.labels["app.kubernetes.io/instance"]
 
-  - it: the integration chain runs and its label contribution is present
-    set:
-      target: prod-01
-      services: {}
-    asserts:
-      - equal:
-          path: metadata.labels["platform.company.io/integration-demo"]
-          value: "true"
-
   - it: a consumer-defined 'ENV' token collides with the reserved built-in and is discarded
     set:
       target: prod-01
@@ -187,36 +178,39 @@ tests:
           path: spec.dbHost
           value: "db.internal"
 
-  - it: "mycrd.integration.variables merges every accepted targetContainer (main/side-car/both) into spec.variables"
+  - it: "mycrd.integrations.serviceOutput lists every accepted targetContainer (main/side-car/both) under spec.services.<ID>.environment"
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
       - equal:
-          path: spec.variables.DB_HOST
+          path: spec.services.app.type
+          value: "environment"
+      - equal:
+          path: spec.services.app.environment.DB_HOST
           value:
-            name: "db.internal"
+            value: "db.internal"
             targetContainer: "main"
       - equal:
-          path: spec.variables.SIDECAR_TOKEN
+          path: spec.services.app.environment.SIDECAR_TOKEN
           value:
-            name: "sidecar-value"
+            value: "sidecar-value"
             targetContainer: "side-car"
       - equal:
-          path: spec.variables.BOTH_TOKEN
+          path: spec.services.app.environment.BOTH_TOKEN
           value:
-            name: "both-value"
+            value: "both-value"
             targetContainer: "both"
 
-  - it: "mycrd.integration.variables excludes targetContainer: none and tokens with no targetContainer at all"
+  - it: "mycrd.integrations.serviceOutput excludes targetContainer: none and tokens with no targetContainer at all"
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
       - exists:
-          path: spec.variables.NONE_TOKEN
+          path: spec.services.app.environment.NONE_TOKEN
         not: true
       - exists:
-          path: spec.variables.SCALAR_TOKEN
+          path: spec.services.app.environment.SCALAR_TOKEN
         not: true
       - exists:
-          path: spec.variables.ENV_TOKEN
+          path: spec.services.app.environment.ENV_TOKEN
         not: true

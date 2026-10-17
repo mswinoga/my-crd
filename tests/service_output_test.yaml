@@ -1,0 +1,249 @@
+# mycrd.integrations.serviceOutput: spec.services output shape.
+# Part 1 goes through mycrd.render. Part 2 uses
+# harness/templates/service_output_probe.yaml (renders only when
+# .Values.outputProbe is set) because the ERROR paths need a token added
+# via crdkit.token.add WITHOUT a service annotation, which no
+# end-to-end input can produce.
+suite: my-crd service output
+templates:
+  - call.yaml
+  - service_output_probe.yaml
+tests:
+  - it: spec.variables is not rendered
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/full-featured.yaml
+    asserts:
+      - exists:
+          path: spec.variables
+        not: true
+
+  - it: a service with exported variables appears with its type and the resolved value
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/services-basic.yaml
+    asserts:
+      - equal:
+          path: spec.services.orders
+          value:
+            type: environment
+            environment:
+              DB_HOST:
+                value: "db.prod"
+                targetContainer: main
+
+  - it: a service without exported variables does not appear
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/services-basic.yaml
+    asserts:
+      - exists:
+          path: spec.services.billing
+        not: true
+
+  - it: no spec.services at all when nothing is exported
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/minimal.yaml
+    asserts:
+      - exists:
+          path: spec.services
+        not: true
+
+  - it: an exported library default (LOG_LEVEL) is attributed to the declaring service
+    template: call.yaml
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            LOG_LEVEL:
+              targetContainer: main
+    asserts:
+      - equal:
+          path: spec.services.app.environment.LOG_LEVEL
+          value:
+            value: "info"
+            targetContainer: main
+
+  - it: an exported locked library token (ENV) is attributed to the declaring service with the library value
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/library-token-export.yaml
+    asserts:
+      - equal:
+          path: spec.services.app.environment.ENV
+          value:
+            value: "prod"
+            targetContainer: both
+
+  - it: a generated variable of a demo service is exported under that service
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/demo-service.yaml
+    asserts:
+      - equal:
+          path: spec.services.greeter
+          value:
+            type: demo
+            environment:
+              GREETER_GREETING:
+                value: "hi prod"
+                targetContainer: main
+
+  - it: variables of different services are grouped per service
+    template: call.yaml
+    set:
+      target: prod-01
+      services:
+        a:
+          type: environment
+          environment:
+            A_VAR: {default: "1", targetContainer: main}
+            A_TWO: {default: "2", targetContainer: both}
+        b:
+          type: environment
+          environment:
+            B_VAR: {default: "3", targetContainer: side-car}
+    asserts:
+      - equal:
+          path: spec.services
+          value:
+            a:
+              type: environment
+              environment:
+                A_TWO: {value: "2", targetContainer: both}
+                A_VAR: {value: "1", targetContainer: main}
+            b:
+              type: environment
+              environment:
+                B_VAR: {value: "3", targetContainer: side-car}
+
+  - it: a variable with a corrected (invalid) targetContainer is not exported
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/invalid-target-container.yaml
+    asserts:
+      - exists:
+          path: spec.services
+        not: true
+
+  - it: the consumer's own spec keys survive next to spec.services
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/services-basic.yaml
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: probe renders nothing when outputProbe is unset
+    template: service_output_probe.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: probe - an exported token added with its service is exported
+    template: service_output_probe.yaml
+    set:
+      services:
+        app:
+          type: environment
+      outputProbe:
+        adds:
+          - {name: ADDED, value: "v", annotations: {service: app, targetContainer: main}}
+    asserts:
+      - equal:
+          path: model
+          value:
+            spec:
+              services:
+                app:
+                  type: environment
+                  environment:
+                    ADDED: {value: "@ADDED@", targetContainer: main}
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - an exported token without a service records an ERROR and is skipped
+    template: service_output_probe.yaml
+    set:
+      services:
+        app:
+          type: environment
+      outputProbe:
+        adds:
+          - {name: ORPHAN, value: "v", annotations: {targetContainer: side-car}}
+    asserts:
+      - equal:
+          path: model
+          value: {}
+      - equal:
+          path: diag.errors
+          value:
+            - "token 'ORPHAN' is exported (targetContainer 'side-car') but has no service — skipped"
+
+  - it: probe - an exported token of an undeclared service records an ERROR and is skipped
+    template: service_output_probe.yaml
+    set:
+      services:
+        app:
+          type: environment
+      outputProbe:
+        adds:
+          - {name: LOST, value: "v", annotations: {service: nowhere, targetContainer: both}}
+    asserts:
+      - equal:
+          path: model
+          value: {}
+      - equal:
+          path: diag.errors
+          value:
+            - "token 'LOST' belongs to service 'nowhere', which is not declared under services — skipped"
+
+  - it: probe - a non-exported token is ignored even without a service
+    template: service_output_probe.yaml
+    set:
+      services:
+        app:
+          type: environment
+      outputProbe:
+        adds:
+          - {name: INTERNAL, value: "v", annotations: {targetContainer: none}}
+          - {name: PLAIN, value: "v"}
+    asserts:
+      - equal:
+          path: model
+          value: {}
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - valid and invalid tokens mix, errors are reported in token-name order
+    template: service_output_probe.yaml
+    set:
+      services:
+        app:
+          type: environment
+      outputProbe:
+        adds:
+          - {name: ZED, value: "v", annotations: {targetContainer: main}}
+          - {name: GOOD, value: "v", annotations: {service: app, targetContainer: both}}
+          - {name: ALPHA, value: "v", annotations: {service: ghost, targetContainer: main}}
+    asserts:
+      - equal:
+          path: model
+          value:
+            spec:
+              services:
+                app:
+                  type: environment
+                  environment:
+                    GOOD: {value: "@GOOD@", targetContainer: both}
+      - equal:
+          path: diag.errors
+          value:
+            - "token 'ALPHA' belongs to service 'ghost', which is not declared under services — skipped"
+            - "token 'ZED' is exported (targetContainer 'main') but has no service — skipped"
