@@ -5,7 +5,7 @@
 #    distinct value via match:; qa-01 (not qam1/qap1) falls through to
 #    the NONPROD super-tier instead, silently, no diagnostic.
 #  - ENV_FROM_TARGET: derives "env" itself via a capture group, purely
-#    to demonstrate the same primitive crdkit.deriveTargetEnv uses
+#    to show the same primitive crdkit.deriveTargetEnv uses
 #    internally — this is illustrative, not how a consumer would
 #    normally get @ENV@ (that's already a built-in token, see below).
 target: qam1-01

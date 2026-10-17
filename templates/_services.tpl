@@ -14,7 +14,7 @@ Implementation notes:
 {{- define "mycrd.serviceTypes" -}}
 value:
 - environment
-- demo
+- greeter
 {{- end -}}
 
 {{/*
@@ -464,6 +464,66 @@ Implementation notes:
     {{- end -}}
     {{- include "crdkit.token.underlay" (list $ctx .name .value $annotations) -}}
     {{- include "mycrd.service.exportVar" (dict "ctx" $ctx "id" .id "name" .name) -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+mycrd.service.addFile (internal)
+
+The way a service type handler contributes a file to a volume mount:
+creates the mount when absent and adds the file under its `files`.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "mount":
+  <mount name>, "source": <mount source, e.g. configMap>, "file": <file
+  name>, "content": <file content, may hold "@TOKEN@" markers> }
+- Returns: nothing (mutates ctx.model, ctx.mycrd and ctx.diag in place).
+
+Implementation notes:
+- Service must be added (mycrd.service.guard), otherwise an ERROR is
+  recorded and nothing happens.
+- Mounts are shared: several services may add different files to one
+  mount, and each becomes a contributor of it.
+- A mount that exists with a different `source` records an ERROR and the
+  file is not added.
+- A file that already exists in the mount records an ERROR naming its
+  owner; the first definition is kept.
+- `content` is resolved by crdkit.render's single substitution pass.
+- Records the file's owner and the mount's contributor in ctx.mycrd.
+*/}}
+{{- define "mycrd.service.addFile" -}}
+{{- $ctx := .ctx -}}
+{{- $id := toString .id -}}
+{{- if include "mycrd.service.guard" (dict "ctx" $ctx "id" $id "helper" "mycrd.service.addFile") -}}
+  {{- $mountSegments := (include "mycrd.paths.mount" (dict "mount" .mount) | fromYaml).value -}}
+  {{- $fileSegments := (include "mycrd.paths.file" (dict "mount" .mount "file" .file) | fromYaml).value -}}
+  {{- $mountPointer := include "mycrd.paths.pointer" (dict "segments" $mountSegments) -}}
+  {{- $filePointer := include "mycrd.paths.pointer" (dict "segments" $fileSegments) -}}
+  {{- $add := true -}}
+  {{- if include "crdkit.model.hasPath" (concat (list $ctx.model) $mountSegments) -}}
+    {{- $node := $ctx.model -}}
+    {{- range $segment := $mountSegments -}}
+      {{- $node = index $node $segment -}}
+    {{- end -}}
+    {{- $have := get $node "source" -}}
+    {{- if ne (toString $have) (toString .source) -}}
+      {{- $add = false -}}
+      {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "mount '%s' has source '%s', service '%s' asked for '%s' — file '%s' not added" .mount $have $id .source .file)) -}}
+    {{- else if include "crdkit.model.hasPath" (concat (list $ctx.model) $fileSegments) -}}
+      {{- $add = false -}}
+      {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "file '%s' in mount '%s' is already defined by service '%s'" .file .mount (get $ctx.mycrd.owners $filePointer))) -}}
+    {{- end -}}
+  {{- else -}}
+    {{- include "crdkit.dictMerge" (concat (list $ctx.model) $mountSegments (list (dict "source" .source))) -}}
+  {{- end -}}
+  {{- if $add -}}
+    {{- include "crdkit.dictMerge" (concat (list $ctx.model) $mountSegments (list "files") (list (dict .file .content))) -}}
+    {{- $_ := set $ctx.mycrd.owners $filePointer $id -}}
+    {{- if not (hasKey $ctx.mycrd.contributors $mountPointer) -}}
+      {{- $_ := set $ctx.mycrd.contributors $mountPointer (dict) -}}
+    {{- end -}}
+    {{- $_ := set (index $ctx.mycrd.contributors $mountPointer) $id true -}}
   {{- end -}}
 {{- end -}}
 {{- end -}}

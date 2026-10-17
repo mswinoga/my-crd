@@ -130,3 +130,113 @@ tests:
             - "service 'other' was not added — helper 'mycrd.service.addVar' ignored"
       - notExists:
           path: model.spec.services.other
+
+  - it: probe - addFile creates the mount with its source and records owner and contributor
+    set:
+      services:
+        a:
+          type: environment
+      helpersProbe:
+        calls:
+          - {helper: add, params: {id: a}}
+          - {helper: addFile, params: {id: a, mount: m, source: configMap, file: app.conf, content: "@ENV@"}}
+    asserts:
+      - equal:
+          path: model.spec.volumeMounts
+          value:
+            m:
+              source: configMap
+              files:
+                app.conf: "@ENV@"
+      - equal:
+          path: registry.owners
+          value:
+            /spec/volumeMounts/m/files/app.conf: a
+      - equal:
+          path: registry.contributors
+          value:
+            /spec/volumeMounts/m: {a: true}
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - addFile for a service that was not added records an ERROR and creates nothing
+    set:
+      services:
+        a:
+          type: environment
+      helpersProbe:
+        calls:
+          - {helper: addFile, params: {id: a, mount: m, source: configMap, file: f, content: "x"}}
+    asserts:
+      - equal:
+          path: model
+          value: {}
+      - equal:
+          path: registry.contributors
+          value: {}
+      - equal:
+          path: diag.errors
+          value:
+            - "service 'a' was not added — helper 'mycrd.service.addFile' ignored"
+
+  - it: mount-conflicts - the same file from two services records an ERROR and keeps the first
+    values:
+      - ../harness/ci/probe-values/mount-conflicts.yaml
+    asserts:
+      - equal:
+          path: model.spec.volumeMounts.shared-same
+          value:
+            source: configMap
+            files:
+              app.conf: "from a"
+      - contains:
+          path: diag.errors
+          content: "file 'app.conf' in mount 'shared-same' is already defined by service 'a'"
+      - equal:
+          path: registry.contributors["/spec/volumeMounts/shared-same"]
+          value: {a: true}
+
+  - it: mount-conflicts - a different source on a shared mount records an ERROR and the file is not added
+    values:
+      - ../harness/ci/probe-values/mount-conflicts.yaml
+    asserts:
+      - equal:
+          path: model.spec.volumeMounts.shared-source
+          value:
+            source: configMap
+            files:
+              x.txt: "x"
+      - contains:
+          path: diag.errors
+          content: "mount 'shared-source' has source 'configMap', service 'b' asked for 'secret' — file 'y.txt' not added"
+      - equal:
+          path: registry.contributors["/spec/volumeMounts/shared-source"]
+          value: {a: true}
+      - notExists:
+          path: registry.owners["/spec/volumeMounts/shared-source/files/y.txt"]
+
+  - it: mount-conflicts - different files from two services share one mount and both contribute
+    values:
+      - ../harness/ci/probe-values/mount-conflicts.yaml
+    asserts:
+      - equal:
+          path: model.spec.volumeMounts.shared-ok
+          value:
+            source: configMap
+            files:
+              one.conf: "1"
+              two.conf: "2"
+      - equal:
+          path: registry.contributors["/spec/volumeMounts/shared-ok"]
+          value: {a: true, b: true}
+
+  - it: mount-conflicts - exactly the two expected ERRORs are recorded, in call order
+    values:
+      - ../harness/ci/probe-values/mount-conflicts.yaml
+    asserts:
+      - equal:
+          path: diag.errors
+          value:
+            - "file 'app.conf' in mount 'shared-same' is already defined by service 'a'"
+            - "mount 'shared-source' has source 'configMap', service 'b' asked for 'secret' — file 'y.txt' not added"

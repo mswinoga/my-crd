@@ -1,0 +1,25 @@
+# Input for tests/helpers_test.yaml (NOT scanned by `make dev`: it sets
+# the probe key, so a plain render would print the probe document).
+# mycrd.service.addFile called by two added services:
+#  - shared-same: both add the file 'app.conf'      -> ERROR, a's kept
+#  - shared-source: a creates it as configMap, b asks for secret
+#                                                   -> ERROR, file not added
+#  - shared-ok: a adds 'one.conf', b adds 'two.conf' -> both present
+target: prod-01
+
+services:
+  a:
+    type: environment
+  b:
+    type: environment
+
+helpersProbe:
+  calls:
+    - {helper: add, params: {id: a}}
+    - {helper: add, params: {id: b}}
+    - {helper: addFile, params: {id: a, mount: shared-same, source: configMap, file: app.conf, content: "from a"}}
+    - {helper: addFile, params: {id: b, mount: shared-same, source: configMap, file: app.conf, content: "from b"}}
+    - {helper: addFile, params: {id: a, mount: shared-source, source: configMap, file: x.txt, content: "x"}}
+    - {helper: addFile, params: {id: b, mount: shared-source, source: secret, file: y.txt, content: "y"}}
+    - {helper: addFile, params: {id: a, mount: shared-ok, source: configMap, file: one.conf, content: "1"}}
+    - {helper: addFile, params: {id: b, mount: shared-ok, source: configMap, file: two.conf, content: "2"}}

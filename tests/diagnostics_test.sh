@@ -97,11 +97,11 @@ check "library-token-export.yaml: widening a default's targetContainer (LOG_LEVE
 check "locked-token-collision.yaml: WARNING from the annotation step, not only crdkit's" \
   locked-token-collision.yaml "^# WARNING: token 'API_GROUP' is reserved by the library — only annotations were applied" present
 
-check "demo-service.yaml: no diagnostics" \
-  demo-service.yaml '^# (ERROR|WARNING):' absent
+check "greeter-service.yaml: no diagnostics" \
+  greeter-service.yaml '^# (ERROR|WARNING):' absent
 
 check "generated-owner-conflict.yaml: ERROR that the generated variable is owned by another service" \
-  generated-owner-conflict.yaml "^# ERROR: service 'greeter' generates variable 'GREETER_GREETING', already owned by service 'alpha' — generated value ignored" present
+  generated-owner-conflict.yaml "^# ERROR: service 'hello' generates variable 'HELLO_GREETER', already owned by service 'alpha' — generated value ignored" present
 
 check "internal-key.yaml: WARNING that a crdkit-internal key was removed" \
   internal-key.yaml "^# WARNING: token 'LEAKY' declares crdkit-internal key '_generated'; it was removed" present
@@ -115,8 +115,8 @@ check "malformed-service.yaml: no unknown-type warning on top of the shape warni
 check "malformed-environment.yaml: WARNING for a non-map environment (environment service)" \
   malformed-environment.yaml "^# WARNING: service 'orders': 'environment' must be a map — ignored" present
 
-check "malformed-environment.yaml: WARNING for a non-map environment (demo service)" \
-  malformed-environment.yaml "^# WARNING: service 'greeter': 'environment' must be a map — ignored" present
+check "malformed-environment.yaml: WARNING for a non-map environment (greeter service)" \
+  malformed-environment.yaml "^# WARNING: service 'hello': 'environment' must be a map — ignored" present
 
 check "malformed-services-root.yaml: WARNING that a non-map root 'services' is ignored" \
   malformed-services-root.yaml "^# WARNING: values key 'services' must be a map — ignored" present

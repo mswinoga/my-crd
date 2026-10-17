@@ -1,4 +1,4 @@
-# The 'greeter' demo service generates GREETER_GREETING, but service
+# The 'hello' greeter service generates HELLO_GREETER, but service
 # 'alpha' already declares a variable of that name. Expect an "# ERROR:"
 # ("already owned by service 'alpha'"); alpha's value is what resolves.
 target: prod-01
@@ -7,10 +7,10 @@ services:
   alpha:
     type: environment
     environment:
-      GREETER_GREETING: "from-alpha"
-  greeter:
-    type: demo
+      HELLO_GREETER: "from-alpha"
+  hello:
+    type: greeter
     greeting: "generated"
 
 spec:
-  greeting: "@GREETER_GREETING@"
+  greeter: "@HELLO_GREETER@"

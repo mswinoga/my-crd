@@ -247,17 +247,53 @@ tests:
           path: spec.env
           value: "prod"
 
-  - it: a demo service generates <ID>_GREETING from its greeting
+  - it: a greeter service generates <SID>_GREETER holding its ID
     set:
       target: prod-01
       services:
         greeter:
-          type: demo
+          type: greeter
           greeting: "hi @ENV@"
-      spec.g: "@GREETER_GREETING@"
+      spec.g: "@GREETER_GREETER@"
     asserts:
       - equal:
           path: spec.g
+          value: "greeter"
+
+  - it: a greeter service generates the mount <ID>-config with the greeting as file 'message'
+    set:
+      target: prod-01
+      services:
+        SVC1:
+          type: greeter
+          greeting: hello
+    asserts:
+      - equal:
+          path: spec.services.SVC1
+          value:
+            type: greeter
+            environment:
+              SVC1_GREETER:
+                value: SVC1
+                targetContainer: main
+      - equal:
+          path: spec.volumeMounts
+          value:
+            SVC1-config:
+              source: configMap
+              files:
+                message: hello
+
+  - it: a marker in the greeting is resolved in the file content
+    set:
+      target: prod-01
+      services:
+        greeter:
+          type: greeter
+          greeting: "hi @ENV@"
+    asserts:
+      - equal:
+          path: spec.volumeMounts.greeter-config.files.message
           value: "hi prod"
 
   - it: a consumer's target entry for the generated variable overrides it
@@ -265,27 +301,32 @@ tests:
       target: prod-01
       services:
         greeter:
-          type: demo
+          type: greeter
           greeting: "hi"
           environment:
-            GREETER_GREETING:
+            GREETER_GREETER:
               prod: "custom"
-      spec.g: "@GREETER_GREETING@"
+      spec.g: "@GREETER_GREETER@"
     asserts:
       - equal:
           path: spec.g
           value: "custom"
+      - equal:
+          path: spec.services.greeter.environment.GREETER_GREETER
+          value:
+            value: "custom"
+            targetContainer: main
 
   - it: a consumer's default for the generated variable beats the generated value
     set:
       target: prod-01
       services:
         greeter:
-          type: demo
+          type: greeter
           greeting: "hi"
           environment:
-            GREETER_GREETING: "mine"
-      spec.g: "@GREETER_GREETING@"
+            GREETER_GREETER: "mine"
+      spec.g: "@GREETER_GREETER@"
     asserts:
       - equal:
           path: spec.g
@@ -296,61 +337,81 @@ tests:
       target: test-01
       services:
         greeter:
-          type: demo
+          type: greeter
           greeting: "generated"
           environment:
-            GREETER_GREETING:
+            GREETER_GREETER:
               prod: "custom"
-      spec.g: "@GREETER_GREETING@"
+      spec.g: "@GREETER_GREETER@"
     asserts:
       - equal:
           path: spec.g
-          value: "generated"
+          value: "greeter"
 
-  - it: a service ID with a hyphen yields an underscored variable name
+  - it: a service ID with a hyphen yields an underscored variable name and a hyphenated mount
     set:
       target: prod-01
       services:
         my-greeter:
-          type: demo
+          type: greeter
           greeting: "hello"
-      spec.g: "@MY_GREETER_GREETING@"
+      spec.g: "@MY_GREETER_GREETER@"
     asserts:
       - equal:
           path: spec.g
+          value: "my-greeter"
+      - equal:
+          path: spec.volumeMounts.my-greeter-config.files.message
           value: "hello"
 
-  - it: each demo service generates its own variable
+  - it: two greeters generate their own variable and their own mount
     set:
       target: prod-01
       services:
         b:
-          type: demo
+          type: greeter
           greeting: "from b"
         a:
-          type: demo
+          type: greeter
           greeting: "from a"
-      spec.a: "@A_GREETING@"
-      spec.b: "@B_GREETING@"
+      spec.a: "@A_GREETER@"
+      spec.b: "@B_GREETER@"
     asserts:
       - equal:
           path: spec.a
-          value: "from a"
+          value: "a"
       - equal:
           path: spec.b
-          value: "from b"
+          value: "b"
+      - equal:
+          path: spec.volumeMounts
+          value:
+            a-config:
+              source: configMap
+              files:
+                message: "from a"
+            b-config:
+              source: configMap
+              files:
+                message: "from b"
 
-  - it: a demo service without greeting generates nothing
+  - it: a greeter service without greeting generates nothing but still appears with its type
     set:
       target: prod-01
       services:
         quiet:
-          type: demo
-      spec.g: "@QUIET_GREETING@"
+          type: greeter
+      spec.g: "@QUIET_GREETER@"
     asserts:
       - equal:
           path: spec.g
-          value: "@QUIET_GREETING@"
+          value: "@QUIET_GREETER@"
+      - equal:
+          path: spec.services.quiet
+          value:
+            type: greeter
+      - notExists:
+          path: spec.volumeMounts
 
   - it: a service of unknown type generates nothing even if it has a greeting
     set:
@@ -359,26 +420,33 @@ tests:
         ghost:
           type: no-such-type
           greeting: "boo"
-      spec.g: "@GHOST_GREETING@"
+      spec.g: "@GHOST_GREETER@"
     asserts:
       - equal:
           path: spec.g
-          value: "@GHOST_GREETING@"
+          value: "@GHOST_GREETER@"
+      - notExists:
+          path: spec.volumeMounts
 
   - it: a generated variable owned by another service does not replace the owner's value
     values:
       - ../harness/ci/test-values/generated-owner-conflict.yaml
     asserts:
       - equal:
-          path: spec.greeting
+          path: spec.greeter
           value: "from-alpha"
+      - notExists:
+          path: spec.services.hello.environment
 
-  - it: the demo-service fixture resolves its generated greeting
+  - it: the greeter-service fixture resolves its generated variable and file
     values:
-      - ../harness/ci/test-values/demo-service.yaml
+      - ../harness/ci/test-values/greeter-service.yaml
     asserts:
       - equal:
-          path: spec.greeting
+          path: spec.greeter
+          value: "hello"
+      - equal:
+          path: spec.volumeMounts.hello-config.files.message
           value: "hi prod"
 
   - it: crdkit-internal keys in a consumer variable are dropped (no injected generated value)
@@ -399,21 +467,20 @@ tests:
       - notExists:
           path: spec.services.broken
 
-  - it: a non-map environment is ignored while the demo handler still generates its variable
+  - it: a non-map environment is ignored while the greeter handler still generates its variable
     values:
       - ../harness/ci/test-values/malformed-environment.yaml
     asserts:
       - equal:
-          path: spec.greeting
-          value: "hi"
+          path: spec.greeter
+          value: "hello"
       - equal:
-          path: spec.services.greeter.environment.GREETER_GREETING.value
-          value: "hi"
+          path: spec.services.hello.environment.HELLO_GREETER.value
+          value: "hello"
 
   # ---- service output: spec.services.<ID> ----
 
   - it: spec.variables is not rendered
-    template: call.yaml
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
@@ -422,7 +489,6 @@ tests:
         not: true
 
   - it: a service with exported variables appears with its type and the resolved value
-    template: call.yaml
     values:
       - ../harness/ci/test-values/services-basic.yaml
     asserts:
@@ -436,7 +502,6 @@ tests:
                 targetContainer: main
 
   - it: a service without exported variables appears with its type only
-    template: call.yaml
     values:
       - ../harness/ci/test-values/services-basic.yaml
     asserts:
@@ -446,7 +511,6 @@ tests:
             type: environment
 
   - it: no spec.services at all when no service is declared
-    template: call.yaml
     values:
       - ../harness/ci/test-values/minimal.yaml
     asserts:
@@ -455,7 +519,6 @@ tests:
         not: true
 
   - it: every dispatched service appears in spec.services, exported variables or not
-    template: call.yaml
     set:
       target: prod-01
       services:
@@ -477,7 +540,6 @@ tests:
             targetContainer: main
 
   - it: a service with an unknown type is not dispatched and does not appear
-    template: call.yaml
     set:
       target: prod-01
       services:
@@ -489,7 +551,6 @@ tests:
         not: true
 
   - it: an exported library default (LOG_LEVEL) is attributed to the declaring service
-    template: call.yaml
     set:
       target: prod-01
       services:
@@ -506,7 +567,6 @@ tests:
             targetContainer: main
 
   - it: an exported locked library token (ENV) is attributed to the declaring service with the library value
-    template: call.yaml
     values:
       - ../harness/ci/test-values/library-token-export.yaml
     asserts:
@@ -516,22 +576,20 @@ tests:
             value: "prod"
             targetContainer: both
 
-  - it: a generated variable of a demo service is exported under that service
-    template: call.yaml
+  - it: a generated variable of a greeter service is exported under that service
     values:
-      - ../harness/ci/test-values/demo-service.yaml
+      - ../harness/ci/test-values/greeter-service.yaml
     asserts:
       - equal:
-          path: spec.services.greeter
+          path: spec.services.hello
           value:
-            type: demo
+            type: greeter
             environment:
-              GREETER_GREETING:
-                value: "hi prod"
+              HELLO_GREETER:
+                value: "hello"
                 targetContainer: main
 
   - it: variables of different services are grouped per service
-    template: call.yaml
     set:
       target: prod-01
       services:
@@ -559,7 +617,6 @@ tests:
                 B_VAR: {value: "3", targetContainer: side-car}
 
   - it: the full-featured fixture exports variables of two services separately
-    template: call.yaml
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
@@ -573,7 +630,6 @@ tests:
                 targetContainer: both
 
   - it: a variable with a corrected (invalid) targetContainer is not exported
-    template: call.yaml
     values:
       - ../harness/ci/test-values/invalid-target-container.yaml
     asserts:
@@ -583,7 +639,6 @@ tests:
             type: environment
 
   - it: the consumer's own spec keys survive next to spec.services
-    template: call.yaml
     values:
       - ../harness/ci/test-values/services-basic.yaml
     asserts:

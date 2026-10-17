@@ -1,0 +1,13 @@
+# A 'greeter' service: its handler generates HELLO_GREETER (exported to
+# the main container) and the configMap mount hello-config with the file
+# 'message' (the greeting, markers resolved). Must render with no
+# diagnostics.
+target: prod-01
+
+services:
+  hello:
+    type: greeter
+    greeting: "hi @ENV@"
+
+spec:
+  greeter: "@HELLO_GREETER@"
