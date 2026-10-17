@@ -11,7 +11,9 @@ Implementation notes:
 - Wrapped in `value:` — Helm's `fromYaml` cannot decode a bare list.
 */}}
 {{- define "mycrd.serviceTypes" -}}
-value: {{ list "environment" "demo" | toYaml | nindent 2 }}
+value:
+- environment
+- demo
 {{- end -}}
 
 {{/*
@@ -49,7 +51,9 @@ Interface:
   as a reserved key (never a target entry).
 */}}
 {{- define "mycrd.annotationNames" -}}
-value: {{ list "service" "targetContainer" | toYaml | nindent 2 }}
+value:
+- service
+- targetContainer
 {{- end -}}
 
 {{/*
