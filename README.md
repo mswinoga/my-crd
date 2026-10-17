@@ -43,57 +43,74 @@ target: prod      # opaque string to crdkit; this library recognizes a
                   # the CLI, not committed to a values file. Only
                   # checked lazily, if a token resolution needs it.
 
-tokens:
-  TOKEN1: "val1"                         # scalar: same for every target
-  TOKEN2:                                # dict: a literal key per target/rung
-    default: "nonprod"
-    prod: "prod"
-  TOKEN3: "this @TOKEN1@ is nice"        # tokens can reference other tokens
-  TOKEN4:
-    default: "generic"
-    match:                               # regex against the full target string,
-      - "prod-0[1-3]": "canary-@AT@1"    # tried once, wins over any literal
-                                          # key — see "Target escalation" below
-  DB_HOST:
-    targetContainer: main                # opt-in: main/side-car/both (default "none")
-    default: "db.internal"               # same dedicated-attribute/match/escalation resolution as any token
+services:
+  orders:                                # service ID (any string)
+    type: environment                    # a type from mycrd.serviceTypes
+    environment:                         # variables of this service
+      VAR1: "val1"                       # scalar: same for every target
+      VAR2:                              # dict: a literal key per target/rung
+        default: "nonprod"
+        prod: "prod"
+      VAR3: "this @VAR1@ is nice"        # variables can reference others
+      VAR4:
+        default: "generic"
+        match:                           # regex against the full target string,
+          - "prod-0[1-3]": "canary-@AT@1"  # tried once, wins over any literal
+                                         # key — see "Target escalation" below
+      DB_HOST:
+        targetContainer: main            # export: main/side-car/both (absent = none)
+        default: "db.internal"           # same dedicated-attribute/match/escalation
+                                         # resolution as any variable
+  greeter:
+    type: demo                           # demonstration type (see "Service types")
+    greeting: "hi @ENV@"
 
 some:
   other:
     part:
-      attr: "@TOKEN3@ resolves here"     # @NAME@ markers work anywhere
-                                          # outside of tokens: itself
+      attr: "@VAR3@ resolves here"       # @NAME@ markers work anywhere
+                                         # outside of services: itself
       env: "@ENV@"                       # this library's own env-equivalent
-                                          # token (see "Library-owned tokens"
-                                          # below) — NOT a crdkit built-in
+                                         # token (see "Library-owned tokens"
+                                         # below) — NOT a crdkit built-in
 ```
 
-Token names must be `UPPER_SNAKE_CASE` (`^[A-Z][A-Z0-9_]*$`) — a
+Variable names must be `UPPER_SNAKE_CASE` (`^[A-Z][A-Z0-9_]*$`) — a
 non-conforming name still resolves and renders, but records a
 `# WARNING:` (applies to every token, including the library's own
 locked/default ones).
 
 `@AT@` is crdkit's one reserved built-in marker — always resolves to a
-literal `@`; `tokens.AT` is discarded with a `# WARNING:` if redefined.
+literal `@`; a variable named `AT` is discarded with a `# WARNING:`.
 `@ENV@` is NOT a crdkit concept — it's an ordinary locked token this
 library defines itself (see "Library-owned tokens" below); consumers
 can't override it because it's in `system`, not because crdkit reserves
 the name.
 
+Variables are declared only under `services.<ID>.environment`; a root
+`tokens:` key is not read and records a `# WARNING:`.
+
 ### Token model
 
-- A token DECLARATION is a plain scalar (same value everywhere) or a
-  dict, with `targetContainer`/`match` (both optional) coexisting flat
-  alongside however many literal target-name keys the token needs.
+- Every variable becomes a flat, global token. A DECLARATION is a plain
+  scalar (same value everywhere) or a dict, with `targetContainer`/
+  `service`/`match` (all optional) coexisting flat alongside however
+  many literal target-name keys the token needs.
+- `service` and `targetContainer` are ANNOTATIONS: static metadata,
+  never resolved. `service` is always the ID of the declaring service
+  (an explicit one is ignored with a `# WARNING:`).
+- A variable name may be declared by one service only: when two services
+  declare it, the alphabetically first service keeps it and an
+  `# ERROR:` is recorded.
+- A service with a missing or unknown `type` is skipped entirely
+  (`# WARNING:`), its `environment` included.
+- `targetContainer` is one of `main`, `side-car`, `both`, `none`
+  (default); any other value records an `# ERROR:` and is treated as
+  `none`. Tokens with `main`/`side-car`/`both` are EXPORTED into the
+  rendered CR (see "Output").
 - Resolving a token (`crdkit.token.value`) returns a separate shape,
   `{value}` — the interpolated result for one name+target pair (a
   string, or a structure if the selected entry is itself one).
-- Declare `targetContainer` (as `DB_HOST` above) when a token should be
-  picked up by the downstream k8s controller as a container env var:
-  `main`, `side-car`, `both`, or `none` (default), validated eagerly at
-  merge time. `mycrd.integrations.variables` reads it directly off the
-  declaration (not via resolution) and merges accepted tokens into
-  `spec.variables` — see "Integrations" below.
 
 See `../crdkit/README.md`'s "Token model" for the full mechanics.
 
@@ -112,6 +129,8 @@ See `../crdkit/README.md`'s "Token model" for the full mechanics.
    "NONPROD"/"PROD" tier -> "default"`. Every rung visited gets cached.
 4. `default` — a hardcoded, last-resort fallback checked directly,
    regardless of taxonomy.
+5. A value GENERATED by a service type for the exact `target` (e.g. the
+   `demo` type's greeting) — below everything a consumer declared.
 
 If nothing resolves, rendering emits an `# ERROR:` comment (see
 Diagnostics below) rather than failing — except a malformed `match:`
@@ -121,33 +140,83 @@ deliberate departure from "never fail()" in this whole system).
 ### Library-owned tokens
 
 - **locked** (`templates/_tokens.system.tpl` → `mycrd.systemTokens`):
-  `API_GROUP`, `LIBRARY_VERSION`, `ENV`. Consumers cannot override
-  these — an attempt is discarded with a `# WARNING:`.
-- **default** (`mycrd.defaultTokens`): `LOG_LEVEL`, `TIMEOUT`. Consumers
-  *can* override these.
+  `API_GROUP`, `LIBRARY_VERSION`, `ENV`. A consumer variable of the same
+  name never changes the value.
+- **default** (`mycrd.defaultTokens`): `LOG_LEVEL`, `TIMEOUT`. A
+  consumer variable of the same name overrides the value.
 
 `LIBRARY_VERSION` reports this library chart's own version (via
 `crdkit.dependencyVersion`), not the consuming chart's. `ENV` is this
 library's own `@ENV@`-equivalent (`mycrd.deriveEnv`,
 `templates/_target.tpl`) — not a crdkit concept.
 
+A consumer variable named like a library token may carry annotations
+(e.g. `targetContainer: main`, to export it):
+- annotations the library set are locked (a different value records a
+  `# WARNING:`); missing ones are filled in;
+- `targetContainer` can only widen (`none` → anything; `main` →
+  `main`/`both`; `side-car` → `side-car`/`both`; `both` stays);
+  narrowing records a `# WARNING:` and keeps the library value;
+- for a locked token, value keys are ignored with a `# WARNING:` (`token
+  '<NAME>' is reserved by the library — only annotations were applied`),
+  the annotations still apply.
+
+### Service types
+
+`type` selects a handler from `mycrd.serviceTypes` (ordered; handlers run
+in that order, services of one type alphabetically):
+
+- `environment` — a plain bag of variables (`environment:` only).
+- `demo` — demonstration type. `greeting: "<text>"` generates the
+  variable `<ID>_GREETING` (ID upper-cased, `-` → `_`), exported to the
+  main container. A consumer declaration of the same name under the
+  service's `environment` overrides it; its `default` too.
+
+Every type accepts `environment:`. Generated values rank below every
+consumer-declared source.
+
+Adding a type:
+1. `templates/serviceTypes/_<type>.tpl` defining `mycrd.serviceType.<type>`
+   (params `{ctx, id, service}`).
+2. Add the name to `mycrd.serviceTypes` (`templates/_services.tpl`).
+3. Contribute variables with `mycrd.service.addVar` (`{ctx, id, name,
+   value, targetContainer?}`); a name owned by another service records
+   an `# ERROR:`.
+
 ### Integrations
 
 `mycrd.render` wires a fixed chain into `crdkit.render`:
 `mycrd.integrations.preamble` always first — the only thing giving the
 rendered CR a shape at all (`apiVersion`/`kind`, `metadata.name`,
-`metadata.labels`, `spec`) — then `mycrd.integrations.demo`, a
-proof-of-mechanism stub, then `mycrd.integrations.variables`, which
-merges every token declaring an accepted `targetContainer` into
-`spec.variables`. Further integrations (database, cos, messaging,
-outbound http, ...) land as `mycrd.integrations.*` defines as this
-library grows.
+`metadata.labels`, `spec`) — then `mycrd.integrations.services` (the
+service-type dispatcher), then `mycrd.integrations.serviceOutput`
+(always last). Further integrations (database, cos, messaging, outbound
+http, ...) land as `mycrd.integrations.*` defines as this library grows.
 
 Every integration must emit no literal text of its own — only mutate
 `ctx.model`/`ctx.tokens` via `crdkit.ensureDictKey`/`dictMerge`/
-`listExtend`/`token.add` (all empty-returning). `crdkit.integrations.chain`
-calls each chain entry directly — an integration never recurses into it
-itself.
+`listExtend`/`token.add`/`token.underlay` (all empty-returning).
+`crdkit.integrations.chain` calls each chain entry directly — an
+integration never recurses into it itself. A token an integration
+exports (`targetContainer` main/side-car/both) must carry
+`{service: <ID>}`, or `serviceOutput` records an `# ERROR:`.
+
+### Output
+
+Exported variables land under `spec.services.<ID>`:
+
+```yaml
+spec:
+  services:
+    orders:
+      type: environment
+      environment:
+        DB_HOST:
+          value: db.prod          # resolved for the render's target
+          targetContainer: main
+```
+
+A service without exported variables does not appear.
 
 ### Diagnostics
 
@@ -156,10 +225,14 @@ the top of the rendered manifest:
 
 ```
 # ERROR: no value found for 'SOME_TOKEN' — target chain exhausted at 'PROD' starting from 'prod-01'
-# WARNING: token 'API_GROUP' is reserved by the library and was overridden back to the library value
+# WARNING: token 'API_GROUP' is reserved by the library — only annotations were applied
 ```
 
 Downstream tooling greps for the exact prefixes `# ERROR:` / `# WARNING:`.
+
+Service-level problems (unknown type, a variable declared by two services,
+invalid `targetContainer`, an exported token without a service, ...) are
+reported the same way.
 
 Only a token actually referenced somewhere gets checked — a declared
 but unused token produces no diagnostic even if broken. Reference it
@@ -180,6 +253,13 @@ make dev                # plain-renders every harness/ci/test-values/*.yaml
                         # fixture for quick manual/visual inspection
 make render VALUES=path/to/wip.yaml   # render one arbitrary values file
 ```
+
+Suites under `tests/`: `token_resolution_test.yaml`,
+`services_test.yaml`, `service_output_test.yaml`,
+`annotation_policy_test.yaml`, `snapshot_test.yaml`. Two harness probes
+(`harness/templates/annotation_policy_probe.yaml` via `policyProbe`,
+`service_output_probe.yaml` via `outputProbe`) render only when their
+values key is set, and cover paths no end-to-end input reaches.
 
 `tests/snapshot_test.yaml` commits full rendered examples via
 helm-unittest's `matchSnapshot` — both a regression test and a
