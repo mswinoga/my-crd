@@ -38,6 +38,6 @@ Implementation notes:
       "parentTargetTemplate" "mycrd.parentTarget"
       "annotations" (include "mycrd.annotationNames" . | fromYaml).value
       "diag" $diag
-      "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.demo" "mycrd.integrations.variables")
+      "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.demo" "mycrd.integrations.services" "mycrd.integrations.variables")
     ) -}}
 {{- end -}}

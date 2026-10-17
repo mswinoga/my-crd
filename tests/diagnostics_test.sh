@@ -83,6 +83,12 @@ check "library-token-export.yaml: widening a default's targetContainer (LOG_LEVE
 check "locked-token-collision.yaml: WARNING from the annotation step, not only crdkit's" \
   locked-token-collision.yaml "^# WARNING: token 'API_GROUP' is reserved by the library — only annotations were applied" present
 
+check "demo-service.yaml: no diagnostics" \
+  demo-service.yaml '^# (ERROR|WARNING):' absent
+
+check "generated-owner-conflict.yaml: ERROR that the generated variable is owned by another service" \
+  generated-owner-conflict.yaml "^# ERROR: service 'greeter' generates variable 'GREETER_GREETING', already owned by service 'alpha' — generated value ignored" present
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always

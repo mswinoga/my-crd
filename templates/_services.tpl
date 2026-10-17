@@ -11,7 +11,7 @@ Implementation notes:
 - Wrapped in `value:` — Helm's `fromYaml` cannot decode a bare list.
 */}}
 {{- define "mycrd.serviceTypes" -}}
-value: {{ list "environment" | toYaml | nindent 2 }}
+value: {{ list "environment" "demo" | toYaml | nindent 2 }}
 {{- end -}}
 
 {{/*
@@ -258,4 +258,41 @@ Implementation notes:
 {{- end -}}
 
 {{- dict "tokens" $tokens "system" $system "defaults" $defaults | toYaml -}}
+{{- end -}}
+
+{{/*
+Scope: internal
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "name":
+  <token name>, "value": <generated value, may hold "@ref@" markers or
+  be a structure>, "targetContainer": <string, optional> }
+- Returns: nothing (mutates ctx.tokens and ctx.diag in place).
+- The way a service type handler contributes a variable: registers a
+  GENERATED value (crdkit.token.underlay) for `name`, annotated with
+  `service: <id>` (and `targetContainer` when given).
+
+Implementation notes:
+- A token already annotated with a DIFFERENT service is left untouched
+  and an ERROR is recorded: a variable has exactly one owning service.
+- Generated values have the lowest priority: anything the consumer
+  declared for the same token (under the same service's `environment`)
+  wins, `default` included. Annotations already on the declaration win
+  over the ones passed here.
+*/}}
+{{- define "mycrd.service.addVar" -}}
+{{- $ctx := .ctx -}}
+{{- $owner := "" -}}
+{{- if hasKey $ctx.tokens .name -}}
+  {{- $owner = get (index $ctx.tokens .name) "service" | default "" -}}
+{{- end -}}
+{{- if and $owner (ne (toString $owner) (toString .id)) -}}
+  {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' generates variable '%s', already owned by service '%s' — generated value ignored" .id .name $owner)) -}}
+{{- else -}}
+  {{- $annotations := dict "service" .id -}}
+  {{- if .targetContainer -}}
+    {{- $_ := set $annotations "targetContainer" .targetContainer -}}
+  {{- end -}}
+  {{- include "crdkit.token.underlay" (list $ctx .name .value $annotations) -}}
+{{- end -}}
 {{- end -}}
