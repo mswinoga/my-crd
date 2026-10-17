@@ -47,6 +47,19 @@ check() {
   fi
 }
 
+# check_count DESC FIXTURE PATTERN N: exactly N matching lines.
+check_count() {
+  local desc="$1" fixture="$2" pattern="$3" want="$4"
+  local got
+  got=$(helm template harness -f "harness/ci/test-values/${fixture}" 2>&1 | grep -cE "$pattern" || true)
+  if [ "$got" != "$want" ]; then
+    echo "FAIL: $desc (expected $want lines matching '$pattern', got $got)"
+    fail=1
+  else
+    echo "ok: $desc"
+  fi
+}
+
 check "full-featured.yaml: ERROR for the no-default/no-matching-env token" \
   full-featured.yaml '^# ERROR:' present
 
@@ -142,6 +155,21 @@ check "references-not-exported.yaml: the kept file reference adds no other diagn
 
 check "full-featured.yaml: exporting variables from several services adds no diagnostics about services" \
   full-featured.yaml "^# (ERROR|WARNING):.*(service|targetContainer)" absent
+
+check "service-disabled.yaml: WARNING that the disabled service's marker is unresolved" \
+  service-disabled.yaml "^# WARNING: '@OFF_ONLY@' in the rendered model does not match any known token after resolution — possible typo" present
+
+check "service-disabled.yaml: no diagnostic other than the unresolved marker (no collision ERROR, no diagnostic of its own)" \
+  service-disabled.yaml "^# (ERROR|WARNING):.*(SHARED|SVC1|disabled|ENV)" absent
+
+check "service-disabled.yaml: no ERROR at all" \
+  service-disabled.yaml "^# ERROR:" absent
+
+check "service-enabled-invalid.yaml: ERROR that 'enabled' must be a boolean" \
+  service-enabled-invalid.yaml "^# ERROR: service 'strict': 'enabled' must be a boolean — treated as enabled" present
+
+check_count "service-enabled-invalid.yaml: the boolean ERROR is emitted exactly once and is the only diagnostic" \
+  service-enabled-invalid.yaml '^# (ERROR|WARNING):' 1
 
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS

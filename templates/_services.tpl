@@ -170,6 +170,13 @@ Implementation notes:
   alphabetical name order: the first service declaring a name owns it.
 - A service with a missing/unknown `type` is skipped entirely,
   `environment` included.
+- A disabled service (mycrd.service.enabled) is skipped the same way,
+  before the type check, with no diagnostic: its variables are never
+  declared, so they cannot collide with another service's and a
+  `@NAME@` marker to one stays unresolved. A non-boolean `enabled`
+  records ERROR `service '<ID>': 'enabled' must be a boolean — treated
+  as enabled` here, once per service, and the service is processed as
+  enabled.
 - Malformed shapes record a WARNING each (absent or null is valid and
   silent):
   - root `services` not a map: `values key 'services' must be a map —
@@ -224,7 +231,16 @@ Implementation notes:
   {{- else -}}
     {{- $type = get $svc "type" | default "" -}}
   {{- end -}}
+  {{/* the only place that reports a non-boolean `enabled`; every other check calls mycrd.service.enabled silently. */}}
+  {{- $enabled := "" -}}
+  {{- if kindIs "map" $svc -}}
+    {{- if and (hasKey $svc "enabled") (not (kindIs "bool" (get $svc "enabled"))) -}}
+      {{- $_ := set $diag "errors" (append $diag.errors (printf "service '%s': 'enabled' must be a boolean — treated as enabled" $id)) -}}
+    {{- end -}}
+    {{- $enabled = include "mycrd.service.enabled" (dict "id" $id "service" $svc) -}}
+  {{- end -}}
   {{- if not (kindIs "map" $svc) -}}
+  {{- else if not $enabled -}}
   {{- else if not (has $type $knownTypes) -}}
     {{- $_ := set $diag "warnings" (append $diag.warnings (printf "service '%s' has unknown type '%v' — service skipped" $id $type)) -}}
   {{- else -}}
@@ -303,10 +319,11 @@ Interface:
 
 Implementation notes:
 - `ctx.mycrd` is a my-crd-owned key on crdkit's context:
-  { added: {<id>: true}, owners: {<pointer>: <id>}, contributors:
-  {<mount pointer>: {<id>: true}}, references: {<id>: {<pointer>:
-  <descriptor>}} } (descriptor: see mycrd.service.reference). crdkit
-  never uses the key `mycrd`.
+  { added: {<id>: true}, disabled: {<id>: true}, owners: {<pointer>:
+  <id>}, contributors: {<mount pointer>: {<id>: true}}, references:
+  {<id>: {<pointer>: <descriptor>}} } (descriptor: see
+  mycrd.service.reference). `disabled` is filled by
+  mycrd.integrations.services. crdkit never uses the key `mycrd`.
 - Internal bookkeeping only — never emitted.
 - Every helper and integration calls this first, so none depends on
   which one runs first.
@@ -314,7 +331,7 @@ Implementation notes:
 {{- define "mycrd.service.registry" -}}
 {{- $ctx := . -}}
 {{- if not (hasKey $ctx "mycrd") -}}
-  {{- $_ := set $ctx "mycrd" (dict "added" (dict) "owners" (dict) "contributors" (dict) "references" (dict)) -}}
+  {{- $_ := set $ctx "mycrd" (dict "added" (dict) "disabled" (dict) "owners" (dict) "contributors" (dict) "references" (dict)) -}}
 {{- end -}}
 {{- end -}}
 

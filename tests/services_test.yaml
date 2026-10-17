@@ -645,3 +645,103 @@ tests:
       - equal:
           path: spec.replicas
           value: 1
+
+  # ---- enabled ----
+
+  - it: a disabled greeter leaves no service and no mount in spec
+    values:
+      - ../harness/ci/test-values/service-disabled.yaml
+    asserts:
+      - notExists:
+          path: spec.services.SVC1
+      - notExists:
+          path: spec.volumeMounts.SVC1-config
+      - exists:
+          path: spec.services.SVC2
+      - exists:
+          path: spec.volumeMounts.SVC2-config
+
+  - it: a marker to a disabled service's variable stays unresolved
+    values:
+      - ../harness/ci/test-values/service-disabled.yaml
+    asserts:
+      - equal:
+          path: spec.orphan
+          value: "@OFF_ONLY@"
+
+  - it: an enabled service reusing a disabled service's variable name owns it
+    values:
+      - ../harness/ci/test-values/service-disabled.yaml
+    asserts:
+      - equal:
+          path: spec.shared
+          value: from-enabled
+
+  - it: a library token listed only in a disabled service stays unexported
+    values:
+      - ../harness/ci/test-values/service-disabled.yaml
+    asserts:
+      - notExists:
+          path: spec.services.SVC2.environment.ENV
+      - equal:
+          path: spec.services
+          value:
+            SVC2:
+              type: greeter
+              environment:
+                SVC2_GREETER:
+                  value: SVC2
+                  targetContainer: main
+
+  - it: enabled true and an absent enabled render the same service
+    set:
+      target: prod-01
+      services:
+        explicit:
+          type: greeter
+          enabled: true
+          greeting: hi
+        implicit:
+          type: greeter
+          greeting: hi
+    asserts:
+      - equal:
+          path: spec.services.explicit.environment.EXPLICIT_GREETER
+          value: {value: explicit, targetContainer: main}
+      - equal:
+          path: spec.services.implicit.environment.IMPLICIT_GREETER
+          value: {value: implicit, targetContainer: main}
+      - equal:
+          path: spec.volumeMounts.explicit-config.files.message
+          value: hi
+      - equal:
+          path: spec.volumeMounts.implicit-config.files.message
+          value: hi
+
+  - it: a disabled environment service declares no variables
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          enabled: false
+          environment:
+            GONE: "x"
+      spec.m: "@GONE@"
+    asserts:
+      - notExists:
+          path: spec.services.app
+      - equal:
+          path: spec.m
+          value: "@GONE@"
+
+  - it: a non-boolean enabled keeps the service enabled
+    values:
+      - ../harness/ci/test-values/service-enabled-invalid.yaml
+    asserts:
+      - equal:
+          path: spec.services.strict.type
+          value: greeter
+      - equal:
+          path: spec.volumeMounts.strict-config.files.message
+          value: hello
