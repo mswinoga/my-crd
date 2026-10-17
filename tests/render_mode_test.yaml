@@ -50,7 +50,7 @@ tests:
     asserts:
       - failedTemplate:
           errorMessage: |-
-            release: RELEASE-NAME   namespace: NAMESPACE   target: prod-01   library: my-crd 0.0.0
+            release: RELEASE-NAME   namespace: NAMESPACE   target: prod-01   library: my-crd 0.0.5
             # ERROR: variable 'SHARED' is declared by services 'alpha' and 'beta' — keeping 'alpha'
             # WARNING: '@NOT_A_TOKEN@' in the rendered model does not match any known token after resolution — possible typo
             re-run with renderMode: validate to see the rendered object
