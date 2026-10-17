@@ -13,7 +13,7 @@ Implementation notes:
 - The `name` field holds a `@<name>@` marker, not the resolved value
   directly — it resolves automatically in crdkit.render's single
   substitution pass (see crdkit's README "Building ctx.model"), so this
-  integration never calls crdkit.resolveValue itself.
+  integration never calls crdkit.token.value itself.
 - Reads the RAW declaration's `targetContainer` directly, not through
   resolution — it's a flat property of the declaration, never
   target-escalated (see crdkit's README "Token model").
@@ -22,7 +22,7 @@ Implementation notes:
   time the token is actually resolved (e.g. via its `@NAME@` marker
   here), same as any other declared-but-unused token.
 - Placed LAST in mycrd.render's chain so a token added earlier in the
-  chain (via crdkit.addToken) is still picked up.
+  chain (via crdkit.token.add) is still picked up.
 */}}
 {{- define "mycrd.integrations.variables" -}}
 {{- $accepted := list "main" "side-car" "both" -}}

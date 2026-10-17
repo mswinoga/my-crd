@@ -85,14 +85,15 @@ the name.
 - A token DECLARATION is a plain scalar (same value everywhere) or a
   dict, with `targetContainer`/`match` (both optional) coexisting flat
   alongside however many literal target-name keys the token needs.
-- Resolving a token (`crdkit.resolveValue`) returns a separate shape,
-  `{value, targetContainer}` — the interpolated result for one
-  name+target pair.
+- Resolving a token (`crdkit.token.value`) returns a separate shape,
+  `{value}` — the interpolated result for one name+target pair (a
+  string, or a structure if the selected entry is itself one).
 - Declare `targetContainer` (as `DB_HOST` above) when a token should be
   picked up by the downstream k8s controller as a container env var:
-  `main`, `side-car`, `both`, or `none` (default). my-crd/crdkit don't
-  create the env var themselves — only resolve the value and carry
-  `targetContainer` through for the controller to read.
+  `main`, `side-car`, `both`, or `none` (default), validated eagerly at
+  merge time. `mycrd.integrations.variables` reads it directly off the
+  declaration (not via resolution) and merges accepted tokens into
+  `spec.variables` — see "Integrations" below.
 
 See `../crdkit/README.md`'s "Token model" for the full mechanics.
 
@@ -136,14 +137,17 @@ library's own `@ENV@`-equivalent (`mycrd.deriveEnv`,
 `mycrd.integrations.preamble` always first — the only thing giving the
 rendered CR a shape at all (`apiVersion`/`kind`, `metadata.name`,
 `metadata.labels`, `spec`) — then `mycrd.integrations.demo`, a
-proof-of-mechanism stub. Real integrations (database, cos, messaging,
+proof-of-mechanism stub, then `mycrd.integrations.variables`, which
+merges every token declaring an accepted `targetContainer` into
+`spec.variables`. Further integrations (database, cos, messaging,
 outbound http, ...) land as `mycrd.integrations.*` defines as this
 library grows.
 
 Every integration must emit no literal text of its own — only mutate
 `ctx.model`/`ctx.tokens` via `crdkit.ensureDictKey`/`dictMerge`/
-`listExtend`/`addToken` (all empty-returning), then recurse into
-`crdkit.integrations.chain`.
+`listExtend`/`token.add` (all empty-returning). `crdkit.integrations.chain`
+calls each chain entry directly — an integration never recurses into it
+itself.
 
 ### Diagnostics
 
