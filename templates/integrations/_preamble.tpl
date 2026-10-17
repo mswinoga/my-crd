@@ -1,7 +1,7 @@
 {{/*
-mycrd.integrations.preamble (internal)
+mycrd.integrations.preamble (callback)
 
-Chain entry, not called directly by consumers.
+Invoked by crdkit's integration chain.
 Always FIRST in mycrd.render's chain — gives the rendered CR its shape:
 apiVersion/kind, metadata.name, metadata.labels, spec.
 

@@ -1,7 +1,7 @@
 {{/*
-mycrd.serviceType.environment (internal)
+mycrd.serviceType.environment (callback)
 
-Called by mycrd.integrations.services.
+Invoked by mycrd.integrations.services.
 Handler for `type: environment`. Its variables are consumer declarations
 that mycrd.serviceTokens already turned into tokens, so there is nothing
 left to generate.

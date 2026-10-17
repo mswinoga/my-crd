@@ -1,7 +1,7 @@
 {{/*
-mycrd.serviceType.leader (internal)
+mycrd.serviceType.leader (callback)
 
-Called by mycrd.integrations.services.
+Invoked by mycrd.integrations.services.
 Handler for `type: leader`: exports the variable `<SID>_SEED` (SID = ID
 upper-cased, '-' replaced by '_') with the fixed value "5", and records
 references to the exported variable `<GSID>_GREETER` of the greeter

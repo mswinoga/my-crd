@@ -9,6 +9,9 @@ Interface:
 - Returns YAML: { "value": [<service type name>, ...] }
 
 Implementation notes:
+- Scope is internal: no handler or integration calls it. Adding a
+  service type means adding its name here (position = run order) and
+  defining its `mycrd.serviceType.<type>` callback.
 - Wrapped in `value:` — Helm's `fromYaml` cannot decode a bare list.
 */}}
 {{- define "mycrd.serviceTypes" -}}
@@ -388,8 +391,9 @@ Interface:
 - Returns: nothing (mutates ctx.model and ctx.mycrd in place).
 
 Implementation notes:
-- Called by mycrd.integrations.services before each type handler; a
-  handler never calls it itself.
+- Scope is internal, not protected: mycrd.integrations.services calls
+  it before each type handler, so a handler always starts with its
+  service added and never calls it itself.
 - Writes `spec.services.<id>.type` (the `type` under
   `Values.services.<id>`), so every dispatched service appears in the
   output.
@@ -423,7 +427,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-mycrd.service.addVar (internal)
+mycrd.service.addVar (protected)
 
 The way a service type handler contributes a variable: registers a
 GENERATED value (crdkit.token.underlay) for `name`, annotated with
@@ -471,7 +475,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-mycrd.service.addFile (internal)
+mycrd.service.addFile (protected)
 
 The way a service type handler contributes a file to a volume mount:
 creates the mount when absent and adds the file under its `files`.
@@ -569,7 +573,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-mycrd.service.referenceService (internal)
+mycrd.service.referenceService (protected)
 
 A service type handler's way to record that its service references
 another service as a whole.
@@ -592,7 +596,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-mycrd.service.referenceVar (internal)
+mycrd.service.referenceVar (protected)
 
 A service type handler's way to record that its service references an
 environment variable of a service.
@@ -616,7 +620,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-mycrd.service.referenceMount (internal)
+mycrd.service.referenceMount (protected)
 
 A service type handler's way to record that its service references a
 volume mount as a whole.
@@ -639,7 +643,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-mycrd.service.referenceFile (internal)
+mycrd.service.referenceFile (protected)
 
 A service type handler's way to record that its service references a
 file inside a volume mount.

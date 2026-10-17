@@ -1,7 +1,7 @@
 {{/*
-mycrd.serviceType.greeter (internal)
+mycrd.serviceType.greeter (callback)
 
-Called by mycrd.integrations.services.
+Invoked by mycrd.integrations.services.
 Handler for `type: greeter`: exports the variable `<SID>_GREETER` (SID =
 ID upper-cased, '-' replaced by '_') holding the service ID, and adds a
 configMap mount `<ID>-config` with the file `message` holding the

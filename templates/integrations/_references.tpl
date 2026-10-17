@@ -1,7 +1,7 @@
 {{/*
-mycrd.integrations.references (internal)
+mycrd.integrations.references (callback)
 
-Chain entry, not called directly by consumers.
+Invoked by crdkit's integration chain.
 Validates the references the service handlers recorded and writes the
 valid ones to `spec.services.<id>.references`.
 

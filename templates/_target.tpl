@@ -43,9 +43,9 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-mycrd.parentTarget (public)
+mycrd.parentTarget (callback)
 
-Passed to crdkit.render as parentTargetTemplate.
+Invoked by crdkit as parentTargetTemplate.
 This library's target-escalation taxonomy: crdkit walks it repeatedly
 from an exact target (e.g. "qam1-01") up to wherever a token's value is
 declared, caching every rung visited.

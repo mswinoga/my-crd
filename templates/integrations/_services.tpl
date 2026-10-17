@@ -1,7 +1,7 @@
 {{/*
-mycrd.integrations.services (internal)
+mycrd.integrations.services (callback)
 
-Chain entry, not called directly by consumers.
+Invoked by crdkit's integration chain.
 Dispatcher for `Values.services`: for each type in mycrd.serviceTypes
 order, for each service of that type in alphabetical ID order, calls
 mycrd.service.add and then `mycrd.serviceType.<type>` with `{ctx, id,

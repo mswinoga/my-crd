@@ -9,7 +9,10 @@ Interface:
 
 Implementation notes:
 - Every mycrd.paths.* define is the only place that knows where a node
-  lives in the model; handlers and integrations build locations here.
+  lives in the model. Scope is internal: handlers never call them — they
+  use the protected mycrd.service.* helpers, which build locations here,
+  so a node can move (e.g. mounts under services) without touching any
+  handler.
 - Wrapped in `value:` — Helm's `fromYaml` cannot decode a bare list.
 */}}
 {{- define "mycrd.paths.service" -}}
