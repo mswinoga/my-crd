@@ -39,6 +39,6 @@ Implementation notes:
       "parentTargetTemplate" "mycrd.parentTarget"
       "annotations" (include "mycrd.annotationNames" . | fromYaml).value
       "diag" $diag
-      "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.services" "mycrd.integrations.serviceOutput")
+      "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.services")
     ) -}}
 {{- end -}}

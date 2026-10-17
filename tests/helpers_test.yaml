@@ -1,0 +1,132 @@
+# mycrd.service.* helpers called directly through
+# harness/templates/helpers_probe.yaml (renders only when
+# .Values.helpersProbe is set): the dispatcher always adds a service
+# before its handler runs, so a helper call for a service that was never
+# added is unreachable end to end.
+suite: my-crd service helpers
+templates:
+  - helpers_probe.yaml
+tests:
+  - it: probe renders nothing when helpersProbe is unset
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: probe - service.add writes the type and marks the service added
+    set:
+      services:
+        app:
+          type: environment
+      helpersProbe:
+        calls:
+          - {helper: add, params: {id: app}}
+    asserts:
+      - equal:
+          path: model
+          value:
+            spec:
+              services:
+                app:
+                  type: environment
+      - equal:
+          path: registry.added
+          value: {app: true}
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - addVar after service.add exports the variable and records its owner
+    set:
+      services:
+        app:
+          type: environment
+      helpersProbe:
+        calls:
+          - {helper: add, params: {id: app}}
+          - {helper: addVar, params: {id: app, name: ADDED, value: "v", targetContainer: main}}
+    asserts:
+      - equal:
+          path: model
+          value:
+            spec:
+              services:
+                app:
+                  type: environment
+                  environment:
+                    ADDED: {value: "@ADDED@", targetContainer: main}
+      - equal:
+          path: registry.owners
+          value:
+            /spec/services/app/environment/ADDED: app
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - addVar with targetContainer none registers the token but does not export it
+    set:
+      services:
+        app:
+          type: environment
+      helpersProbe:
+        calls:
+          - {helper: add, params: {id: app}}
+          - {helper: addVar, params: {id: app, name: INTERNAL, value: "v", targetContainer: none}}
+          - {helper: addVar, params: {id: app, name: PLAIN, value: "v"}}
+    asserts:
+      - equal:
+          path: model
+          value:
+            spec:
+              services:
+                app:
+                  type: environment
+      - equal:
+          path: registry.owners
+          value: {}
+      - exists:
+          path: tokens.INTERNAL
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - addVar for a service that was not added records an ERROR and changes nothing
+    set:
+      services:
+        app:
+          type: environment
+      helpersProbe:
+        calls:
+          - {helper: addVar, params: {id: app, name: LOST, value: "v", targetContainer: main}}
+    asserts:
+      - equal:
+          path: model
+          value: {}
+      - equal:
+          path: tokens
+          value: {}
+      - equal:
+          path: registry.owners
+          value: {}
+      - equal:
+          path: diag.errors
+          value:
+            - "service 'app' was not added — helper 'mycrd.service.addVar' ignored"
+
+  - it: probe - an added service does not make another service's helper call valid
+    set:
+      services:
+        app:
+          type: environment
+        other:
+          type: environment
+      helpersProbe:
+        calls:
+          - {helper: add, params: {id: app}}
+          - {helper: addVar, params: {id: other, name: LOST, value: "v", targetContainer: main}}
+    asserts:
+      - equal:
+          path: diag.errors
+          value:
+            - "service 'other' was not added — helper 'mycrd.service.addVar' ignored"
+      - notExists:
+          path: model.spec.services.other

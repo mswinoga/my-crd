@@ -178,7 +178,7 @@ tests:
           path: spec.dbHost
           value: "db.internal"
 
-  - it: "mycrd.integrations.serviceOutput lists every accepted targetContainer (main/side-car/both) under spec.services.<ID>.environment"
+  - it: "mycrd.integrations.services lists every accepted targetContainer (main/side-car/both) under spec.services.<ID>.environment"
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
@@ -201,7 +201,7 @@ tests:
             value: "both-value"
             targetContainer: "both"
 
-  - it: "mycrd.integrations.serviceOutput excludes targetContainer: none and tokens with no targetContainer at all"
+  - it: "mycrd.integrations.services excludes targetContainer: none and tokens with no targetContainer at all"
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:

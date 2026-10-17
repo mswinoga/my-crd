@@ -10,7 +10,7 @@
 #    name that doesn't exist -> must produce a "# WARNING:" comment
 #    (possible typo)
 #  - DB_HOST/SIDECAR_TOKEN/BOTH_TOKEN: declare an accepted targetContainer
-#    (main/side-car/both) -> exported by mycrd.integrations.serviceOutput
+#    (main/side-car/both) -> exported by mycrd.integrations.services
 #    under spec.services.app.environment, in addition to
 #    resolving/substituting normally.
 #  - worker: a second service exporting QUEUE (both) next to the

@@ -289,39 +289,181 @@ Implementation notes:
 {{- end -}}
 
 {{/*
+mycrd.service.registry (internal)
+
+Ensures the my-crd bookkeeping dict `ctx.mycrd` exists.
+
+Interface:
+- Params: ctx (the chain ctx, passed directly).
+- Returns: nothing (mutates ctx in place).
+
+Implementation notes:
+- `ctx.mycrd` is a my-crd-owned key on crdkit's context:
+  { added: {<id>: true}, owners: {<pointer>: <id>}, contributors:
+  {<mount pointer>: {<id>: true}}, references: {<id>: {<pointer>:
+  true}} }. crdkit never uses the key `mycrd`.
+- Internal bookkeeping only — never emitted.
+- Every helper and integration calls this first, so none depends on
+  which one runs first.
+*/}}
+{{- define "mycrd.service.registry" -}}
+{{- $ctx := . -}}
+{{- if not (hasKey $ctx "mycrd") -}}
+  {{- $_ := set $ctx "mycrd" (dict "added" (dict) "owners" (dict) "contributors" (dict) "references" (dict)) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+mycrd.service.guard (internal)
+
+Checks that a service was added before one of the service helpers acts
+for it.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "helper":
+  <helper's template name, for the message> }
+- Returns: the plain string "true" when the service was added, an EMPTY
+  string otherwise (and records an ERROR: `service '<id>' was not added
+  — helper '<helper>' ignored`).
+
+Implementation notes:
+- Never return "false": a non-empty string is truthy in Go templates.
+  Use as `{{ if include "mycrd.service.guard" (dict ...) }}`.
+- Mutates ctx.diag only.
+*/}}
+{{- define "mycrd.service.guard" -}}
+{{- $ctx := .ctx -}}
+{{- include "mycrd.service.registry" $ctx -}}
+{{- if hasKey $ctx.mycrd.added (toString .id) -}}
+true
+{{- else -}}
+  {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' was not added — helper '%s' ignored" (toString .id) .helper)) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+mycrd.service.exportVar (internal)
+
+Writes the model entry of an exported variable and records its owner.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "name":
+  <token name> }
+- Returns: nothing (mutates ctx.model and ctx.mycrd in place).
+
+Implementation notes:
+- Writes `spec.services.<id>.environment.<name>: {value: "@<name>@",
+  targetContainer: <tc>}` only when the token's CURRENT targetContainer
+  is main/side-car/both; any other token is left out of the model.
+- `value` holds a `@<name>@` marker, resolved by crdkit.render's single
+  substitution pass — this define never resolves tokens itself.
+- Reads the RAW declaration's annotation, not a resolved value: it is
+  static metadata, never target-escalated.
+*/}}
+{{- define "mycrd.service.exportVar" -}}
+{{- $ctx := .ctx -}}
+{{- $decl := index $ctx.tokens .name -}}
+{{- $tc := "" -}}
+{{- if kindIs "map" $decl -}}
+  {{- $tc = get $decl "targetContainer" | default "" -}}
+{{- end -}}
+{{- if has $tc (list "main" "side-car" "both") -}}
+  {{- $segments := (include "mycrd.paths.var" (dict "service" .id "name" .name) | fromYaml).value -}}
+  {{- include "crdkit.dictMerge" (concat (list $ctx.model) $segments (list (dict "value" (printf "@%s@" .name) "targetContainer" $tc))) -}}
+  {{- $_ := set $ctx.mycrd.owners (include "mycrd.paths.pointer" (dict "segments" $segments)) (toString .id) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+mycrd.service.add (internal)
+
+Registers a service: writes its `type` into the model, writes every
+exported variable the service declares, and marks it added so the other
+service helpers act for it.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <service ID> }
+- Returns: nothing (mutates ctx.model and ctx.mycrd in place).
+
+Implementation notes:
+- Called by mycrd.integrations.services before each type handler; a
+  handler never calls it itself.
+- Writes `spec.services.<id>.type` (the `type` under
+  `Values.services.<id>`), so every dispatched service appears in the
+  output.
+- Exported variables: every token annotated `service: <id>` with
+  targetContainer main/side-car/both (consumer declarations and library
+  tokens exported by this service), via mycrd.service.exportVar, in
+  alphabetical name order.
+- Idempotent.
+*/}}
+{{- define "mycrd.service.add" -}}
+{{- $ctx := .ctx -}}
+{{- $id := toString .id -}}
+{{- include "mycrd.service.registry" $ctx -}}
+{{- $services := ($ctx.root.Values | toYaml | fromYaml).services | default dict -}}
+{{- $type := "" -}}
+{{- if kindIs "map" $services -}}
+  {{- $svc := get $services $id -}}
+  {{- if kindIs "map" $svc -}}
+    {{- $type = get $svc "type" | default "" -}}
+  {{- end -}}
+{{- end -}}
+{{- $segments := (include "mycrd.paths.service" (dict "service" $id) | fromYaml).value -}}
+{{- include "crdkit.dictMerge" (concat (list $ctx.model) $segments (list (dict "type" $type))) -}}
+{{- range $name := sortAlpha (keys $ctx.tokens) -}}
+  {{- $decl := index $ctx.tokens $name -}}
+  {{- if and (kindIs "map" $decl) (eq (get $decl "service" | default "" | toString) $id) -}}
+    {{- include "mycrd.service.exportVar" (dict "ctx" $ctx "id" $id "name" $name) -}}
+  {{- end -}}
+{{- end -}}
+{{- $_ := set $ctx.mycrd.added $id true -}}
+{{- end -}}
+
+{{/*
 mycrd.service.addVar (internal)
 
 The way a service type handler contributes a variable: registers a
 GENERATED value (crdkit.token.underlay) for `name`, annotated with
-`service: <id>` (and `targetContainer` when given).
+`service: <id>` (and `targetContainer` when given), and exports it into
+the model when the token's final targetContainer is main/side-car/both.
 
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "name":
   <token name>, "value": <generated value, may hold "@ref@" markers or
   be a structure>, "targetContainer": <string, optional> }
-- Returns: nothing (mutates ctx.tokens and ctx.diag in place).
+- Returns: nothing (mutates ctx.tokens, ctx.model, ctx.mycrd and
+  ctx.diag in place).
 
 Implementation notes:
+- Service must be added (mycrd.service.guard), otherwise an ERROR is
+  recorded and nothing happens.
 - A token already annotated with a DIFFERENT service is left untouched
   and an ERROR is recorded: a variable has exactly one owning service.
 - Generated values have the lowest priority: anything the consumer
   declared for the same token (under the same service's `environment`)
   wins, `default` included. Annotations already on the declaration win
-  over the ones passed here.
+  over the ones passed here, so the exported targetContainer is the
+  final one.
+- Exporting writes `environment.<name>` and records the service as the
+  owner of that variable (mycrd.service.exportVar).
 */}}
 {{- define "mycrd.service.addVar" -}}
 {{- $ctx := .ctx -}}
-{{- $owner := "" -}}
-{{- if hasKey $ctx.tokens .name -}}
-  {{- $owner = get (index $ctx.tokens .name) "service" | default "" -}}
-{{- end -}}
-{{- if and $owner (ne (toString $owner) (toString .id)) -}}
-  {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' generates variable '%s', already owned by service '%s' — generated value ignored" .id .name $owner)) -}}
-{{- else -}}
-  {{- $annotations := dict "service" .id -}}
-  {{- if .targetContainer -}}
-    {{- $_ := set $annotations "targetContainer" .targetContainer -}}
+{{- if include "mycrd.service.guard" (dict "ctx" $ctx "id" .id "helper" "mycrd.service.addVar") -}}
+  {{- $owner := "" -}}
+  {{- if hasKey $ctx.tokens .name -}}
+    {{- $owner = get (index $ctx.tokens .name) "service" | default "" -}}
   {{- end -}}
-  {{- include "crdkit.token.underlay" (list $ctx .name .value $annotations) -}}
+  {{- if and $owner (ne (toString $owner) (toString .id)) -}}
+    {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' generates variable '%s', already owned by service '%s' — generated value ignored" .id .name $owner)) -}}
+  {{- else -}}
+    {{- $annotations := dict "service" .id -}}
+    {{- if .targetContainer -}}
+      {{- $_ := set $annotations "targetContainer" .targetContainer -}}
+    {{- end -}}
+    {{- include "crdkit.token.underlay" (list $ctx .name .value $annotations) -}}
+    {{- include "mycrd.service.exportVar" (dict "ctx" $ctx "id" .id "name" .name) -}}
+  {{- end -}}
 {{- end -}}
 {{- end -}}

@@ -1,6 +1,8 @@
-# services.<ID>.environment -> tokens (mycrd.serviceTokens). Assertions
-# on resolved values only; diagnostic comments are covered by
-# diagnostics_test.sh.
+# services.<ID>.environment -> tokens (mycrd.serviceTokens), service
+# registration and output (mycrd.service.*, mycrd.integrations.services).
+# Assertions on resolved values and output shape only; diagnostic
+# comments are covered by diagnostics_test.sh. Helper behavior that no
+# end-to-end input reaches is in helpers_test.yaml.
 suite: my-crd services
 templates:
   - call.yaml
@@ -407,3 +409,184 @@ tests:
       - equal:
           path: spec.services.greeter.environment.GREETER_GREETING.value
           value: "hi"
+
+  # ---- service output: spec.services.<ID> ----
+
+  - it: spec.variables is not rendered
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/full-featured.yaml
+    asserts:
+      - exists:
+          path: spec.variables
+        not: true
+
+  - it: a service with exported variables appears with its type and the resolved value
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/services-basic.yaml
+    asserts:
+      - equal:
+          path: spec.services.orders
+          value:
+            type: environment
+            environment:
+              DB_HOST:
+                value: "db.prod"
+                targetContainer: main
+
+  - it: a service without exported variables appears with its type only
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/services-basic.yaml
+    asserts:
+      - equal:
+          path: spec.services.billing
+          value:
+            type: environment
+
+  - it: no spec.services at all when no service is declared
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/minimal.yaml
+    asserts:
+      - exists:
+          path: spec.services
+        not: true
+
+  - it: every dispatched service appears in spec.services, exported variables or not
+    template: call.yaml
+    set:
+      target: prod-01
+      services:
+        quiet:
+          type: environment
+        loud:
+          type: environment
+          environment:
+            LOUD: {default: "x", targetContainer: main}
+    asserts:
+      - equal:
+          path: spec.services.quiet
+          value:
+            type: environment
+      - equal:
+          path: spec.services.loud.environment.LOUD
+          value:
+            value: "x"
+            targetContainer: main
+
+  - it: a service with an unknown type is not dispatched and does not appear
+    template: call.yaml
+    set:
+      target: prod-01
+      services:
+        mystery:
+          type: no-such-type
+    asserts:
+      - exists:
+          path: spec.services
+        not: true
+
+  - it: an exported library default (LOG_LEVEL) is attributed to the declaring service
+    template: call.yaml
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            LOG_LEVEL:
+              targetContainer: main
+    asserts:
+      - equal:
+          path: spec.services.app.environment.LOG_LEVEL
+          value:
+            value: "info"
+            targetContainer: main
+
+  - it: an exported locked library token (ENV) is attributed to the declaring service with the library value
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/library-token-export.yaml
+    asserts:
+      - equal:
+          path: spec.services.app.environment.ENV
+          value:
+            value: "prod"
+            targetContainer: both
+
+  - it: a generated variable of a demo service is exported under that service
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/demo-service.yaml
+    asserts:
+      - equal:
+          path: spec.services.greeter
+          value:
+            type: demo
+            environment:
+              GREETER_GREETING:
+                value: "hi prod"
+                targetContainer: main
+
+  - it: variables of different services are grouped per service
+    template: call.yaml
+    set:
+      target: prod-01
+      services:
+        a:
+          type: environment
+          environment:
+            A_VAR: {default: "1", targetContainer: main}
+            A_TWO: {default: "2", targetContainer: both}
+        b:
+          type: environment
+          environment:
+            B_VAR: {default: "3", targetContainer: side-car}
+    asserts:
+      - equal:
+          path: spec.services
+          value:
+            a:
+              type: environment
+              environment:
+                A_TWO: {value: "2", targetContainer: both}
+                A_VAR: {value: "1", targetContainer: main}
+            b:
+              type: environment
+              environment:
+                B_VAR: {value: "3", targetContainer: side-car}
+
+  - it: the full-featured fixture exports variables of two services separately
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/full-featured.yaml
+    asserts:
+      - equal:
+          path: spec.services.worker
+          value:
+            type: environment
+            environment:
+              QUEUE:
+                value: "jobs-prod"
+                targetContainer: both
+
+  - it: a variable with a corrected (invalid) targetContainer is not exported
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/invalid-target-container.yaml
+    asserts:
+      - equal:
+          path: spec.services.app
+          value:
+            type: environment
+
+  - it: the consumer's own spec keys survive next to spec.services
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/services-basic.yaml
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1

@@ -14,9 +14,9 @@
 #  - "tries to narrow library targetContainer" / "tries to change library
 #    annotation": tests/annotation_policy_test.yaml (library tokens carry
 #    no annotations today).
-#  - "exported but has no service" / "belongs to service ... not
-#    declared": tests/service_output_test.yaml (needs a token added via
-#    crdkit.token.add without `service`).
+#  - "service ... was not added — helper ... ignored":
+#    tests/services_test.yaml via harness/templates/helpers_probe.yaml
+#    (the dispatcher always adds a service before its handler runs).
 #  - crdkit's annotation-name collision and non-dict annotations: not
 #    reachable (this library's annotation names are fixed; it never calls
 #    crdkit.token.add with a non-dict).
