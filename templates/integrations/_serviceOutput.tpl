@@ -24,7 +24,9 @@ Implementation notes:
   (Reachable only through a token added with crdkit.token.add that
   omits `{service: <ID>}`.)
 - A service without exported tokens does not appear in the output.
-- Reads `Values.services` through `toYaml | fromYaml` (plain maps).
+- Reads `Values.services` through `toYaml | fromYaml` (plain maps); a
+  non-map service entry yields an empty `type` (mycrd.serviceTokens
+  already warned).
 */}}
 {{- define "mycrd.integrations.serviceOutput" -}}
 {{- $ctx := . -}}
@@ -47,7 +49,11 @@ Implementation notes:
     {{- else if not (hasKey $services (toString $svc)) -}}
       {{- $_ := set $diag "errors" (append $diag.errors (printf "token '%s' belongs to service '%s', which is not declared under services — skipped" $name $svc)) -}}
     {{- else -}}
-      {{- $type := get (index $services (toString $svc)) "type" -}}
+      {{- $owner := index $services (toString $svc) -}}
+      {{- $type := "" -}}
+      {{- if kindIs "map" $owner -}}
+        {{- $type = get $owner "type" -}}
+      {{- end -}}
       {{- include "crdkit.dictMerge" (list $ctx.model "spec" "services" (toString $svc) (dict
             "type" $type
             "environment" (dict $name (dict "value" (printf "@%s@" $name) "targetContainer" $tc)))) -}}

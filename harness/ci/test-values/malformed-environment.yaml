@@ -1,0 +1,17 @@
+# `environment` given as a list instead of a map: ignored with a
+# WARNING. The demo service's type handler still generates its variable.
+target: prod-01
+
+services:
+  orders:
+    type: environment
+    environment:
+      - DB_HOST
+  greeter:
+    type: demo
+    greeting: "hi"
+    environment:
+      - not-a-map
+
+spec:
+  greeting: "@GREETER_GREETING@"

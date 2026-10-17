@@ -104,6 +104,10 @@ Variables are declared only under `services.<ID>.environment`; a root
   `# ERROR:` is recorded.
 - A service with a missing or unknown `type` is skipped entirely
   (`# WARNING:`), its `environment` included.
+- Malformed shapes record a `# WARNING:` and are ignored: root `services`
+  not a map (whole key ignored), `services.<ID>` not a map (service
+  skipped), `services.<ID>.environment` not a map (only the environment
+  is ignored; the service's type handler still runs).
 - `targetContainer` is one of `main`, `side-car`, `both`, `none`
   (default); any other value records an `# ERROR:` and is treated as
   `none`. Tokens with `main`/`side-car`/`both` are EXPORTED into the

@@ -106,6 +106,21 @@ check "generated-owner-conflict.yaml: ERROR that the generated variable is owned
 check "internal-key.yaml: WARNING that a crdkit-internal key was removed" \
   internal-key.yaml "^# WARNING: token 'LEAKY' declares crdkit-internal key '_generated'; it was removed" present
 
+check "malformed-service.yaml: WARNING that a non-map service is skipped" \
+  malformed-service.yaml "^# WARNING: service 'broken' must be a map — service skipped" present
+
+check "malformed-service.yaml: no unknown-type warning on top of the shape warning" \
+  malformed-service.yaml "has unknown type" absent
+
+check "malformed-environment.yaml: WARNING for a non-map environment (environment service)" \
+  malformed-environment.yaml "^# WARNING: service 'orders': 'environment' must be a map — ignored" present
+
+check "malformed-environment.yaml: WARNING for a non-map environment (demo service)" \
+  malformed-environment.yaml "^# WARNING: service 'greeter': 'environment' must be a map — ignored" present
+
+check "malformed-services-root.yaml: WARNING that a non-map root 'services' is ignored" \
+  malformed-services-root.yaml "^# WARNING: values key 'services' must be a map — ignored" present
+
 check "full-featured.yaml: exporting variables from several services adds no diagnostics about services" \
   full-featured.yaml "^# (ERROR|WARNING):.*(service|targetContainer)" absent
 

@@ -155,6 +155,15 @@ Implementation notes:
   alphabetical name order: the first service declaring a name owns it.
 - A service with a missing/unknown `type` is skipped entirely,
   `environment` included.
+- Malformed shapes record a WARNING each (absent or null is valid and
+  silent):
+  - root `services` not a map: `values key 'services' must be a map —
+    ignored`.
+  - `services.<ID>` not a map: `service '<ID>' must be a map — service
+    skipped` (no unknown-type warning on top).
+  - `services.<ID>.environment` not a map: `service '<ID>':
+    'environment' must be a map — ignored`; the rest of the service
+    (type, DSL handler) is processed as usual.
 - A scalar variable becomes `{default: <v>}`; `service` is always set to
   the parent service ID (an explicit one is overwritten with a WARNING).
 - `targetContainer` outside main/side-car/both/none is corrected to
@@ -186,22 +195,30 @@ Implementation notes:
 {{- $tokens := dict -}}
 {{- $owners := dict -}}
 
-{{- $services := $values.services | default dict -}}
-{{- if not (kindIs "map" $services) -}}
-  {{- $services = dict -}}
+{{- $services := dict -}}
+{{- if kindIs "map" $values.services -}}
+  {{- $services = $values.services -}}
+{{- else if not (kindIs "invalid" $values.services) -}}
+  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'services' must be a map — ignored") -}}
 {{- end -}}
 {{- range $id := sortAlpha (keys $services) -}}
   {{- $svc := index $services $id -}}
   {{- $type := "" -}}
-  {{- if kindIs "map" $svc -}}
+  {{- if not (kindIs "map" $svc) -}}
+    {{- $_ := set $diag "warnings" (append $diag.warnings (printf "service '%s' must be a map — service skipped" $id)) -}}
+  {{- else -}}
     {{- $type = get $svc "type" | default "" -}}
   {{- end -}}
-  {{- if not (has $type $knownTypes) -}}
+  {{- if not (kindIs "map" $svc) -}}
+  {{- else if not (has $type $knownTypes) -}}
     {{- $_ := set $diag "warnings" (append $diag.warnings (printf "service '%s' has unknown type '%v' — service skipped" $id $type)) -}}
   {{- else -}}
-    {{- $env := get $svc "environment" | default dict -}}
-    {{- if not (kindIs "map" $env) -}}
-      {{- $env = dict -}}
+    {{- $env := dict -}}
+    {{- $rawEnv := index $svc "environment" -}}
+    {{- if kindIs "map" $rawEnv -}}
+      {{- $env = $rawEnv -}}
+    {{- else if not (kindIs "invalid" $rawEnv) -}}
+      {{- $_ := set $diag "warnings" (append $diag.warnings (printf "service '%s': 'environment' must be a map — ignored" $id)) -}}
     {{- end -}}
     {{- range $name := sortAlpha (keys $env) -}}
       {{- $raw := index $env $name -}}

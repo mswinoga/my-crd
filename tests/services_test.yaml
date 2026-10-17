@@ -386,3 +386,24 @@ tests:
       - equal:
           path: spec.value
           value: "declared"
+
+  - it: a service declared as a non-map is skipped while its valid sibling still resolves
+    values:
+      - ../harness/ci/test-values/malformed-service.yaml
+    asserts:
+      - equal:
+          path: spec.dbHost
+          value: "db.internal"
+      - notExists:
+          path: spec.services.broken
+
+  - it: a non-map environment is ignored while the demo handler still generates its variable
+    values:
+      - ../harness/ci/test-values/malformed-environment.yaml
+    asserts:
+      - equal:
+          path: spec.greeting
+          value: "hi"
+      - equal:
+          path: spec.services.greeter.environment.GREETER_GREETING.value
+          value: "hi"

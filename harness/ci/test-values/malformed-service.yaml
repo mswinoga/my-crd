@@ -1,0 +1,16 @@
+# One service declared as a string instead of a map, next to a valid
+# service. The malformed one is skipped with a WARNING; the valid one
+# still resolves its variable.
+target: prod-01
+
+services:
+  broken: "not-a-map"
+  orders:
+    type: environment
+    environment:
+      DB_HOST:
+        default: "db.internal"
+        targetContainer: main
+
+spec:
+  dbHost: "@DB_HOST@"
