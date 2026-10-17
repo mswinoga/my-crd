@@ -13,6 +13,8 @@
 #    (main/side-car/both) -> exported by mycrd.integrations.serviceOutput
 #    under spec.services.app.environment, in addition to
 #    resolving/substituting normally.
+#  - worker: a second service exporting QUEUE (both) next to the
+#    non-exported WORKER_TUNING -> spec.services.worker.
 #  - NONE_TOKEN: explicit targetContainer: none -> excluded from
 #    spec.services (same as SCALAR_TOKEN, which declares none at all).
 target: prod-01
@@ -41,6 +43,14 @@ services:
       NONE_TOKEN:
         targetContainer: none
         default: "none-value"
+  worker:
+    type: environment
+    environment:
+      QUEUE:
+        targetContainer: both
+        default: "jobs"
+        prod: "jobs-prod"
+      WORKER_TUNING: "fast"
 
 metadata:
   labels:

@@ -120,6 +120,20 @@ tests:
               environment:
                 B_VAR: {value: "3", targetContainer: side-car}
 
+  - it: the full-featured fixture exports variables of two services separately
+    template: call.yaml
+    values:
+      - ../harness/ci/test-values/full-featured.yaml
+    asserts:
+      - equal:
+          path: spec.services.worker
+          value:
+            type: environment
+            environment:
+              QUEUE:
+                value: "jobs-prod"
+                targetContainer: both
+
   - it: a variable with a corrected (invalid) targetContainer is not exported
     template: call.yaml
     values:

@@ -378,3 +378,11 @@ tests:
       - equal:
           path: spec.greeting
           value: "hi prod"
+
+  - it: crdkit-internal keys in a consumer variable are dropped (no injected generated value)
+    values:
+      - ../harness/ci/test-values/internal-key.yaml
+    asserts:
+      - equal:
+          path: spec.value
+          value: "declared"

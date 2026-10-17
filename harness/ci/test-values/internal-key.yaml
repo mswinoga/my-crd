@@ -1,0 +1,16 @@
+# A variable declaring a crdkit-internal key (_generated). Expect a
+# "# WARNING:" from crdkit's merge and the key removed: the injected
+# generated value never resolves, the variable's own default does.
+target: prod-01
+
+services:
+  app:
+    type: environment
+    environment:
+      LEAKY:
+        default: "declared"
+        _generated:
+          prod-01: "injected"
+
+spec:
+  value: "@LEAKY@"

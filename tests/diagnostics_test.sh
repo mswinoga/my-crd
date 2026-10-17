@@ -6,6 +6,20 @@
 # which strips comments before any `asserts:` runs against them — so
 # comment presence/absence can't be expressed there. This script greps
 # raw `helm template` output instead. See README.md.
+#
+# Coverage of the diagnostics catalogue (opis-zmian.md section 5): every
+# row reachable end to end has a `check` below. Rows that cannot be
+# provoked through mycrd.render are covered by probes in helm-unittest
+# instead (the probe output exposes `diag` as structured data):
+#  - "tries to narrow library targetContainer" / "tries to change library
+#    annotation": tests/annotation_policy_test.yaml (library tokens carry
+#    no annotations today).
+#  - "exported but has no service" / "belongs to service ... not
+#    declared": tests/service_output_test.yaml (needs a token added via
+#    crdkit.token.add without `service`).
+#  - crdkit's annotation-name collision and non-dict annotations: not
+#    reachable (this library's annotation names are fixed; it never calls
+#    crdkit.token.add with a non-dict).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -88,6 +102,12 @@ check "demo-service.yaml: no diagnostics" \
 
 check "generated-owner-conflict.yaml: ERROR that the generated variable is owned by another service" \
   generated-owner-conflict.yaml "^# ERROR: service 'greeter' generates variable 'GREETER_GREETING', already owned by service 'alpha' — generated value ignored" present
+
+check "internal-key.yaml: WARNING that a crdkit-internal key was removed" \
+  internal-key.yaml "^# WARNING: token 'LEAKY' declares crdkit-internal key '_generated'; it was removed" present
+
+check "full-featured.yaml: exporting variables from several services adds no diagnostics about services" \
+  full-featured.yaml "^# (ERROR|WARNING):.*(service|targetContainer)" absent
 
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
