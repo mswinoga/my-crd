@@ -319,6 +319,41 @@ Implementation notes:
 {{- end -}}
 
 {{/*
+mycrd.service.enabled (internal)
+
+Tells whether a service is enabled, judged by the `enabled` key of its
+raw declaration. Shared by every check that skips disabled services.
+
+Interface:
+- Params (dict): { "id": <service ID>, "service": <raw service
+  declaration under Values.services> }
+- Returns: the plain string "true" when the service is enabled, an EMPTY
+  string when it is disabled.
+
+Implementation notes:
+- Never return "false": a non-empty string is truthy in Go templates.
+  Use as `{{ if include "mycrd.service.enabled" (dict ...) }}`.
+- Only the YAML boolean `false` disables. An absent key, `true` and any
+  non-boolean value (`"false"`, `0`, `no-way`) count as enabled;
+  mycrd.serviceTokens reports the non-boolean ERROR, so this define
+  stays silent and records nothing.
+- `id` is part of the interface for call-site symmetry; the decision
+  reads `service` only.
+*/}}
+{{- define "mycrd.service.enabled" -}}
+{{- $off := false -}}
+{{- if kindIs "map" .service -}}
+  {{- $v := get .service "enabled" -}}
+  {{- if and (kindIs "bool" $v) (not $v) -}}
+    {{- $off = true -}}
+  {{- end -}}
+{{- end -}}
+{{- if not $off -}}
+true
+{{- end -}}
+{{- end -}}
+
+{{/*
 mycrd.service.guard (internal)
 
 Checks that a service was added before one of the service helpers acts

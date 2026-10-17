@@ -12,17 +12,19 @@ Input:  helpersProbe: { target: <string>, calls: [ {helper: <name after
         With `references: true`, mycrd.integrations.references runs
         after the calls, as it does last in the chain.
 Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
-        registry: <ctx.mycrd>, diag: { errors, warnings } }
+        registry: <ctx.mycrd>, diag: { errors, warnings }, results:
+        [<text each call returned, in call order>] }
 */ -}}
 {{- if .Values.helpersProbe }}
 {{- $probe := .Values.helpersProbe | toYaml | fromYaml }}
 {{- $diag := dict "errors" (list) "warnings" (list) }}
 {{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 }}
+{{- $results := list }}
 {{- range $call := ($probe.calls | default (list)) }}
-  {{- include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params) }}
+  {{- $results = append $results (include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params)) }}
 {{- end }}
 {{- if $probe.references }}
   {{- include "mycrd.integrations.references" $ctx }}
 {{- end }}
-{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" ($ctx.mycrd | default dict) "diag" $diag | toYaml }}
+{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" ($ctx.mycrd | default dict) "diag" $diag "results" $results | toYaml }}
 {{- end }}

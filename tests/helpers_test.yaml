@@ -240,3 +240,94 @@ tests:
           value:
             - "file 'app.conf' in mount 'shared-same' is already defined by service 'a'"
             - "mount 'shared-source' has source 'configMap', service 'b' asked for 'secret' — file 'y.txt' not added"
+
+  - it: probe - service.enabled with enabled absent returns true
+    set:
+      helpersProbe:
+        calls:
+          - {helper: enabled, params: {id: app, service: {}}}
+    asserts:
+      - equal:
+          path: results[0]
+          value: "true"
+      - equal:
+          path: diag
+          value: {errors: [], warnings: []}
+
+  - it: probe - service.enabled with enabled true returns true
+    set:
+      helpersProbe:
+        calls:
+          - {helper: enabled, params: {id: app, service: {enabled: true}}}
+    asserts:
+      - equal:
+          path: results[0]
+          value: "true"
+      - equal:
+          path: diag
+          value: {errors: [], warnings: []}
+
+  - it: probe - service.enabled with enabled false returns exactly the empty string
+    set:
+      helpersProbe:
+        calls:
+          - {helper: enabled, params: {id: app, service: {enabled: false}}}
+    asserts:
+      - equal:
+          path: results[0]
+          value: ""
+      - equal:
+          path: diag
+          value: {errors: [], warnings: []}
+
+  - it: probe - service.enabled with enabled the string "false" returns true
+    set:
+      helpersProbe:
+        calls:
+          - {helper: enabled, params: {id: app, service: {enabled: "false"}}}
+    asserts:
+      - equal:
+          path: results[0]
+          value: "true"
+      - equal:
+          path: diag
+          value: {errors: [], warnings: []}
+
+  - it: probe - service.enabled with enabled 0 returns true
+    set:
+      helpersProbe:
+        calls:
+          - {helper: enabled, params: {id: app, service: {enabled: 0}}}
+    asserts:
+      - equal:
+          path: results[0]
+          value: "true"
+      - equal:
+          path: diag
+          value: {errors: [], warnings: []}
+
+  - it: probe - service.enabled with enabled a non-boolean string returns true
+    set:
+      helpersProbe:
+        calls:
+          - {helper: enabled, params: {id: app, service: {enabled: no-way}}}
+    asserts:
+      - equal:
+          path: results[0]
+          value: "true"
+      - equal:
+          path: diag
+          value: {errors: [], warnings: []}
+
+  - it: probe - service.enabled treats a non-map declaration as enabled and records nothing
+    set:
+      helpersProbe:
+        calls:
+          - {helper: enabled, params: {id: app, service: "text"}}
+    asserts:
+      - equal:
+          path: results[0]
+          value: "true"
+      - equal:
+          path: registry
+          value: {}
