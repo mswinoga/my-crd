@@ -163,3 +163,13 @@ tests:
       - equal:
           path: spec.m
           value: "info"
+
+  - it: a root 'tokens:' key declares nothing (marker stays unresolved)
+    set:
+      target: prod-01
+      tokens.X: "v"
+      spec.m: "@X@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "@X@"

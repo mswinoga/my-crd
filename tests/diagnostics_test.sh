@@ -68,6 +68,12 @@ check "invalid-target-container.yaml: ERROR for a targetContainer outside the ac
 check "explicit-service-key.yaml: WARNING that an explicit 'service' is ignored" \
   explicit-service-key.yaml "^# WARNING: variable 'OWNED' in service 'app' sets 'service' explicitly — ignored" present
 
+check "legacy-tokens-key.yaml: WARNING that root 'tokens' is not read" \
+  legacy-tokens-key.yaml "^# WARNING: values key 'tokens' is not read — declare variables under services.<ID>.environment" present
+
+check "minimal.yaml (empty services): no 'tokens' warning" \
+  minimal.yaml "values key 'tokens'" absent
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always

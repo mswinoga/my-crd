@@ -46,7 +46,8 @@ Interface:
   "defaults": <dict> }
 - Returns YAML: { "tokens": <dict>, "system": <dict>, "defaults": <dict> }
   — ready to pass to crdkit.render.
-- Pre-render step: turns `Values.services.<ID>.environment` into token
+- Pre-render step: warns about a non-empty root `tokens:` (a values key
+  nothing reads), turns `Values.services.<ID>.environment` into token
   declarations annotated with `service: <ID>`, and normalizes the
   library-owned declarations.
 
@@ -73,8 +74,11 @@ Implementation notes:
 {{- $system := include "mycrd.normalizeDeclarations.internal" (dict "decls" .system) | fromYaml -}}
 {{- $defaults := include "mycrd.normalizeDeclarations.internal" (dict "decls" .defaults) | fromYaml -}}
 
-{{/* transitional: root `tokens` still honored; service variables win. */}}
-{{- $tokens := deepCopy ($values.tokens | default dict) -}}
+{{- if $values.tokens -}}
+  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'tokens' is not read — declare variables under services.<ID>.environment") -}}
+{{- end -}}
+
+{{- $tokens := dict -}}
 {{- $owners := dict -}}
 
 {{- $services := $values.services | default dict -}}
