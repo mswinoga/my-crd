@@ -1,0 +1,116 @@
+# mycrd.paths.*: node locations and JSON Pointer encoding, through
+# harness/templates/paths_probe.yaml (renders only when .Values.pathsProbe
+# is set).
+suite: my-crd paths
+templates:
+  - paths_probe.yaml
+tests:
+  - it: probe renders nothing when pathsProbe is unset
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: service path
+    set:
+      pathsProbe:
+        cases:
+          - {kind: service, service: SVC1}
+    asserts:
+      - equal:
+          path: results[0].segments
+          value: [spec, services, SVC1]
+      - equal:
+          path: results[0].pointer
+          value: /spec/services/SVC1
+
+  - it: var path
+    set:
+      pathsProbe:
+        cases:
+          - {kind: var, service: SVC1, name: SVC1_GREETER}
+    asserts:
+      - equal:
+          path: results[0].segments
+          value: [spec, services, SVC1, environment, SVC1_GREETER]
+      - equal:
+          path: results[0].pointer
+          value: /spec/services/SVC1/environment/SVC1_GREETER
+
+  - it: mount path
+    set:
+      pathsProbe:
+        cases:
+          - {kind: mount, mount: SVC1-config}
+    asserts:
+      - equal:
+          path: results[0].segments
+          value: [spec, volumeMounts, SVC1-config]
+      - equal:
+          path: results[0].pointer
+          value: /spec/volumeMounts/SVC1-config
+
+  - it: file path
+    set:
+      pathsProbe:
+        cases:
+          - {kind: file, mount: SVC1-config, file: message}
+    asserts:
+      - equal:
+          path: results[0].segments
+          value: [spec, volumeMounts, SVC1-config, files, message]
+      - equal:
+          path: results[0].pointer
+          value: /spec/volumeMounts/SVC1-config/files/message
+
+  - it: dots and dashes are left untouched
+    set:
+      pathsProbe:
+        cases:
+          - {kind: file, mount: SVC1-config, file: app.conf}
+    asserts:
+      - equal:
+          path: results[0].segments
+          value: [spec, volumeMounts, SVC1-config, files, app.conf]
+      - equal:
+          path: results[0].pointer
+          value: /spec/volumeMounts/SVC1-config/files/app.conf
+
+  - it: pointer escapes "/" as "~1"
+    set:
+      pathsProbe:
+        cases:
+          - {kind: pointer, segments: [a/b]}
+    asserts:
+      - equal:
+          path: results[0].pointer
+          value: /a~1b
+
+  - it: pointer escapes "~" as "~0"
+    set:
+      pathsProbe:
+        cases:
+          - {kind: pointer, segments: ["a~b"]}
+    asserts:
+      - equal:
+          path: results[0].pointer
+          value: /a~0b
+
+  - it: pointer escapes "~" before "/" so "~/" becomes "~0~1"
+    set:
+      pathsProbe:
+        cases:
+          - {kind: pointer, segments: ["~/"]}
+    asserts:
+      - equal:
+          path: results[0].pointer
+          value: /~0~1
+
+  - it: path defines escape through the pointer (file name with a slash)
+    set:
+      pathsProbe:
+        cases:
+          - {kind: file, mount: m, file: "dir/app~1"}
+    asserts:
+      - equal:
+          path: results[0].pointer
+          value: /spec/volumeMounts/m/files/dir~1app~01

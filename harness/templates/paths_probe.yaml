@@ -1,0 +1,32 @@
+{{- /*
+Test probe for the mycrd.paths.* defines. Renders ONLY when
+.Values.pathsProbe is set (never in harness/values.yaml or a fixture),
+so `make dev` and snapshots are unaffected.
+
+Input:  pathsProbe: { cases: [ {kind: service|var|mount|file|pointer,
+        service, name, mount, file, segments} ... ] } — each case passes
+        the fields it needs to the define named by `kind`; `pointer`
+        takes `segments` directly.
+Output: a YAML document { results: [ {segments: <list>, pointer:
+        <string>} ... ] } in case order.
+*/ -}}
+{{- if .Values.pathsProbe }}
+{{- $probe := .Values.pathsProbe | toYaml | fromYaml }}
+{{- $results := list }}
+{{- range $case := ($probe.cases | default (list)) }}
+  {{- $segments := list }}
+  {{- if eq $case.kind "service" }}
+    {{- $segments = (include "mycrd.paths.service" (dict "service" $case.service) | fromYaml).value }}
+  {{- else if eq $case.kind "var" }}
+    {{- $segments = (include "mycrd.paths.var" (dict "service" $case.service "name" $case.name) | fromYaml).value }}
+  {{- else if eq $case.kind "mount" }}
+    {{- $segments = (include "mycrd.paths.mount" (dict "mount" $case.mount) | fromYaml).value }}
+  {{- else if eq $case.kind "file" }}
+    {{- $segments = (include "mycrd.paths.file" (dict "mount" $case.mount "file" $case.file) | fromYaml).value }}
+  {{- else }}
+    {{- $segments = $case.segments }}
+  {{- end }}
+  {{- $results = append $results (dict "segments" $segments "pointer" (include "mycrd.paths.pointer" (dict "segments" $segments))) }}
+{{- end }}
+{{- dict "results" $results | toYaml }}
+{{- end }}
