@@ -1,7 +1,5 @@
 {{/*
-Name: mycrd.serviceTypes
-
-Scope: internal
+mycrd.serviceTypes (internal)
 
 The ORDERED list of service types this library knows. Order is the order
 in which type handlers run (mycrd.integrations.services).
@@ -20,9 +18,7 @@ value:
 {{- end -}}
 
 {{/*
-Name: mycrd.normalizeDeclarations.internal
-
-Scope: internal
+mycrd.normalizeDeclarations (internal)
 
 Normalizes library-owned declarations (`system`/`defaults`) so that
 annotations can later be attached and consumer dicts deep-merge onto
@@ -33,7 +29,7 @@ Interface:
 - Returns YAML: the same names, every declaration a dict (a scalar
   `v` becomes `{default: v}`); dict declarations are copied.
 */}}
-{{- define "mycrd.normalizeDeclarations.internal" -}}
+{{- define "mycrd.normalizeDeclarations" -}}
 {{- $out := dict -}}
 {{- range $name, $decl := (.decls | default dict) -}}
   {{- if kindIs "map" $decl -}}
@@ -46,9 +42,7 @@ Interface:
 {{- end -}}
 
 {{/*
-Name: mycrd.annotationNames
-
-Scope: internal
+mycrd.annotationNames (internal)
 
 The annotation names this library owns on token declarations: `service`
 (the owning service ID) and `targetContainer`. mycrd.render hands the
@@ -66,9 +60,7 @@ value:
 {{- end -}}
 
 {{/*
-Name: mycrd.splitAnnotations.internal
-
-Scope: internal
+mycrd.splitAnnotations (internal)
 
 Splits a token declaration into this library's annotations
 (mycrd.annotationNames) and everything else (target entries, `match`),
@@ -78,7 +70,7 @@ Interface:
 - Params (dict): { "decl": <token declaration dict> }
 - Returns YAML: { "annotations": <dict>, "values": <dict> }
 */}}
-{{- define "mycrd.splitAnnotations.internal" -}}
+{{- define "mycrd.splitAnnotations" -}}
 {{- $names := (include "mycrd.annotationNames" . | fromYaml).value -}}
 {{- $annotations := dict -}}
 {{- $values := dict -}}
@@ -93,9 +85,7 @@ Interface:
 {{- end -}}
 
 {{/*
-Name: mycrd.annotationPolicy.internal
-
-Scope: internal
+mycrd.annotationPolicy (internal)
 
 Pure policy function: decides which annotations a token ends up with
 when the library and a consumer both declare it.
@@ -120,7 +110,7 @@ Implementation notes:
   is not one of main/side-car/both/none is ignored without a
   diagnostic: validating consumer values is mycrd.serviceTokens' job.
 */}}
-{{- define "mycrd.annotationPolicy.internal" -}}
+{{- define "mycrd.annotationPolicy" -}}
 {{- $name := .name -}}
 {{- $diag := .diag -}}
 {{- $library := .library | default dict -}}
@@ -155,9 +145,7 @@ value: {{ $final | toYaml | nindent 2 }}
 {{- end -}}
 
 {{/*
-Name: mycrd.serviceTokens
-
-Scope: internal
+mycrd.serviceTokens (internal)
 
 Pre-render step: warns about a non-empty root `tokens:` (a values key
 nothing reads), turns `Values.services.<ID>.environment` into token
@@ -193,7 +181,7 @@ Implementation notes:
   `none` with an ERROR.
 - A variable named like a `defaults` token keeps the library's locked
   annotations and may widen `targetContainer` / fill in missing ones
-  (mycrd.annotationPolicy.internal); its value keys deep-merge over the
+  (mycrd.annotationPolicy); its value keys deep-merge over the
   library's in crdkit.
 - A variable named like a `system` token is removed from `tokens`; only
   its policy-approved annotations are written onto the system
@@ -208,8 +196,8 @@ Implementation notes:
 {{- $knownTypes := (include "mycrd.serviceTypes" . | fromYaml).value -}}
 {{- $containers := list "main" "side-car" "both" "none" -}}
 
-{{- $system := include "mycrd.normalizeDeclarations.internal" (dict "decls" .system) | fromYaml -}}
-{{- $defaults := include "mycrd.normalizeDeclarations.internal" (dict "decls" .defaults) | fromYaml -}}
+{{- $system := include "mycrd.normalizeDeclarations" (dict "decls" .system) | fromYaml -}}
+{{- $defaults := include "mycrd.normalizeDeclarations" (dict "decls" .defaults) | fromYaml -}}
 
 {{- if $values.tokens -}}
   {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'tokens' is not read — declare variables under services.<ID>.environment") -}}
@@ -270,9 +258,9 @@ Implementation notes:
 {{/* library-owned names: apply the annotation policy to consumer variables sharing the name. */}}
 {{- range $name := sortAlpha (keys $defaults) -}}
   {{- if hasKey $tokens $name -}}
-    {{- $mine := include "mycrd.splitAnnotations.internal" (dict "decl" (index $tokens $name)) | fromYaml -}}
-    {{- $lib := include "mycrd.splitAnnotations.internal" (dict "decl" (index $defaults $name)) | fromYaml -}}
-    {{- $final := include "mycrd.annotationPolicy.internal" (dict "name" $name "library" $lib.annotations "requested" $mine.annotations "diag" $diag) | fromYaml -}}
+    {{- $mine := include "mycrd.splitAnnotations" (dict "decl" (index $tokens $name)) | fromYaml -}}
+    {{- $lib := include "mycrd.splitAnnotations" (dict "decl" (index $defaults $name)) | fromYaml -}}
+    {{- $final := include "mycrd.annotationPolicy" (dict "name" $name "library" $lib.annotations "requested" $mine.annotations "diag" $diag) | fromYaml -}}
     {{- $decl := $mine.values -}}
     {{- range $key, $v := $final.value -}}
       {{- $_ := set $decl $key $v -}}
@@ -282,12 +270,12 @@ Implementation notes:
 {{- end -}}
 {{- range $name := sortAlpha (keys $system) -}}
   {{- if hasKey $tokens $name -}}
-    {{- $mine := include "mycrd.splitAnnotations.internal" (dict "decl" (index $tokens $name)) | fromYaml -}}
-    {{- $lib := include "mycrd.splitAnnotations.internal" (dict "decl" (index $system $name)) | fromYaml -}}
+    {{- $mine := include "mycrd.splitAnnotations" (dict "decl" (index $tokens $name)) | fromYaml -}}
+    {{- $lib := include "mycrd.splitAnnotations" (dict "decl" (index $system $name)) | fromYaml -}}
     {{- if $mine.values -}}
       {{- $_ := set $diag "warnings" (append $diag.warnings (printf "token '%s' is reserved by the library — only annotations were applied" $name)) -}}
     {{- end -}}
-    {{- $final := include "mycrd.annotationPolicy.internal" (dict "name" $name "library" $lib.annotations "requested" $mine.annotations "diag" $diag) | fromYaml -}}
+    {{- $final := include "mycrd.annotationPolicy" (dict "name" $name "library" $lib.annotations "requested" $mine.annotations "diag" $diag) | fromYaml -}}
     {{- $decl := deepCopy (index $system $name) -}}
     {{- range $key, $v := $final.value -}}
       {{- $_ := set $decl $key $v -}}
@@ -301,9 +289,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-Name: mycrd.service.addVar
-
-Scope: internal
+mycrd.service.addVar (internal)
 
 The way a service type handler contributes a variable: registers a
 GENERATED value (crdkit.token.underlay) for `name`, annotated with

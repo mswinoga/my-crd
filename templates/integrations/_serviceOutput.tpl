@@ -1,8 +1,7 @@
 {{/*
-Name: mycrd.integrations.serviceOutput
+mycrd.integrations.serviceOutput (internal)
 
-Scope: internal (chain entry, not called directly by consumers)
-
+Chain entry, not called directly by consumers.
 Writes the rendered CR's `spec.services`: every EXPORTED token (raw
 `targetContainer` of main/side-car/both), grouped by its `service`
 annotation: `spec.services.<ID>: {type: <service type>, environment:

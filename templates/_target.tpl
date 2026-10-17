@@ -1,7 +1,5 @@
 {{/*
-Name: mycrd.matchSequence
-
-Scope: internal
+mycrd.matchSequence (internal)
 
 Recognizes this library's "<env>-<seq>" target convention (seq = exactly
 two digits, e.g. "prod-01").
@@ -19,9 +17,7 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-Name: mycrd.deriveEnv
-
-Scope: internal
+mycrd.deriveEnv (internal)
 
 Derives this library's "@ENV@"-equivalent value from "target". Used
 once, in mycrd.systemTokens, for the locked ENV token.
@@ -47,10 +43,9 @@ Implementation notes:
 {{- end -}}
 
 {{/*
-Name: mycrd.parentTarget
+mycrd.parentTarget (public)
 
-Scope: public (passed to crdkit.render as parentTargetTemplate)
-
+Passed to crdkit.render as parentTargetTemplate.
 This library's target-escalation taxonomy: crdkit walks it repeatedly
 from an exact target (e.g. "qam1-01") up to wherever a token's value is
 declared, caching every rung visited.

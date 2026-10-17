@@ -1,8 +1,7 @@
 {{/*
-Name: mycrd.serviceType.environment
+mycrd.serviceType.environment (internal)
 
-Scope: internal (called by mycrd.integrations.services)
-
+Called by mycrd.integrations.services.
 Handler for `type: environment`. Its variables are consumer declarations
 that mycrd.serviceTokens already turned into tokens, so there is nothing
 left to generate.

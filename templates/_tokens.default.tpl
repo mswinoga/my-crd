@@ -1,11 +1,9 @@
 {{/*
-Name: mycrd.defaultTokens
-
-Scope: internal
+mycrd.defaultTokens (internal)
 
 Tokens with library-supplied defaults; consumers MAY override the value
 by declaring a variable of the same name under a service's `environment`
-(annotations follow mycrd.annotationPolicy.internal).
+(annotations follow mycrd.annotationPolicy).
 
 Interface:
 - Params: none.

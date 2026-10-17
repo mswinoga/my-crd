@@ -1,8 +1,7 @@
 {{/*
-Name: mycrd.integrations.preamble
+mycrd.integrations.preamble (internal)
 
-Scope: internal (chain entry, not called directly by consumers)
-
+Chain entry, not called directly by consumers.
 Always FIRST in mycrd.render's chain — gives the rendered CR its shape:
 apiVersion/kind, metadata.name, metadata.labels, spec.
 

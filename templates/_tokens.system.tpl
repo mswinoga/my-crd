@@ -1,7 +1,5 @@
 {{/*
-Name: mycrd.systemTokens
-
-Scope: internal
+mycrd.systemTokens (internal)
 
 Tokens reserved by this library — a consumer variable of the same name
 never changes the value: mycrd.serviceTokens drops its value keys with a

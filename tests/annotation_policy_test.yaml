@@ -1,4 +1,4 @@
-# mycrd.annotationPolicy.internal, exercised directly through
+# mycrd.annotationPolicy, exercised directly through
 # harness/templates/annotation_policy_probe.yaml (renders only when
 # .Values.policyProbe is set). Library tokens carry no annotations today,
 # so locks and narrowing cannot be provoked end to end.

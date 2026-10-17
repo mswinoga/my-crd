@@ -1,7 +1,5 @@
 {{/*
-Name: mycrd.render
-
-Scope: public
+mycrd.render (public)
 
 The only entry point consumers call: `{{ include "mycrd.render" . }}`,
 always with THEIR root context (never nested under .Values.myCrd.*).

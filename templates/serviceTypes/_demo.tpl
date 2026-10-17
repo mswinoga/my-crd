@@ -1,8 +1,7 @@
 {{/*
-Name: mycrd.serviceType.demo
+mycrd.serviceType.demo (internal)
 
-Scope: internal (called by mycrd.integrations.services)
-
+Called by mycrd.integrations.services.
 Proof-of-mechanism handler for `type: demo`: generates the variable
 `<ID>_GREETING` (ID upper-cased, '-' replaced by '_') with the value of
 `service.greeting`, exported to the main container.

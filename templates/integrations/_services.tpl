@@ -1,8 +1,7 @@
 {{/*
-Name: mycrd.integrations.services
+mycrd.integrations.services (internal)
 
-Scope: internal (chain entry, not called directly by consumers)
-
+Chain entry, not called directly by consumers.
 Dispatcher for `Values.services`: for each type in mycrd.serviceTypes
 order, for each service of that type in alphabetical ID order, calls
 `mycrd.serviceType.<type>` with `{ctx, id, service}`.
