@@ -1,0 +1,13 @@
+# Base example: a leader references the greeter's exported variable and
+# the greeter's message file. Expect spec.services.SVC2.references =
+# [/spec/services/SVC1/environment/SVC1_GREETER,
+#  /spec/volumeMounts/SVC1-config/files/message] and no diagnostics.
+target: prod-01
+
+services:
+  SVC1:
+    type: greeter
+    greeting: hello
+  SVC2:
+    type: leader
+    greeter: SVC1

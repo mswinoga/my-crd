@@ -1,0 +1,9 @@
+# The leader names a greeter that does not exist. Expect two "# ERROR:"
+# lines ("which does not exist — dropped", one for the variable, one for
+# the file) and no `references` key on SVC2.
+target: prod-01
+
+services:
+  SVC2:
+    type: leader
+    greeter: NOWHERE

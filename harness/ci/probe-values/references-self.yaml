@@ -1,0 +1,33 @@
+# Input for tests/references_test.yaml (NOT scanned by `make dev`: it
+# sets the probe key). Self-references, which no service type can
+# produce end to end. Service 'a' defines var A_VAR and file 'a.txt' in
+# mount 'a-mount' (its only contributor); 'b' and 'c' each add a file to
+# the mount 'shared'.
+#  - a references its own service, var, file and mount (it is the only
+#    contributor)                                -> 4 WARNINGs
+#  - b references the shared mount and c's file  -> kept
+#  - b references its own file b.txt             -> WARNING
+target: prod-01
+
+services:
+  a: {type: environment}
+  b: {type: environment}
+  c: {type: environment}
+
+helpersProbe:
+  references: true
+  calls:
+    - {helper: add, params: {id: a}}
+    - {helper: add, params: {id: b}}
+    - {helper: add, params: {id: c}}
+    - {helper: addVar, params: {id: a, name: A_VAR, value: "1", targetContainer: main}}
+    - {helper: addFile, params: {id: a, mount: a-mount, source: configMap, file: a.txt, content: "a"}}
+    - {helper: addFile, params: {id: b, mount: shared, source: configMap, file: b.txt, content: "b"}}
+    - {helper: addFile, params: {id: c, mount: shared, source: configMap, file: c.txt, content: "c"}}
+    - {helper: referenceService, params: {id: a, service: a}}
+    - {helper: referenceVar, params: {id: a, service: a, name: A_VAR}}
+    - {helper: referenceFile, params: {id: a, mount: a-mount, file: a.txt}}
+    - {helper: referenceMount, params: {id: a, mount: a-mount}}
+    - {helper: referenceMount, params: {id: b, mount: shared}}
+    - {helper: referenceFile, params: {id: b, mount: shared, file: c.txt}}
+    - {helper: referenceFile, params: {id: b, mount: shared, file: b.txt}}

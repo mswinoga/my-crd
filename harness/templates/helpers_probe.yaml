@@ -9,6 +9,8 @@ Input:  helpersProbe: { target: <string>, calls: [ {helper: <name after
         tokens) is built and the calls run in order — so a helper can be
         called for a service that was never added, which the dispatcher
         never allows end to end.
+        With `references: true`, mycrd.integrations.references runs
+        after the calls, as it does last in the chain.
 Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
         registry: <ctx.mycrd>, diag: { errors, warnings } }
 */ -}}
@@ -18,6 +20,9 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 }}
 {{- range $call := ($probe.calls | default (list)) }}
   {{- include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params) }}
+{{- end }}
+{{- if $probe.references }}
+  {{- include "mycrd.integrations.references" $ctx }}
 {{- end }}
 {{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" ($ctx.mycrd | default dict) "diag" $diag | toYaml }}
 {{- end }}

@@ -12,3 +12,38 @@ minimal values render matches the committed example snapshot:
       name: RELEASE-NAME
     spec:
       replicas: 1
+references base example matches snapshot:
+  1: |
+    apiVersion: platform.company.io/v1
+    kind: SomeCR
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: harness
+        helm.sh/chart: harness-0.0.0
+        platform.company.io/library-version: 0.0.0
+      name: RELEASE-NAME
+    spec:
+      replicas: 1
+      services:
+        SVC1:
+          environment:
+            SVC1_GREETER:
+              targetContainer: main
+              value: SVC1
+          type: greeter
+        SVC2:
+          environment:
+            SVC2_SEED:
+              targetContainer: main
+              value: "5"
+          references:
+            - /spec/services/SVC1/environment/SVC1_GREETER
+            - /spec/volumeMounts/SVC1-config/files/message
+          type: leader
+      volumeMounts:
+        SVC1-config:
+          files:
+            message: hello
+          source: configMap

@@ -17,6 +17,10 @@
 #  - "service ... was not added — helper ... ignored":
 #    tests/services_test.yaml via harness/templates/helpers_probe.yaml
 #    (the dispatcher always adds a service before its handler runs).
+#  - addFile's mount-source and file-already-defined ERRORs, and the
+#    references self-reference WARNING: tests/helpers_test.yaml and
+#    tests/references_test.yaml via the helpers probe (no service type
+#    can add to a mount of another service or reference itself).
 #  - crdkit's annotation-name collision and non-dict annotations: not
 #    reachable (this library's annotation names are fixed; it never calls
 #    crdkit.token.add with a non-dict).
@@ -120,6 +124,21 @@ check "malformed-environment.yaml: WARNING for a non-map environment (greeter se
 
 check "malformed-services-root.yaml: WARNING that a non-map root 'services' is ignored" \
   malformed-services-root.yaml "^# WARNING: values key 'services' must be a map — ignored" present
+
+check "references-basic.yaml: no diagnostics" \
+  references-basic.yaml '^# (ERROR|WARNING):' absent
+
+check "references-dangling.yaml: ERROR for the missing variable" \
+  references-dangling.yaml "^# ERROR: service 'SVC2' references '/spec/services/NOWHERE/environment/NOWHERE_GREETER', which does not exist — dropped" present
+
+check "references-dangling.yaml: ERROR for the missing file" \
+  references-dangling.yaml "^# ERROR: service 'SVC2' references '/spec/volumeMounts/NOWHERE-config/files/message', which does not exist — dropped" present
+
+check "references-not-exported.yaml: ERROR naming the variable that is not exported" \
+  references-not-exported.yaml "^# ERROR: service 'SVC2' references '/spec/services/SVC1/environment/SVC1_GREETER': variable 'SVC1_GREETER' is not exported \(targetContainer none\) — dropped" present
+
+check "references-not-exported.yaml: the kept file reference adds no other diagnostics" \
+  references-not-exported.yaml "^# (ERROR|WARNING):.*(volumeMounts|which it defines itself)" absent
 
 check "full-featured.yaml: exporting variables from several services adds no diagnostics about services" \
   full-featured.yaml "^# (ERROR|WARNING):.*(service|targetContainer)" absent

@@ -23,3 +23,9 @@ tests:
       - ../harness/ci/test-values/minimal.yaml
     asserts:
       - matchSnapshot: {}
+
+  - it: references base example matches snapshot
+    values:
+      - ../harness/ci/test-values/references-basic.yaml
+    asserts:
+      - matchSnapshot: {}

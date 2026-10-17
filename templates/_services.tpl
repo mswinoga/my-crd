@@ -15,6 +15,7 @@ Implementation notes:
 value:
 - environment
 - greeter
+- leader
 {{- end -}}
 
 {{/*
@@ -301,7 +302,8 @@ Implementation notes:
 - `ctx.mycrd` is a my-crd-owned key on crdkit's context:
   { added: {<id>: true}, owners: {<pointer>: <id>}, contributors:
   {<mount pointer>: {<id>: true}}, references: {<id>: {<pointer>:
-  true}} }. crdkit never uses the key `mycrd`.
+  <descriptor>}} } (descriptor: see mycrd.service.reference). crdkit
+  never uses the key `mycrd`.
 - Internal bookkeeping only — never emitted.
 - Every helper and integration calls this first, so none depends on
   which one runs first.
@@ -526,4 +528,134 @@ Implementation notes:
     {{- $_ := set (index $ctx.mycrd.contributors $mountPointer) $id true -}}
   {{- end -}}
 {{- end -}}
+{{- end -}}
+
+{{/*
+mycrd.service.reference (internal)
+
+Records one reference of a service; shared by the four
+mycrd.service.reference* helpers.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "helper":
+  <calling helper's template name, for the guard message>, "segments":
+  <path segments of the referenced node>, "var": <dict { "service":
+  <ID>, "name": <variable name> }, optional — set for a variable> }
+- Returns: nothing (mutates ctx.mycrd in place).
+
+Implementation notes:
+- Service must be added (mycrd.service.guard), otherwise an ERROR is
+  recorded and nothing is recorded.
+- Stored as `ctx.mycrd.references.<id>.<pointer>: {segments, var?}`: the
+  pointer key makes repeated references collapse, the descriptor lets
+  mycrd.integrations.references check the node without decoding the
+  pointer.
+- Only records: the target may be created by a handler that runs later,
+  so validation is mycrd.integrations.references' job.
+*/}}
+{{- define "mycrd.service.reference" -}}
+{{- $ctx := .ctx -}}
+{{- $id := toString .id -}}
+{{- if include "mycrd.service.guard" (dict "ctx" $ctx "id" $id "helper" .helper) -}}
+  {{- if not (hasKey $ctx.mycrd.references $id) -}}
+    {{- $_ := set $ctx.mycrd.references $id (dict) -}}
+  {{- end -}}
+  {{- $descriptor := dict "segments" .segments -}}
+  {{- if .var -}}
+    {{- $_ := set $descriptor "var" .var -}}
+  {{- end -}}
+  {{- $_ := set (index $ctx.mycrd.references $id) (include "mycrd.paths.pointer" (dict "segments" .segments)) $descriptor -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+mycrd.service.referenceService (internal)
+
+A service type handler's way to record that its service references
+another service as a whole.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <calling service ID>,
+  "service": <referenced service ID> }
+- Returns: nothing (mutates ctx.mycrd in place).
+
+Implementation notes:
+- See mycrd.service.reference; records the pointer of
+  mycrd.paths.service.
+*/}}
+{{- define "mycrd.service.referenceService" -}}
+{{- include "mycrd.service.reference" (dict
+      "ctx" .ctx
+      "id" .id
+      "helper" "mycrd.service.referenceService"
+      "segments" (include "mycrd.paths.service" (dict "service" .service) | fromYaml).value) -}}
+{{- end -}}
+
+{{/*
+mycrd.service.referenceVar (internal)
+
+A service type handler's way to record that its service references an
+environment variable of a service.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <calling service ID>,
+  "service": <ID of the service exporting the variable>, "name":
+  <variable name> }
+- Returns: nothing (mutates ctx.mycrd in place).
+
+Implementation notes:
+- See mycrd.service.reference; records the pointer of mycrd.paths.var.
+*/}}
+{{- define "mycrd.service.referenceVar" -}}
+{{- include "mycrd.service.reference" (dict
+      "ctx" .ctx
+      "id" .id
+      "helper" "mycrd.service.referenceVar"
+      "segments" (include "mycrd.paths.var" (dict "service" .service "name" .name) | fromYaml).value
+      "var" (dict "service" (toString .service) "name" (toString .name))) -}}
+{{- end -}}
+
+{{/*
+mycrd.service.referenceMount (internal)
+
+A service type handler's way to record that its service references a
+volume mount as a whole.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <calling service ID>,
+  "mount": <mount name> }
+- Returns: nothing (mutates ctx.mycrd in place).
+
+Implementation notes:
+- See mycrd.service.reference; records the pointer of
+  mycrd.paths.mount.
+*/}}
+{{- define "mycrd.service.referenceMount" -}}
+{{- include "mycrd.service.reference" (dict
+      "ctx" .ctx
+      "id" .id
+      "helper" "mycrd.service.referenceMount"
+      "segments" (include "mycrd.paths.mount" (dict "mount" .mount) | fromYaml).value) -}}
+{{- end -}}
+
+{{/*
+mycrd.service.referenceFile (internal)
+
+A service type handler's way to record that its service references a
+file inside a volume mount.
+
+Interface:
+- Params (dict): { "ctx": <chain ctx>, "id": <calling service ID>,
+  "mount": <mount name>, "file": <file name> }
+- Returns: nothing (mutates ctx.mycrd in place).
+
+Implementation notes:
+- See mycrd.service.reference; records the pointer of mycrd.paths.file.
+*/}}
+{{- define "mycrd.service.referenceFile" -}}
+{{- include "mycrd.service.reference" (dict
+      "ctx" .ctx
+      "id" .id
+      "helper" "mycrd.service.referenceFile"
+      "segments" (include "mycrd.paths.file" (dict "mount" .mount "file" .file) | fromYaml).value) -}}
 {{- end -}}
