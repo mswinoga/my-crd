@@ -3,6 +3,10 @@
 # merges each fixture in ci/test-values/ on top of these defaults rather
 # than replacing them outright, so anything added here would leak into
 # every fixture's rendered output.
+# Validation mode: fixtures with deliberate errors keep rendering (the
+# default, deploy, aborts on errors). Deploy-mode fixtures override it.
+renderMode: validate
+
 target: dev-01
 
 services: {}
