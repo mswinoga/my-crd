@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.matchSequence
+
 Scope: internal
 
 Recognizes this library's "<env>-<seq>" target convention (seq = exactly
@@ -17,6 +19,8 @@ Implementation notes:
 {{- end -}}
 
 {{/*
+Name: mycrd.deriveEnv
+
 Scope: internal
 
 Derives this library's "@ENV@"-equivalent value from "target". Used
@@ -43,6 +47,8 @@ Implementation notes:
 {{- end -}}
 
 {{/*
+Name: mycrd.parentTarget
+
 Scope: public (passed to crdkit.render as parentTargetTemplate)
 
 This library's target-escalation taxonomy: crdkit walks it repeatedly

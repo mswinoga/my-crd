@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.integrations.preamble
+
 Scope: internal (chain entry, not called directly by consumers)
 
 Always FIRST in mycrd.render's chain — gives the rendered CR its shape:

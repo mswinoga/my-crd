@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.integrations.serviceOutput
+
 Scope: internal (chain entry, not called directly by consumers)
 
 Writes the rendered CR's `spec.services`: every EXPORTED token (raw

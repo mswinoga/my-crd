@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.serviceType.environment
+
 Scope: internal (called by mycrd.integrations.services)
 
 Handler for `type: environment`. Its variables are consumer declarations

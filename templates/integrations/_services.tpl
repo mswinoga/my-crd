@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.integrations.services
+
 Scope: internal (chain entry, not called directly by consumers)
 
 Dispatcher for `Values.services`: for each type in mycrd.serviceTypes

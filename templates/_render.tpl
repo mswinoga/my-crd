@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.render
+
 Scope: public
 
 The only entry point consumers call: `{{ include "mycrd.render" . }}`,

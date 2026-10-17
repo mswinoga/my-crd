@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.serviceType.demo
+
 Scope: internal (called by mycrd.integrations.services)
 
 Proof-of-mechanism handler for `type: demo`: generates the variable

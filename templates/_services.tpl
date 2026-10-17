@@ -1,4 +1,6 @@
 {{/*
+Name: mycrd.serviceTypes
+
 Scope: internal
 
 The ORDERED list of service types this library knows. Order is the order
@@ -18,6 +20,8 @@ value:
 {{- end -}}
 
 {{/*
+Name: mycrd.normalizeDeclarations.internal
+
 Scope: internal
 
 Normalizes library-owned declarations (`system`/`defaults`) so that
@@ -42,6 +46,8 @@ Interface:
 {{- end -}}
 
 {{/*
+Name: mycrd.annotationNames
+
 Scope: internal
 
 The annotation names this library owns on token declarations: `service`
@@ -60,13 +66,17 @@ value:
 {{- end -}}
 
 {{/*
+Name: mycrd.splitAnnotations.internal
+
 Scope: internal
+
+Splits a token declaration into this library's annotations
+(mycrd.annotationNames) and everything else (target entries, `match`),
+so the annotation policy can treat the two parts separately.
 
 Interface:
 - Params (dict): { "decl": <token declaration dict> }
-- Returns YAML: { "annotations": <dict>, "values": <dict> } — the
-  declaration's keys partitioned into this library's annotations
-  (mycrd.annotationNames) and everything else (target entries, `match`).
+- Returns YAML: { "annotations": <dict>, "values": <dict> }
 */}}
 {{- define "mycrd.splitAnnotations.internal" -}}
 {{- $names := (include "mycrd.annotationNames" . | fromYaml).value -}}
@@ -83,6 +93,8 @@ Interface:
 {{- end -}}
 
 {{/*
+Name: mycrd.annotationPolicy.internal
+
 Scope: internal
 
 Pure policy function: decides which annotations a token ends up with
@@ -143,6 +155,8 @@ value: {{ $final | toYaml | nindent 2 }}
 {{- end -}}
 
 {{/*
+Name: mycrd.serviceTokens
+
 Scope: internal
 
 Pre-render step: warns about a non-empty root `tokens:` (a values key
@@ -287,6 +301,8 @@ Implementation notes:
 {{- end -}}
 
 {{/*
+Name: mycrd.service.addVar
+
 Scope: internal
 
 The way a service type handler contributes a variable: registers a
