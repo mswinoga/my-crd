@@ -1,14 +1,14 @@
 {{/*
 Scope: internal (chain entry, not called directly by consumers)
 
+Writes the rendered CR's `spec.services`: every EXPORTED token (raw
+`targetContainer` of main/side-car/both), grouped by its `service`
+annotation: `spec.services.<ID>: {type: <service type>, environment:
+{<NAME>: {value: "@<NAME>@", targetContainer: <tc>}}}`.
+
 Interface:
 - Params: ctx (see crdkit.integrations.chain).
 - Returns: nothing (mutates ctx.model in place).
-- Writes the rendered CR's `spec.services`: every EXPORTED token (raw
-  `targetContainer` of main/side-car/both), grouped by its `service`
-  annotation:
-  `spec.services.<ID>: {type: <service type>, environment: {<NAME>:
-  {value: "@<NAME>@", targetContainer: <tc>}}}`.
 
 Implementation notes:
 - ALWAYS last in the chain, so tokens added by any earlier integration

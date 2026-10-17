@@ -1,11 +1,12 @@
 {{/*
 Scope: internal
 
+The ORDERED list of service types this library knows. Order is the order
+in which type handlers run (mycrd.integrations.services).
+
 Interface:
 - Params: none (any value is ignored).
 - Returns YAML: { "value": [<service type name>, ...] }
-- The ORDERED list of service types this library knows. Order is the
-  order in which type handlers run (mycrd.integrations.services).
 
 Implementation notes:
 - Wrapped in `value:` — Helm's `fromYaml` cannot decode a bare list.
@@ -19,13 +20,14 @@ value:
 {{/*
 Scope: internal
 
+Normalizes library-owned declarations (`system`/`defaults`) so that
+annotations can later be attached and consumer dicts deep-merge onto
+them instead of replacing a scalar.
+
 Interface:
 - Params (dict): { "decls": <dict of token declarations, each a scalar or a dict> }
 - Returns YAML: the same names, every declaration a dict (a scalar
   `v` becomes `{default: v}`); dict declarations are copied.
-- Normalizes library-owned declarations (`system`/`defaults`) so that
-  annotations can later be attached and consumer dicts deep-merge onto
-  them instead of replacing a scalar.
 */}}
 {{- define "mycrd.normalizeDeclarations.internal" -}}
 {{- $out := dict -}}
@@ -42,13 +44,14 @@ Interface:
 {{/*
 Scope: internal
 
+The annotation names this library owns on token declarations: `service`
+(the owning service ID) and `targetContainer`. mycrd.render hands the
+same list to crdkit.render, which treats each as a reserved key (never a
+target entry).
+
 Interface:
 - Params: none (any value is ignored).
 - Returns YAML: { "value": [<annotation name>, ...] }
-- The annotation names this library owns on token declarations:
-  `service` (the owning service ID) and `targetContainer`.
-  mycrd.render hands the same list to crdkit.render, which treats each
-  as a reserved key (never a target entry).
 */}}
 {{- define "mycrd.annotationNames" -}}
 value:
@@ -82,13 +85,14 @@ Interface:
 {{/*
 Scope: internal
 
+Pure policy function: decides which annotations a token ends up with
+when the library and a consumer both declare it.
+
 Interface:
 - Params (dict): { "name": <token name, for messages>, "library": <dict
   of annotations set by the library>, "requested": <dict of annotations
   a consumer variable asks for>, "diag": <dict, appended to in place> }
 - Returns YAML: { "value": <final annotations dict> }
-- Pure policy function: decides which annotations a token ends up with
-  when the library and a consumer both declare it.
 
 Implementation notes:
 - An annotation the library set is locked; a missing one is filled in
@@ -141,16 +145,17 @@ value: {{ $final | toYaml | nindent 2 }}
 {{/*
 Scope: internal
 
+Pre-render step: warns about a non-empty root `tokens:` (a values key
+nothing reads), turns `Values.services.<ID>.environment` into token
+declarations annotated with `service: <ID>`, and normalizes the
+library-owned declarations.
+
 Interface:
 - Params (dict): { "context": <consumer root $>, "diag": <dict with
   "errors"/"warnings" lists, appended to in place>, "system": <dict>,
   "defaults": <dict> }
 - Returns YAML: { "tokens": <dict>, "system": <dict>, "defaults": <dict> }
   — ready to pass to crdkit.render.
-- Pre-render step: warns about a non-empty root `tokens:` (a values key
-  nothing reads), turns `Values.services.<ID>.environment` into token
-  declarations annotated with `service: <ID>`, and normalizes the
-  library-owned declarations.
 
 Implementation notes:
 - Runs before crdkit builds ctx, so it records into the shared `diag`
@@ -284,14 +289,15 @@ Implementation notes:
 {{/*
 Scope: internal
 
+The way a service type handler contributes a variable: registers a
+GENERATED value (crdkit.token.underlay) for `name`, annotated with
+`service: <id>` (and `targetContainer` when given).
+
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "name":
   <token name>, "value": <generated value, may hold "@ref@" markers or
   be a structure>, "targetContainer": <string, optional> }
 - Returns: nothing (mutates ctx.tokens and ctx.diag in place).
-- The way a service type handler contributes a variable: registers a
-  GENERATED value (crdkit.token.underlay) for `name`, annotated with
-  `service: <id>` (and `targetContainer` when given).
 
 Implementation notes:
 - A token already annotated with a DIFFERENT service is left untouched

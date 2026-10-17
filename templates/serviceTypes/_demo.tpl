@@ -1,13 +1,14 @@
 {{/*
 Scope: internal (called by mycrd.integrations.services)
 
+Proof-of-mechanism handler for `type: demo`: generates the variable
+`<ID>_GREETING` (ID upper-cased, '-' replaced by '_') with the value of
+`service.greeting`, exported to the main container.
+
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "service":
   <the service declaration; reads `greeting`> }
 - Returns: nothing (mutates ctx.tokens through mycrd.service.addVar).
-- Proof-of-mechanism handler for `type: demo`: generates the variable
-  `<ID>_GREETING` (ID upper-cased, '-' replaced by '_') with the value of
-  `service.greeting`, exported to the main container.
 
 Implementation notes:
 - Generated values have the lowest priority, so

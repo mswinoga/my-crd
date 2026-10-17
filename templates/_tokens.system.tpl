@@ -1,13 +1,14 @@
 {{/*
 Scope: internal
 
+Tokens reserved by this library — a consumer variable of the same name
+never changes the value: mycrd.serviceTokens drops its value keys with a
+WARNING and applies only its policy-approved annotations.
+
 Interface:
 - Params: consumer's root context (`.` — not a `ctx` dict; called
   before crdkit builds one).
 - Returns: YAML dict of locked token declarations.
-- Tokens reserved by this library — a consumer variable of the same
-  name never changes the value: mycrd.serviceTokens drops its value keys
-  with a WARNING and applies only its policy-approved annotations.
 
 Implementation notes:
 - Not re-enforced after the integration chain runs — the chain is

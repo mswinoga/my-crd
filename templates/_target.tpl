@@ -1,11 +1,12 @@
 {{/*
 Scope: internal
 
+Recognizes this library's "<env>-<seq>" target convention (seq = exactly
+two digits, e.g. "prod-01").
+
 Interface:
 - Params: bare string (the target to test).
 - Returns: YAML `{ "matched": <bool>, "value": <string> }`.
-- Recognizes this library's "<env>-<seq>" target convention (seq =
-  exactly two digits, e.g. "prod-01").
 
 Implementation notes:
 - The one place this regex lives — shared by mycrd.deriveEnv and
@@ -18,11 +19,12 @@ Implementation notes:
 {{/*
 Scope: internal
 
+Derives this library's "@ENV@"-equivalent value from "target". Used
+once, in mycrd.systemTokens, for the locked ENV token.
+
 Interface:
 - Params: bare string (the target).
 - Returns: the derived env string.
-- Derives this library's "@ENV@"-equivalent value from "target". Used
-  once, in mycrd.systemTokens, for the locked ENV token.
 
 Implementation notes:
 - NOT equivalent to calling mycrd.parentTarget once: for a plain,
@@ -43,13 +45,14 @@ Implementation notes:
 {{/*
 Scope: public (passed to crdkit.render as parentTargetTemplate)
 
+This library's target-escalation taxonomy: crdkit walks it repeatedly
+from an exact target (e.g. "qam1-01") up to wherever a token's value is
+declared, caching every rung visited.
+
 Interface:
 - Params (dict): { "target": <string, current rung>, "context": <root
   $, unused — this taxonomy needs no external data> }
 - Returns: the next rung up, or nothing if there is none.
-- This library's target-escalation taxonomy: crdkit walks it repeatedly
-  from an exact target (e.g. "qam1-01") up to wherever a token's value
-  is declared, caching every rung visited.
 
 Implementation notes:
 - Two rules, in order: (1) a "<env>-<seq>" target (mycrd.matchSequence)

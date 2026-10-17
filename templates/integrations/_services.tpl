@@ -1,12 +1,13 @@
 {{/*
 Scope: internal (chain entry, not called directly by consumers)
 
+Dispatcher for `Values.services`: for each type in mycrd.serviceTypes
+order, for each service of that type in alphabetical ID order, calls
+`mycrd.serviceType.<type>` with `{ctx, id, service}`.
+
 Interface:
 - Params: ctx (see crdkit.integrations.chain).
 - Returns: nothing (mutates ctx.tokens via the type handlers).
-- Dispatcher for `Values.services`: for each type in mycrd.serviceTypes
-  order, for each service of that type in alphabetical ID order, calls
-  `mycrd.serviceType.<type>` with `{ctx, id, service}`.
 
 Implementation notes:
 - Type order matters: handlers of earlier types run first.

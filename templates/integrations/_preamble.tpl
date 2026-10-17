@@ -1,11 +1,12 @@
 {{/*
 Scope: internal (chain entry, not called directly by consumers)
 
+Always FIRST in mycrd.render's chain — gives the rendered CR its shape:
+apiVersion/kind, metadata.name, metadata.labels, spec.
+
 Interface:
 - Params: ctx (root/diag/model/tokens/target — see crdkit.render).
 - Returns: nothing (mutates ctx.model in place).
-- Always FIRST in mycrd.render's chain — gives the rendered CR its
-  shape: apiVersion/kind, metadata.name, metadata.labels, spec.
 
 Implementation notes:
 - apiVersion/kind set via crdkit.dictMerge with an empty path (the

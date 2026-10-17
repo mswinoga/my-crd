@@ -1,11 +1,12 @@
 {{/*
 Scope: public
 
+The only entry point consumers call: `{{ include "mycrd.render" . }}`,
+always with THEIR root context (never nested under .Values.myCrd.*).
+
 Interface:
 - Params: none (uses `.` directly).
 - Returns: the rendered CR as YAML text (see crdkit.render).
-- The only entry point consumers call: `{{ include "mycrd.render" . }}`,
-  always with THEIR root context (never nested under .Values.myCrd.*).
 
 Implementation notes:
 - Thin wrapper supplying crdkit.render everything it can't know itself:
