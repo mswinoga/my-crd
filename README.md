@@ -46,6 +46,8 @@ target: prod      # opaque string to crdkit; this library recognizes a
 services:
   orders:                                # service ID (any string)
     type: environment                    # a type from mycrd.serviceTypes
+    enabled: true                        # optional boolean; false disables the
+                                         # service — see "Disabled services"
     environment:                         # variables of this service
       VAR1: "val1"                       # scalar: same for every target
       VAR2:                              # dict: a literal key per target/rung
@@ -92,6 +94,32 @@ the name.
 
 Variables are declared only under `services.<ID>.environment`; a root
 `tokens:` key is not read and records a `# WARNING:`.
+
+Reserved service keys: `type`, `environment`, `enabled`. Every other key
+belongs to the service type (e.g. `greeting`, `greeter`).
+
+#### Disabled services
+
+`enabled: false` disables a service; absent or `true` enables it.
+
+- Only the YAML boolean `false` disables. Any other non-boolean value
+  (`"false"`, `0`, `no-way`) records an `# ERROR:` (`service '<ID>':
+  'enabled' must be a boolean — treated as enabled`) and the service is
+  enabled.
+- The value is static: it is not target-dependent and holds no `@NAME@`
+  markers. Per-environment switching uses per-environment values files.
+- A disabled service is absent from `spec`: no `spec.services.<ID>`, no
+  files, no references, and its type handler does not run. A type
+  handler of an enabled service still sees `enabled` in `.service` when
+  it was written.
+- Its `environment` variables are not declared: a `@NAME@` marker to one
+  stays unresolved (the usual "possible typo" `# WARNING:`), a name it
+  shares with an enabled service causes no collision, and a library token
+  it lists stays unexported.
+- A disabled service records no diagnostic of its own.
+- A reference to a node under a disabled service (a service or a
+  variable of it) is dropped with an `# ERROR:` naming the disabled
+  service. See "References".
 
 ### Token model
 
@@ -226,6 +254,10 @@ References are metadata — nothing is copied or mounted.
   - a reference to a node the service defines itself is dropped with a
     `# WARNING:` (own service, a variable or file it owns, a mount it is
     the only contributor to);
+  - a reference to a node under a disabled service is dropped with an
+    `# ERROR:` naming it (`which belongs to disabled service '<id>'`);
+    a mount or file reference carries no service, so a mount only
+    disabled services would have created is reported as a missing node;
   - a reference to a missing node is dropped with an `# ERROR:`; a
     variable whose token exists but is not exported (`targetContainer`
     none) gets a specific message;
@@ -304,7 +336,7 @@ spec:
 ```
 
 A service without exported variables appears with its `type` only. A
-service of an unknown type is skipped.
+service of an unknown type, and a disabled service, are skipped.
 
 ### Diagnostics
 
@@ -318,8 +350,8 @@ the top of the rendered manifest:
 
 Downstream tooling greps for the exact prefixes `# ERROR:` / `# WARNING:`.
 
-Service-level problems (unknown type, a variable declared by two services,
-invalid `targetContainer`, a mount `source` conflict, a file defined by
+Service-level problems (unknown type, a non-boolean `enabled`, a variable
+declared by two services, invalid `targetContainer`, a mount `source` conflict, a file defined by
 two services, a self-referencing or dangling reference, ...) are
 reported the same way.
 
