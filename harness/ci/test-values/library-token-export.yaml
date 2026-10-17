@@ -1,0 +1,22 @@
+# Consumer variables named like library-owned tokens:
+#  - LOG_LEVEL (a library DEFAULT) with targetContainer: main -> allowed
+#    widening from none; the library value 'info' is kept.
+#  - ENV (a library SYSTEM token, locked) with targetContainer: both and
+#    a value key 'prod': the value is ignored, only the annotation
+#    applies. Expect exactly one "# WARNING:" ("only annotations were
+#    applied").
+target: prod-01
+
+services:
+  app:
+    type: environment
+    environment:
+      LOG_LEVEL:
+        targetContainer: main
+      ENV:
+        targetContainer: both
+        prod: "hijacked"
+
+spec:
+  level: "@LOG_LEVEL@"
+  env: "@ENV@"

@@ -173,3 +173,74 @@ tests:
       - equal:
           path: spec.m
           value: "@X@"
+
+  - it: exporting a library default (LOG_LEVEL with targetContainer) keeps the library value
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            LOG_LEVEL:
+              targetContainer: main
+      spec.m: "@LOG_LEVEL@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "info"
+
+  - it: a consumer value on a library default still overrides it when annotations are also given
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            LOG_LEVEL:
+              default: "warn"
+              targetContainer: main
+      spec.m: "@LOG_LEVEL@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "warn"
+
+  - it: a consumer declaration of a locked library token (ENV) cannot change its value
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            ENV:
+              prod: "x"
+      spec.m: "@ENV@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "prod"
+
+  - it: a scalar consumer declaration of a locked library token cannot change its value
+    set:
+      target: prod-01
+      services:
+        app:
+          type: environment
+          environment:
+            API_GROUP: "hijacked.example.com"
+      spec.m: "@API_GROUP@"
+    asserts:
+      - equal:
+          path: spec.m
+          value: "platform.company.io"
+
+  - it: the library-token-export fixture keeps both library values
+    values:
+      - ../harness/ci/test-values/library-token-export.yaml
+    asserts:
+      - equal:
+          path: spec.level
+          value: "info"
+      - equal:
+          path: spec.env
+          value: "prod"

@@ -1,0 +1,18 @@
+{{- /*
+Test probe for mycrd.annotationPolicy.internal. Renders ONLY when
+.Values.policyProbe is set (never in harness/values.yaml or a fixture),
+so `make dev` and snapshots are unaffected.
+
+Input:  policyProbe: { name: <string>, library: <dict>, requested: <dict> }
+Output: a YAML document { result: <final annotations>, diag: { errors, warnings } }
+*/ -}}
+{{- if .Values.policyProbe }}
+{{- $probe := .Values.policyProbe | toYaml | fromYaml }}
+{{- $diag := dict "errors" (list) "warnings" (list) }}
+{{- $out := include "mycrd.annotationPolicy.internal" (dict
+      "name" $probe.name
+      "library" ($probe.library | default dict)
+      "requested" ($probe.requested | default dict)
+      "diag" $diag) | fromYaml }}
+{{- dict "result" $out.value "diag" $diag | toYaml }}
+{{- end }}

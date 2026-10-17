@@ -1,0 +1,480 @@
+# mycrd.annotationPolicy.internal, exercised directly through
+# harness/templates/annotation_policy_probe.yaml (renders only when
+# .Values.policyProbe is set). Library tokens carry no annotations today,
+# so locks and narrowing cannot be provoked end to end.
+#
+# Section 1: every cell of the targetContainer widening lattice.
+# Section 2: locked and filled-in annotations (service).
+suite: my-crd annotation policy
+templates:
+  - annotation_policy_probe.yaml
+tests:
+
+  - it: "targetContainer: library (absent) + request none -> none, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {}
+        requested: {targetContainer: none}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: none}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library (absent) + request main -> main, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {}
+        requested: {targetContainer: main}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library (absent) + request side-car -> side-car, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {}
+        requested: {targetContainer: side-car}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: side-car}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library (absent) + request both -> both, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {}
+        requested: {targetContainer: both}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library none + request none -> none, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: none}
+        requested: {targetContainer: none}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: none}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library none + request main -> main, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: none}
+        requested: {targetContainer: main}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library none + request side-car -> side-car, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: none}
+        requested: {targetContainer: side-car}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: side-car}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library none + request both -> both, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: none}
+        requested: {targetContainer: both}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library main + request none -> main kept, narrowing WARNING"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: main}
+        requested: {targetContainer: none}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'main' to 'none' — library value kept"
+
+  - it: "targetContainer: library main + request main -> main, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: main}
+        requested: {targetContainer: main}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library main + request side-car -> main kept, narrowing WARNING"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: main}
+        requested: {targetContainer: side-car}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'main' to 'side-car' — library value kept"
+
+  - it: "targetContainer: library main + request both -> both, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: main}
+        requested: {targetContainer: both}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library side-car + request none -> side-car kept, narrowing WARNING"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: side-car}
+        requested: {targetContainer: none}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: side-car}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'side-car' to 'none' — library value kept"
+
+  - it: "targetContainer: library side-car + request main -> side-car kept, narrowing WARNING"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: side-car}
+        requested: {targetContainer: main}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: side-car}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'side-car' to 'main' — library value kept"
+
+  - it: "targetContainer: library side-car + request side-car -> side-car, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: side-car}
+        requested: {targetContainer: side-car}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: side-car}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library side-car + request both -> both, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: side-car}
+        requested: {targetContainer: both}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: "targetContainer: library both + request none -> both kept, narrowing WARNING"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: both}
+        requested: {targetContainer: none}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'both' to 'none' — library value kept"
+
+  - it: "targetContainer: library both + request main -> both kept, narrowing WARNING"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: both}
+        requested: {targetContainer: main}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'both' to 'main' — library value kept"
+
+  - it: "targetContainer: library both + request side-car -> both kept, narrowing WARNING"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: both}
+        requested: {targetContainer: side-car}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'both' to 'side-car' — library value kept"
+
+  - it: "targetContainer: library both + request both -> both, no diagnostics"
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: both}
+        requested: {targetContainer: both}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: both}
+      - equal:
+          path: diag.errors
+          value: []
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: a request that omits targetContainer keeps the library's targetContainer
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: main}
+        requested: {}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main}
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: no library annotations and no request yields an empty result
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {}
+        requested: {}
+    asserts:
+      - equal:
+          path: result
+          value: {}
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: an unrecognized targetContainer request against an unannotated library token is ignored without a diagnostic
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {}
+        requested: {targetContainer: bogus}
+    asserts:
+      - equal:
+          path: result
+          value: {}
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: an unrecognized targetContainer request against a locked library value is a narrowing WARNING
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: main}
+        requested: {targetContainer: bogus}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main}
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to narrow library targetContainer 'main' to 'bogus' — library value kept"
+
+  - it: a library-set service annotation is locked, a different request records a WARNING
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {service: platform}
+        requested: {service: orders}
+    asserts:
+      - equal:
+          path: result
+          value: {service: platform}
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to change library annotation 'service' — library value kept"
+
+  - it: requesting the library's own service annotation value is allowed silently
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {service: platform}
+        requested: {service: platform}
+    asserts:
+      - equal:
+          path: result
+          value: {service: platform}
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: a missing annotation is filled in from the request
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {targetContainer: main}
+        requested: {service: orders}
+    asserts:
+      - equal:
+          path: result
+          value: {targetContainer: main, service: orders}
+      - equal:
+          path: diag.warnings
+          value: []
+
+  - it: locked service and widened targetContainer are decided independently
+    set:
+      policyProbe:
+        name: SOME_VAR
+        library: {service: platform, targetContainer: side-car}
+        requested: {service: orders, targetContainer: both}
+    asserts:
+      - equal:
+          path: result
+          value: {service: platform, targetContainer: both}
+      - equal:
+          path: diag.warnings
+          value:
+            - "variable 'SOME_VAR' tries to change library annotation 'service' — library value kept"
+
+  - it: renders nothing when policyProbe is unset
+    templates:
+      - annotation_policy_probe.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

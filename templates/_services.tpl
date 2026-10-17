@@ -41,6 +41,103 @@ Interface:
 Scope: internal
 
 Interface:
+- Params: none (any value is ignored).
+- Returns YAML: { "value": [<annotation name>, ...] }
+- The annotation names this library owns on token declarations:
+  `service` (the owning service ID) and `targetContainer`.
+  mycrd.render hands the same list to crdkit.render, which treats each
+  as a reserved key (never a target entry).
+*/}}
+{{- define "mycrd.annotationNames" -}}
+value: {{ list "service" "targetContainer" | toYaml | nindent 2 }}
+{{- end -}}
+
+{{/*
+Scope: internal
+
+Interface:
+- Params (dict): { "decl": <token declaration dict> }
+- Returns YAML: { "annotations": <dict>, "values": <dict> } — the
+  declaration's keys partitioned into this library's annotations
+  (mycrd.annotationNames) and everything else (target entries, `match`).
+*/}}
+{{- define "mycrd.splitAnnotations.internal" -}}
+{{- $names := (include "mycrd.annotationNames" . | fromYaml).value -}}
+{{- $annotations := dict -}}
+{{- $values := dict -}}
+{{- range $key, $v := (.decl | default dict) -}}
+  {{- if has $key $names -}}
+    {{- $_ := set $annotations $key $v -}}
+  {{- else -}}
+    {{- $_ := set $values $key $v -}}
+  {{- end -}}
+{{- end -}}
+{{- dict "annotations" $annotations "values" $values | toYaml -}}
+{{- end -}}
+
+{{/*
+Scope: internal
+
+Interface:
+- Params (dict): { "name": <token name, for messages>, "library": <dict
+  of annotations set by the library>, "requested": <dict of annotations
+  a consumer variable asks for>, "diag": <dict, appended to in place> }
+- Returns YAML: { "value": <final annotations dict> }
+- Pure policy function: decides which annotations a token ends up with
+  when the library and a consumer both declare it.
+
+Implementation notes:
+- An annotation the library set is locked; a missing one is filled in
+  from `requested`.
+- `targetContainer` may only widen. Allowed requests per library value
+  (absent behaves like `none`): none -> none/main/side-car/both;
+  main -> main/both; side-car -> side-car/both; both -> both. A request
+  outside that set (including an unrecognized value) records a WARNING
+  and keeps the library value.
+- Any other locked annotation differing from the request records a
+  WARNING and keeps the library value.
+- When the library has no `targetContainer` (or `none`), a request that
+  is not one of main/side-car/both/none is ignored without a
+  diagnostic: validating consumer values is mycrd.serviceTokens' job.
+*/}}
+{{- define "mycrd.annotationPolicy.internal" -}}
+{{- $name := .name -}}
+{{- $diag := .diag -}}
+{{- $library := .library | default dict -}}
+{{- $requested := .requested | default dict -}}
+{{- $widening := dict
+      "none" (list "none" "main" "side-car" "both")
+      "main" (list "main" "both")
+      "side-car" (list "side-car" "both")
+      "both" (list "both") -}}
+{{- $final := deepCopy $library -}}
+{{- range $key := sortAlpha (keys $requested) -}}
+  {{- $want := index $requested $key -}}
+  {{- if eq $key "targetContainer" -}}
+    {{- $have := get $library "targetContainer" | default "none" -}}
+    {{- $allowed := get $widening (toString $have) | default (list) -}}
+    {{- if has $want $allowed -}}
+      {{- $_ := set $final $key $want -}}
+    {{- else if ne (toString $have) "none" -}}
+      {{- if ne (toString $want) (toString $have) -}}
+        {{- $_ := set $diag "warnings" (append $diag.warnings (printf "variable '%s' tries to narrow library targetContainer '%v' to '%v' — library value kept" $name $have $want)) -}}
+      {{- end -}}
+    {{- end -}}
+  {{- else if hasKey $library $key -}}
+    {{- if ne (toString (index $library $key)) (toString $want) -}}
+      {{- $_ := set $diag "warnings" (append $diag.warnings (printf "variable '%s' tries to change library annotation '%s' — library value kept" $name $key)) -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $_ := set $final $key $want -}}
+  {{- end -}}
+{{- end -}}
+value: {{ $final | toYaml | nindent 2 }}
+{{- end -}}
+
+{{/*
+Scope: internal
+
+Interface:
 - Params (dict): { "context": <consumer root $>, "diag": <dict with
   "errors"/"warnings" lists, appended to in place>, "system": <dict>,
   "defaults": <dict> }
@@ -62,6 +159,14 @@ Implementation notes:
   the parent service ID (an explicit one is overwritten with a WARNING).
 - `targetContainer` outside main/side-car/both/none is corrected to
   `none` with an ERROR.
+- A variable named like a `defaults` token keeps the library's locked
+  annotations and may widen `targetContainer` / fill in missing ones
+  (mycrd.annotationPolicy.internal); its value keys deep-merge over the
+  library's in crdkit.
+- A variable named like a `system` token is removed from `tokens`; only
+  its policy-approved annotations are written onto the system
+  declaration (value keys record a WARNING), so a library-owned value
+  can be exported without being overridable.
 - Read `.Values` through `toYaml | fromYaml` first: Sprig's dict
   functions need plain maps, not Helm's `chartutil.Values`.
 */}}
@@ -119,6 +224,36 @@ Implementation notes:
         {{- $_ := set $tokens $name $decl -}}
       {{- end -}}
     {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{/* library-owned names: apply the annotation policy to consumer variables sharing the name. */}}
+{{- range $name := sortAlpha (keys $defaults) -}}
+  {{- if hasKey $tokens $name -}}
+    {{- $mine := include "mycrd.splitAnnotations.internal" (dict "decl" (index $tokens $name)) | fromYaml -}}
+    {{- $lib := include "mycrd.splitAnnotations.internal" (dict "decl" (index $defaults $name)) | fromYaml -}}
+    {{- $final := include "mycrd.annotationPolicy.internal" (dict "name" $name "library" $lib.annotations "requested" $mine.annotations "diag" $diag) | fromYaml -}}
+    {{- $decl := $mine.values -}}
+    {{- range $key, $v := $final.value -}}
+      {{- $_ := set $decl $key $v -}}
+    {{- end -}}
+    {{- $_ := set $tokens $name $decl -}}
+  {{- end -}}
+{{- end -}}
+{{- range $name := sortAlpha (keys $system) -}}
+  {{- if hasKey $tokens $name -}}
+    {{- $mine := include "mycrd.splitAnnotations.internal" (dict "decl" (index $tokens $name)) | fromYaml -}}
+    {{- $lib := include "mycrd.splitAnnotations.internal" (dict "decl" (index $system $name)) | fromYaml -}}
+    {{- if $mine.values -}}
+      {{- $_ := set $diag "warnings" (append $diag.warnings (printf "token '%s' is reserved by the library — only annotations were applied" $name)) -}}
+    {{- end -}}
+    {{- $final := include "mycrd.annotationPolicy.internal" (dict "name" $name "library" $lib.annotations "requested" $mine.annotations "diag" $diag) | fromYaml -}}
+    {{- $decl := deepCopy (index $system $name) -}}
+    {{- range $key, $v := $final.value -}}
+      {{- $_ := set $decl $key $v -}}
+    {{- end -}}
+    {{- $_ := set $system $name $decl -}}
+    {{- $_ := unset $tokens $name -}}
   {{- end -}}
 {{- end -}}
 

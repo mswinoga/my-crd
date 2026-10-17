@@ -36,7 +36,7 @@ Implementation notes:
       "system" $prepared.system
       "defaults" $prepared.defaults
       "parentTargetTemplate" "mycrd.parentTarget"
-      "annotations" (list "service" "targetContainer")
+      "annotations" (include "mycrd.annotationNames" . | fromYaml).value
       "diag" $diag
       "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.demo" "mycrd.integrations.variables")
     ) -}}

@@ -74,6 +74,15 @@ check "legacy-tokens-key.yaml: WARNING that root 'tokens' is not read" \
 check "minimal.yaml (empty services): no 'tokens' warning" \
   minimal.yaml "values key 'tokens'" absent
 
+check "library-token-export.yaml: WARNING that only annotations were applied to a system token" \
+  library-token-export.yaml "^# WARNING: token 'ENV' is reserved by the library — only annotations were applied" present
+
+check "library-token-export.yaml: widening a default's targetContainer (LOG_LEVEL) is silent" \
+  library-token-export.yaml "^# (ERROR|WARNING):.*LOG_LEVEL" absent
+
+check "locked-token-collision.yaml: WARNING from the annotation step, not only crdkit's" \
+  locked-token-collision.yaml "^# WARNING: token 'API_GROUP' is reserved by the library — only annotations were applied" present
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always
