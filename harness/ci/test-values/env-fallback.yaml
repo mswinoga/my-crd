@@ -1,4 +1,4 @@
-# A token with only a "default" entry, rendered against a target that
+# A service variable with only a "default" entry, rendered against a target that
 # my-crd's OWN escalation taxonomy (mycrd.parentTarget) recognizes but
 # has no more specific override declared for anywhere along the chain
 # -> resolves to "default" via legitimate escalation (test-01 -> test ->
@@ -13,9 +13,12 @@
 # specifically about the recognized-but-unoverridden case.
 target: test-01
 
-tokens:
-  REGION_TOKEN:
-    default: "us-east-1"
+services:
+  app:
+    type: environment
+    environment:
+      REGION_TOKEN:
+        default: "us-east-1"
 
 spec:
   region: "@REGION_TOKEN@"

@@ -5,7 +5,8 @@ tests:
   - it: resolves a simple scalar token
     set:
       target: prod-01
-      tokens.GREETING: "hello"
+      services.app.type: environment
+      services.app.environment.GREETING: "hello"
       spec.message: "@GREETING@"
     asserts:
       - equal:
@@ -15,8 +16,9 @@ tests:
   - it: dict resolves the env-specific value when present
     set:
       target: prod-01
-      tokens.COLOR.default: "blue"
-      tokens.COLOR.prod: "red"
+      services.app.type: environment
+      services.app.environment.COLOR.default: "blue"
+      services.app.environment.COLOR.prod: "red"
       spec.color: "@COLOR@"
     asserts:
       - equal:
@@ -30,8 +32,9 @@ tests:
       # entirely UNRECOGNIZED target would have nowhere to escalate to
       # and would legitimately ERROR instead, see crd/CLAUDE.md.
       target: test-01
-      tokens.COLOR.default: "blue"
-      tokens.COLOR.prod: "red"
+      services.app.type: environment
+      services.app.environment.COLOR.default: "blue"
+      services.app.environment.COLOR.prod: "red"
       spec.color: "@COLOR@"
     asserts:
       - equal:
@@ -41,8 +44,9 @@ tests:
   - it: a token referencing another token (one level) resolves correctly
     set:
       target: prod-01
-      tokens.A: "foo"
-      tokens.B: "@A@-bar"
+      services.app.type: environment
+      services.app.environment.A: "foo"
+      services.app.environment.B: "@A@-bar"
       spec.message: "@B@"
     asserts:
       - equal:
@@ -52,10 +56,11 @@ tests:
   - it: a chain of 3+ tokens resolves via the iterative fixed-point resolver
     set:
       target: prod-01
-      tokens.T1: "one"
-      tokens.T2: "@T1@-two"
-      tokens.T3: "@T2@-three"
-      tokens.T4: "@T3@-four"
+      services.app.type: environment
+      services.app.environment.T1: "one"
+      services.app.environment.T2: "@T1@-two"
+      services.app.environment.T3: "@T2@-three"
+      services.app.environment.T4: "@T3@-four"
       spec.message: "@T4@"
     asserts:
       - equal:
@@ -74,7 +79,8 @@ tests:
   - it: consumer overriding a default (non-locked) token wins, no diagnostic needed
     set:
       target: prod-01
-      tokens.LOG_LEVEL: "debug"
+      services.app.type: environment
+      services.app.environment.LOG_LEVEL: "debug"
       spec.level: "@LOG_LEVEL@"
     asserts:
       - equal:
@@ -88,7 +94,8 @@ tests:
   - it: a locked-token collision resolves to the library's value, not the consumer's
     set:
       target: prod-01
-      tokens.API_GROUP: "hijacked.example.com"
+      services.app.type: environment
+      services.app.environment.API_GROUP: "hijacked.example.com"
       spec.group: "@API_GROUP@"
     asserts:
       - equal:
@@ -98,8 +105,9 @@ tests:
   - it: the env-family tier fallback resolves when the exact env is unlisted
     set:
       target: qap1-01
-      tokens.REGION.NONPROD: "us-west-2"
-      tokens.REGION.PROD: "us-east-1"
+      services.app.type: environment
+      services.app.environment.REGION.NONPROD: "us-west-2"
+      services.app.environment.REGION.PROD: "us-east-1"
       spec.region: "@REGION@"
     asserts:
       - equal:
@@ -109,7 +117,7 @@ tests:
   - it: standard labels are always present regardless of consumer input
     set:
       target: prod-01
-      tokens: {}
+      services: {}
     asserts:
       - exists:
           path: metadata.labels["app.kubernetes.io/name"]
@@ -119,7 +127,7 @@ tests:
   - it: the integration chain runs and its label contribution is present
     set:
       target: prod-01
-      tokens: {}
+      services: {}
     asserts:
       - equal:
           path: metadata.labels["platform.company.io/integration-demo"]
@@ -128,7 +136,8 @@ tests:
   - it: a consumer-defined 'ENV' token collides with the reserved built-in and is discarded
     set:
       target: prod-01
-      tokens.ENV: "hijacked"
+      services.app.type: environment
+      services.app.environment.ENV: "hijacked"
       spec.env: "@ENV@"
     asserts:
       - equal:
@@ -162,7 +171,8 @@ tests:
   - it: a regular token can chain off the built-in ENV token deterministically
     set:
       target: prod-01
-      tokens.ENV_LABEL: "release-@ENV@"
+      services.app.type: environment
+      services.app.environment.ENV_LABEL: "release-@ENV@"
       spec.envLabel: "@ENV_LABEL@"
     asserts:
       - equal:

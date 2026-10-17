@@ -4,16 +4,19 @@
 # failing command, so this lives in its own directory and is exercised
 # only by tests/diagnostics_test.sh's explicit exit-code check.
 #
-# A malformed regex under tokens.*.match is the one case in this whole
+# A malformed regex in a service variable's match: is the one case in this whole
 # library that DOES abort the render (crdkit.matchRules uses
 # mustRegexMatch/mustRegexReplaceAll deliberately) rather than emitting
 # a diagnostic comment — see crdkit's CLAUDE.md for why.
 target: prod-01
 
-tokens:
-  BAD_REGEX:
-    match:
-      - "qa[pm1-0[0-9]": "unreachable"
+services:
+  app:
+    type: environment
+    environment:
+      BAD_REGEX:
+        match:
+          - "qa[pm1-0[0-9]": "unreachable"
 
 spec:
   value: "@BAD_REGEX@"

@@ -1,8 +1,8 @@
-# Smallest valid values: just target + empty tokens. Should render
+# Smallest valid values: just target + no services. Should render
 # cleanly with no diagnostics.
 target: prod-01
 
-tokens: {}
+services: {}
 
 spec:
   replicas: 1

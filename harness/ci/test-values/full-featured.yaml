@@ -1,4 +1,5 @@
-# Exercises every token feature at once:
+# Exercises every service-variable feature at once (all declared under
+# services.app.environment):
 #  - SCALAR_TOKEN: plain scalar, same in every env
 #  - ENV_TOKEN: dict with a "default" fallback AND an env-specific override
 #  - NO_DEFAULT_TOKEN: dict with no entry for env "prod" and no "default"
@@ -15,27 +16,30 @@
 #    spec.variables (same as SCALAR_TOKEN, which declares none at all).
 target: prod-01
 
-tokens:
-  SCALAR_TOKEN: "hello-world"
-  ENV_TOKEN:
-    default: "nonprod-value"
-    prod: "prod-value"
-  NO_DEFAULT_TOKEN:
-    dev: "dev-only-value"
-  CHAINED_TOKEN: "chain: @SCALAR_TOKEN@ + @ENV_TOKEN@"
-  AT_USAGE: "literal at sign lives here: @AT@"
-  DB_HOST:
-    targetContainer: main
-    default: "db.internal"
-  SIDECAR_TOKEN:
-    targetContainer: side-car
-    default: "sidecar-value"
-  BOTH_TOKEN:
-    targetContainer: both
-    default: "both-value"
-  NONE_TOKEN:
-    targetContainer: none
-    default: "none-value"
+services:
+  app:
+    type: environment
+    environment:
+      SCALAR_TOKEN: "hello-world"
+      ENV_TOKEN:
+        default: "nonprod-value"
+        prod: "prod-value"
+      NO_DEFAULT_TOKEN:
+        dev: "dev-only-value"
+      CHAINED_TOKEN: "chain: @SCALAR_TOKEN@ + @ENV_TOKEN@"
+      AT_USAGE: "literal at sign lives here: @AT@"
+      DB_HOST:
+        targetContainer: main
+        default: "db.internal"
+      SIDECAR_TOKEN:
+        targetContainer: side-car
+        default: "sidecar-value"
+      BOTH_TOKEN:
+        targetContainer: both
+        default: "both-value"
+      NONE_TOKEN:
+        targetContainer: none
+        default: "none-value"
 
 metadata:
   labels:

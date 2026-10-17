@@ -16,9 +16,12 @@
 # escalation, which an empty target can never reach.
 target: ""
 
-tokens:
-  BROKEN_TOKEN:
-    PROD: "unreachable-without-a-matching-rung"
+services:
+  app:
+    type: environment
+    environment:
+      BROKEN_TOKEN:
+        PROD: "unreachable-without-a-matching-rung"
 
 spec:
   value: "@BROKEN_TOKEN@"

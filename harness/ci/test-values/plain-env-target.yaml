@@ -4,7 +4,7 @@
 # family/super-tier fallback still works normally off of it.
 target: staging
 
-tokens: {}
+services: {}
 
 spec:
   region: "@ENV@"

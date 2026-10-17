@@ -10,15 +10,18 @@
 #    normally get @ENV@ (that's already a built-in token, see below).
 target: qam1-01
 
-tokens:
-  SUBENV_TOKEN:
-    default: "generic"
-    NONPROD: "nonprod-generic"
-    match:
-      - "qa[pm]1-0[1-9]": "canary"
-  ENV_FROM_TARGET:
-    match:
-      - "(.+)-[0-9]{2}": "$1"
+services:
+  app:
+    type: environment
+    environment:
+      SUBENV_TOKEN:
+        default: "generic"
+        NONPROD: "nonprod-generic"
+        match:
+          - "qa[pm]1-0[1-9]": "canary"
+      ENV_FROM_TARGET:
+        match:
+          - "(.+)-[0-9]{2}": "$1"
 
 spec:
   subenv: "@SUBENV_TOKEN@"

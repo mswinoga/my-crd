@@ -5,7 +5,7 @@
 # every fixture's rendered output.
 target: dev-01
 
-tokens: {}
+services: {}
 
 spec:
   replicas: 1
