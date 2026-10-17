@@ -6,8 +6,8 @@ always with THEIR root context (never nested under .Values.myCrd.*).
 
 Interface:
 - Params: none (uses `.` directly).
-- Returns: the rendered CR as YAML text (see crdkit.render), with
-  diagnostics prepended as `# ERROR:`/`# WARNING:` comments. Deploy
+- Returns: the rendered CR as YAML text (see crdkit.render), followed
+  by its diagnostics as `# ERROR:`/`# WARNING:` comments. Deploy
   mode with at least one error fails instead, with the control data
   (mycrd.controlData).
 

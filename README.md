@@ -343,7 +343,7 @@ service of an unknown type, and a disabled service, are skipped.
 
 ### Diagnostics
 
-Problems are collected and emitted as YAML comments at the top of the
+Problems are collected and emitted as YAML comments at the end of the
 rendered manifest (in deploy mode, errors abort instead — see "Render
 mode"):
 
