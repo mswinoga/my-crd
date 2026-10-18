@@ -51,12 +51,11 @@ Interface:
 - Returns YAML: a map schema node.
 */}}
 {{- define "mycrd.serviceType.greeter.schema" -}}
-kind: map
+type: map
 doc: "Example type: exports `<ID>_GREETER` and a configMap mount `<ID>-config`."
 properties:
   {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
   greeting:
-    kind: scalar
     type: string
     doc: "Content of the file `message`; absent → nothing generated."
 {{- end -}}

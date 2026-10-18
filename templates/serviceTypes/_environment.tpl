@@ -26,7 +26,7 @@ Interface:
 - Returns YAML: a map schema node.
 */}}
 {{- define "mycrd.serviceType.environment.schema" -}}
-kind: map
+type: map
 doc: "A service that only declares variables."
 properties:
   {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
