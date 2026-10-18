@@ -304,7 +304,7 @@ tests:
           path: spec.application.services.APP.environment.ENV.value
           value: "prod"
 
-  - it: a greeter service generates <SID>_GREETER holding its ID
+  - it: a greeter service generates <ID>_GREETER holding its ID
     set:
       target: prod-01
       application:

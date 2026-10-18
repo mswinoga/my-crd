@@ -97,7 +97,7 @@ enabled:
   doc: "`false` removes the service from the output."
 environment:
   kind: map
-  doc: "Variables owned by the service, by name (`<SID>_`-prefixed by convention)."
+  doc: "Variables owned by the service, by name (`<ID>_`-prefixed by convention)."
   keys:
     pattern: "^[A-Z][A-Z0-9_]*$"
   values:

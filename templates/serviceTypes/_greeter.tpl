@@ -2,10 +2,9 @@
 mycrd.serviceType.greeter (callback)
 
 Invoked by mycrd.integrations.services.
-Handler for `type: greeter`: exports the variable `<SID>_GREETER` (SID =
-ID upper-cased, '-' replaced by '_') holding the service ID, and adds a
-configMap mount `<ID>-config` with the file `message` holding the
-greeting.
+Handler for `type: greeter`: exports the variable `<ID>_GREETER` holding
+the service ID, and adds a configMap mount `<ID>-config` with the file
+`message` holding the greeting.
 
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "service":
@@ -16,7 +15,7 @@ Interface:
 Implementation notes:
 - A service without `greeting` generates nothing.
 - Generated values have the lowest priority, so
-  `services.<ID>.environment.<SID>_GREETER` overrides the variable.
+  `services.<ID>.environment.<ID>_GREETER` overrides the variable.
 - `greeting` is per-target: read through mycrd.service.value, so it is
   resolved for the render target and checked against its schema.
 - Service types follow this shape: one `mycrd.serviceType.<type>`
@@ -28,7 +27,7 @@ Implementation notes:
   {{- include "mycrd.service.addVar" (dict
         "ctx" .ctx
         "id" .id
-        "name" (printf "%s_GREETER" (upper (replace "-" "_" .id)))
+        "name" (printf "%s_GREETER" .id)
         "value" .id
         "targetContainer" "main") -}}
   {{- include "mycrd.service.addFile" (dict
@@ -53,7 +52,7 @@ Interface:
 */}}
 {{- define "mycrd.serviceType.greeter.schema" -}}
 kind: map
-doc: "Example type: exports `<SID>_GREETER` and a configMap mount `<ID>-config`."
+doc: "Example type: exports `<ID>_GREETER` and a configMap mount `<ID>-config`."
 properties:
   {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
   greeting:

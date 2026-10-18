@@ -17,7 +17,7 @@
 | Key | Kind | Per target | Default | Required | Description |
 | --- | --- | --- | --- | --- | --- |
 | `application.services.<key>.enabled` | scalar (bool) | no | `true` |  | `false` removes the service from the output. |
-| `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<SID>_`-prefixed by convention). |
+| `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
 | `application.services.<key>.environment.<key>` | scalar | yes |  |  | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
 | `application.services.<key>.type` | scalar (string) | no |  |  | Service type; selects the handler and the keys below. |
 
@@ -26,7 +26,7 @@
 | Key | Kind | Per target | Default | Required | Description |
 | --- | --- | --- | --- | --- | --- |
 | `application.services.<key>.enabled` | scalar (bool) | no | `true` |  | `false` removes the service from the output. |
-| `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<SID>_`-prefixed by convention). |
+| `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
 | `application.services.<key>.environment.<key>` | scalar | yes |  |  | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
 | `application.services.<key>.greeting` | scalar (string) | yes |  |  | Content of the file `message`; absent → nothing generated. |
 | `application.services.<key>.type` | scalar (string) | no |  |  | Service type; selects the handler and the keys below. |
@@ -36,7 +36,7 @@
 | Key | Kind | Per target | Default | Required | Description |
 | --- | --- | --- | --- | --- | --- |
 | `application.services.<key>.enabled` | scalar (bool) | no | `true` |  | `false` removes the service from the output. |
-| `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<SID>_`-prefixed by convention). |
+| `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
 | `application.services.<key>.environment.<key>` | scalar | yes |  |  | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
 | `application.services.<key>.greeter` | scalar (string) | no |  |  | ID of the greeter service to reference; absent → nothing generated. |
 | `application.services.<key>.type` | scalar (string) | no |  |  | Service type; selects the handler and the keys below. |
