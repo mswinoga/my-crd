@@ -49,18 +49,18 @@ tests:
       target: prod-01
       application:
         services:
-          A-leader:
+          A_LEADER:
             type: leader
-            greeter: B-greeter
-          B-greeter:
+            greeter: B_GREETER
+          B_GREETER:
             type: greeter
             greeting: hi
     asserts:
       - equal:
-          path: spec.application.services.A-leader.references
+          path: spec.application.services.A_LEADER.references
           value:
-            - /spec/application/services/B-greeter/environment/B_GREETER_GREETER
-            - /spec/application/volumeMounts/B-greeter-config/files/message
+            - /spec/application/services/B_GREETER/environment/B_GREETER_GREETER
+            - /spec/application/volumeMounts/B_GREETER-config/files/message
 
   - it: a leader without greeter generates nothing and has no references
     template: call.yaml

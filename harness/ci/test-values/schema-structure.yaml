@@ -6,11 +6,11 @@
 #    — ignored" (a disabled service is checked too);
 #  - "# WARNING: 'application.services.UNTYPED' has no 'type' — ignored";
 #  - "# WARNING: 'metadata.labels.tier' must be a scalar — ignored";
-#  - "# WARNING: key 'application.services.my-svc' must match
-#    '^[A-Z0-9_]+$'" (kept: the service still renders);
-#  - "# WARNING: key 'application.services.my-svc.environment.lower_var'
-#    must match '^[A-Z0-9_]+$'" (kept), plus crdkit's own token-name
-#    WARNING for it.
+#  - "# ERROR: key 'application.services.my-svc' must match
+#    '^[A-Z0-9_]+$' — ignored" (the service is dropped);
+#  - "# ERROR: key 'application.services.HELLO.environment.lower_var'
+#    must match '^[A-Z][A-Z0-9_]*$' — ignored" (the variable is dropped;
+#    the only message about it).
 # The consumer chart's own root keys (global, frontend) raise nothing;
 # HELLO renders with its enabled default and its greeting.
 target: prod-01
@@ -32,6 +32,8 @@ application:
       type: greeter
       greeting: hi
       greetng: typo
+      environment:
+        lower_var: dropped
     PAUSED:
       type: greeter
       enabled: false
@@ -40,5 +42,3 @@ application:
       greeting: lost
     my-svc:
       type: environment
-      environment:
-        lower_var: kept

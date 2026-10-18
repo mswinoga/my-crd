@@ -404,7 +404,7 @@ tests:
           path: spec.application.services.GREETER.environment.GREETER_GREETER.value
           value: "GREETER"
 
-  - it: a service ID with a hyphen yields an underscored variable name and a hyphenated mount
+  - it: a service ID outside the key pattern (a hyphen) is dropped, nothing is generated
     set:
       target: prod-01
       application:
@@ -413,12 +413,8 @@ tests:
             type: greeter
             greeting: "hello"
     asserts:
-      - equal:
-          path: spec.application.services.MY-GREETER.environment.MY_GREETER_GREETER.value
-          value: "MY-GREETER"
-      - equal:
-          path: spec.application.volumeMounts.MY-GREETER-config.files.message
-          value: "hello"
+      - notExists:
+          path: spec.application
 
   - it: two greeters generate their own variable and their own mount
     set:

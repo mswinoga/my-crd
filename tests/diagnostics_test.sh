@@ -228,14 +228,17 @@ check "schema-structure.yaml: WARNING for a service without type" \
 check "schema-structure.yaml: WARNING for a structured label value" \
   schema-structure.yaml "^# WARNING: 'metadata.labels.tier' must be a scalar — ignored" present
 
-check "schema-structure.yaml: WARNING for a service ID outside the key pattern" \
-  schema-structure.yaml "^# WARNING: key 'application.services.my-svc' must match '\\^\\[A-Z0-9_\\]\\+\\$'" present
+check "schema-structure.yaml: ERROR for a service ID outside the key pattern" \
+  schema-structure.yaml "^# ERROR: key 'application.services.my-svc' must match '\\^\\[A-Z0-9_\\]\\+\\$' — ignored" present
 
-check "schema-structure.yaml: WARNING for a variable name outside the key pattern" \
-  schema-structure.yaml "^# WARNING: key 'application.services.my-svc.environment.lower_var' must match" present
+check "schema-structure.yaml: ERROR for a variable name outside the key pattern" \
+  schema-structure.yaml "^# ERROR: key 'application.services.HELLO.environment.lower_var' must match '\\^\\[A-Z\\]\\[A-Z0-9_\\]\\*\\$' — ignored" present
+
+check_count "schema-structure.yaml: one message about the bad variable name" \
+  schema-structure.yaml 'lower_var' 1
 
 check_count "schema-structure.yaml: the consumer chart's own root keys raise nothing" \
-  schema-structure.yaml '^# (ERROR|WARNING):' 8
+  schema-structure.yaml '^# (ERROR|WARNING):' 7
 
 check "schema-values.yaml: ERROR naming the target for a per-target value of the wrong kind" \
   schema-values.yaml "^# ERROR: 'application.services.HELLO.greeting' for target 'prod-01' must be a scalar" present

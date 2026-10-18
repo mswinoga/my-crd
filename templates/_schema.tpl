@@ -99,7 +99,7 @@ environment:
   kind: map
   doc: "Variables owned by the service, by name (`<SID>_`-prefixed by convention)."
   keys:
-    pattern: "^[A-Z0-9_]+$"
+    pattern: "^[A-Z][A-Z0-9_]*$"
   values:
     kind: scalar
     tokens: true

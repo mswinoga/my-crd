@@ -85,10 +85,9 @@ metadata:
     team: "payments-@ENV@"                 # markers resolve here too
 ```
 
-Variable names must be `UPPER_SNAKE_CASE` (`^[A-Z][A-Z0-9_]*$`) — a
-non-conforming name still resolves and renders, but records a
-`# WARNING:` (applies to every token, including the library's own
-locked/default ones).
+Variable names must match `^[A-Z][A-Z0-9_]*$`, service IDs
+`^[A-Z0-9_]+$`; any other name records an `# ERROR:` (`key '<path>'
+must match '<re>' — ignored`) and the variable or service is dropped.
 
 `@AT@` is crdkit's one reserved built-in marker — always resolves to a
 literal `@`; a variable named `AT` is discarded with a `# WARNING:`.
@@ -110,10 +109,8 @@ Variables are declared only under
 `application.services.<ID>.environment`; a root `tokens:` key is not
 read and records a `# WARNING:`.
 
-Service IDs and variable names match `^[A-Z0-9_]+$`; any other key
-records a `# WARNING:` and is kept (a variable name also gets crdkit's
-UPPER_SNAKE_CASE warning). Convention (not checked): a service's
-variables are prefixed `<SID>_`, as generated variables are.
+Convention (not checked): a service's variables are prefixed `<SID>_`,
+as generated variables are.
 
 Reserved service keys: `type`, `environment`, `enabled`. Every other key
 belongs to the service type (e.g. `greeting`, `greeter`).
