@@ -325,11 +325,14 @@ Interface:
 
 Implementation notes:
 - `ctx.mycrd` is a my-crd-owned key on crdkit's context:
-  { added: {<id>: true}, disabled: {<id>: true}, owners: {<pointer>:
-  <id>}, contributors: {<mount pointer>: {<id>: true}}, references:
-  {<id>: {<pointer>: <descriptor>}} } (descriptor: see
-  mycrd.service.reference). `disabled` is filled by
-  mycrd.integrations.services. crdkit never uses the key `mycrd`.
+  { schema: <root schema node>, input: <normalized values>, added:
+  {<id>: true}, disabled: {<id>: true}, owners: {<pointer>: <id>},
+  contributors: {<mount pointer>: {<id>: true}}, references: {<id>:
+  {<pointer>: <descriptor>}}, validated: {<path>|<target>: true} }
+  (descriptor: see mycrd.service.reference). `schema`/`input` are
+  seeded by mycrd.render (crdkit.render's `state`), `disabled` is
+  filled by mycrd.integrations.services, `validated` is the `seen` dict
+  of the schema value checks. crdkit never uses the key `mycrd`.
 - Internal bookkeeping only — never emitted.
 - Every helper and integration calls this first, so none depends on
   which one runs first.
@@ -337,7 +340,13 @@ Implementation notes:
 {{- define "mycrd.service.registry" -}}
 {{- $ctx := . -}}
 {{- if not (hasKey $ctx "mycrd") -}}
-  {{- $_ := set $ctx "mycrd" (dict "added" (dict) "disabled" (dict) "owners" (dict) "contributors" (dict) "references" (dict)) -}}
+  {{- $_ := set $ctx "mycrd" (dict) -}}
+{{- end -}}
+{{/* key by key: mycrd.render seeds ctx.mycrd with schema/input before any of these exist. */}}
+{{- range $key := list "added" "disabled" "owners" "contributors" "references" "validated" -}}
+  {{- if not (hasKey $ctx.mycrd $key) -}}
+    {{- $_ := set $ctx.mycrd $key (dict) -}}
+  {{- end -}}
 {{- end -}}
 {{- end -}}
 

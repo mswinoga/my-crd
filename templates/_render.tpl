@@ -22,9 +22,14 @@ Implementation notes:
   `deploy` (default) aborts on errors, warnings never abort. This is
   the one deliberate `fail` in a render: crdkit and every helper only
   collect diagnostics, and this final decision turns them into an abort.
-- The `diag` dict is created here, first recorded into by
-  mycrd.serviceTokens (pre-render), then seeded into crdkit.render, which
-  appends to it and emits everything.
+- The `diag` dict is created here, first recorded into by the
+  structural schema pass and mycrd.serviceTokens (pre-render), then
+  seeded into crdkit.render, which appends to it and emits everything.
+- Schema: the values are validated against mycrd.schema before the
+  chain (crdkit.schema.validate); the schema and the normalized input
+  are seeded into `ctx.mycrd` (`schema`, `input`) through crdkit.render's
+  `state`. mycrd.integrations.schema, last in the chain, runs the value
+  pass.
 - tokens/system/defaults come from mycrd.serviceTokens
   (templates/_services.tpl).
 - apiVersion/kind aren't passed here — mycrd.integrations.preamble sets
@@ -33,6 +38,8 @@ Implementation notes:
 {{- define "mycrd.render" -}}
 {{- $diag := dict "errors" (list) "warnings" (list) -}}
 {{- $mode := include "mycrd.renderMode" (dict "context" . "diag" $diag) -}}
+{{- $schema := include "mycrd.schema" . | fromYaml -}}
+{{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value -}}
 {{- $prepared := include "mycrd.serviceTokens" (dict
       "context" .
       "diag" $diag
@@ -48,7 +55,8 @@ Implementation notes:
       "parentTargetTemplate" "mycrd.parentTarget"
       "annotations" (include "mycrd.annotationNames" . | fromYaml).value
       "diag" $diag
-      "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.services" "mycrd.integrations.references")
+      "state" (dict "mycrd" (dict "schema" $schema "input" $input))
+      "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.services" "mycrd.integrations.references" "mycrd.integrations.schema")
     ) -}}
 {{- if and (eq $mode "deploy") $diag.errors -}}
   {{- fail (include "mycrd.controlData" (dict "context" . "diag" $diag)) -}}

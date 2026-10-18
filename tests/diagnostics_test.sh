@@ -60,6 +60,11 @@ check_count() {
   fi
 }
 
+for f in harness/ci/test-values/*.yaml; do
+  check "$(basename "$f"): mycrd.schema passes crdkit's self-check" \
+    "$(basename "$f")" '^# ERROR: schema invalid' absent
+done
+
 check "render-deploy-clean.yaml: deploy mode renders when only warnings exist" \
   render-deploy-clean.yaml '^kind: SomeCR' present
 

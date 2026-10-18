@@ -269,7 +269,7 @@ References are metadata — nothing is copied or mounted.
   A `/` or `~` inside a name is escaped `~1` / `~0`.
 - Recorded by type handlers through the `mycrd.service.reference*`
   helpers; validated after every handler ran, by
-  `mycrd.integrations.references` (last in the chain):
+  `mycrd.integrations.references` (after the service dispatcher):
   - a reference to a node the service defines itself is dropped with a
     `# WARNING:` (own service, a variable or file it owns, a mount it is
     the only contributor to);
@@ -320,8 +320,11 @@ spec:
 `mycrd.integrations.preamble` always first — the only thing giving the
 rendered CR a shape at all (`apiVersion`/`kind`, `metadata.name`,
 `metadata.labels`, an empty `spec`) — then `mycrd.integrations.services` (the
-service-type dispatcher), then `mycrd.integrations.references` (always
-last). Further integrations (database, cos, messaging, outbound
+service-type dispatcher), then `mycrd.integrations.references`, then
+`mycrd.integrations.schema` (always last: the per-target pass of the
+values schema, `mycrd.schema`). Before the chain, `mycrd.render`
+validates the values against `mycrd.schema` (currently `kind: any`,
+accepting everything). Further integrations (database, cos, messaging, outbound
 http, ...) land as `mycrd.integrations.*` defines as this library grows.
 
 Every integration must emit no literal text of its own — only mutate
