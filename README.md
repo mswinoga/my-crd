@@ -48,7 +48,7 @@ target: prod      # opaque string to crdkit; this library recognizes a
 
 application:
   services:
-    ORDERS:                                # service ID (upper case by convention)
+    ORDERS:                                # service ID, [A-Z0-9_]+
       type: environment                    # a type from mycrd.serviceTypes
       enabled: true                        # optional boolean; false disables the
                                            # service — see "Disabled services"
@@ -110,7 +110,9 @@ Variables are declared only under
 `application.services.<ID>.environment`; a root `tokens:` key is not
 read and records a `# WARNING:`.
 
-Conventions (not checked): service IDs are upper case; a service's
+Service IDs and variable names match `^[A-Z0-9_]+$`; any other key
+records a `# WARNING:` and is kept (a variable name also gets crdkit's
+UPPER_SNAKE_CASE warning). Convention (not checked): a service's
 variables are prefixed `<SID>_`, as generated variables are.
 
 Reserved service keys: `type`, `environment`, `enabled`. Every other key

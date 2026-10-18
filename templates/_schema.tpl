@@ -52,7 +52,9 @@ properties:
     properties:
       services:
         kind: map
-        doc: "Services by ID (upper case by convention)."
+        doc: "Services by ID."
+        keys:
+          pattern: "^[A-Z0-9_]+$"
         values:
           doc: "One service; its keys depend on `type`."
           switch:
@@ -96,6 +98,8 @@ enabled:
 environment:
   kind: map
   doc: "Variables owned by the service, by name (`<SID>_`-prefixed by convention)."
+  keys:
+    pattern: "^[A-Z0-9_]+$"
   values:
     kind: scalar
     tokens: true
