@@ -98,8 +98,11 @@ can't override it because it's in `system`, not because crdkit reserves
 the name.
 
 The rendered CR is built only from these keys — nothing is copied
-verbatim. Other input is ignored silently: a root `spec`, a root
-`services`, any key under `application` other than `services`.
+verbatim. The values are checked against `mycrd.schema` (see "Values
+schema"); the reference of every key is [`VALUES.md`](VALUES.md).
+Root keys my-crd does not know (the consumer chart's own, `global`, a
+root `spec` or `services`) are accepted and ignored; an unknown key
+under `metadata`, `application` or a service records a `# WARNING:`.
 `@NAME@` markers are resolved in service variables, in type-specific
 service keys (e.g. `greeting`) and in `metadata.labels`.
 
@@ -118,20 +121,21 @@ belongs to the service type (e.g. `greeting`, `greeter`).
 `enabled: false` disables a service; absent or `true` enables it.
 
 - Only the YAML boolean `false` disables. Any other non-boolean value
-  (`"false"`, `0`, `no-way`) records an `# ERROR:` (`service '<ID>':
-  'enabled' must be a boolean — treated as enabled`) and the service is
-  enabled.
+  (`"false"`, `0`, `no-way`) records an `# ERROR:`
+  (`'application.services.<ID>.enabled' must be of type 'bool' —
+  ignored`) and the default `true` applies.
 - The value is static: it is not target-dependent and holds no `@NAME@`
   markers. Per-environment switching uses per-environment values files.
 - A disabled service is absent from `spec`: no
   `spec.application.services.<ID>`, no files, no references, and its
-  type handler does not run. A type handler of an enabled service still
-  sees `enabled` in `.service` when it was written.
+  type handler does not run. A type handler of an enabled service sees
+  `enabled` (default `true`) in `.service`.
 - Its `environment` variables are not declared: a `@NAME@` marker to one
   stays unresolved (the usual "possible typo" `# WARNING:`), a name it
   shares with an enabled service causes no collision, and a library token
   it lists stays unexported.
-- A disabled service records no diagnostic of its own.
+- A disabled service is still checked by the structural schema pass
+  (unknown keys, types), not by the per-target pass.
 - A reference to a node under a disabled service (a service or a
   variable of it) is dropped with an `# ERROR:` naming the disabled
   service. See "References".
@@ -150,13 +154,10 @@ belongs to the service type (e.g. `greeting`, `greeter`).
   `# ERROR:` is recorded.
 - A service with a missing or unknown `type` is skipped entirely
   (`# WARNING:`), its `environment` included.
-- Malformed shapes record a `# WARNING:` and are ignored: `application`
-  not a map (`values key 'application' must be a map — ignored`),
-  `application.services` not a map (`values key 'application.services'
-  must be a map — ignored`), `application.services.<ID>` not a map
-  (service skipped), `application.services.<ID>.environment` not a map
-  (only the environment is ignored; the service's type handler still
-  runs).
+- Malformed shapes record a `# WARNING:` and are ignored (`'<path>' must
+  be a map — ignored`): `application`, `application.services`, a
+  service (skipped), a service's `environment` (only the environment is
+  ignored; the service's type handler still runs).
 - `targetContainer` is one of `main`, `side-car`, `both`, `none`
   (default); any other value records an `# ERROR:` and is treated as
   `none`. Tokens with `main`/`side-car`/`both` are EXPORTED into the
@@ -239,13 +240,19 @@ source.
 
 Adding a type:
 1. `templates/serviceTypes/_<type>.tpl` defining `mycrd.serviceType.<type>`
-   (params `{ctx, id, service}`).
+   (params `{ctx, id, service}`) and `mycrd.serviceType.<type>.schema`:
+   the type's values schema, a map node including
+   `mycrd.schema.serviceBase` into its `properties`, every node with a
+   `doc` (see "Values schema").
 2. Add the name to `mycrd.serviceTypes` (`templates/_services.tpl`).
-3. Contribute output through the service helpers (params always include
-   `ctx` and `id`; the dispatcher has already added the service):
+3. Run `make docs` and commit `VALUES.md`.
+4. Read fields through `mycrd.service.value` and contribute output
+   through the service helpers (params always include `ctx` and `id`;
+   the dispatcher has already added the service):
 
    | Helper | Extra params | Effect |
    |---|---|---|
+   | `mycrd.service.value` | `field, target?` | `{value}`: the service's field (`field` = list of keys) resolved for `target` (default: the render target) and checked against its schema; a violation records an `# ERROR:` naming the target |
    | `mycrd.service.addVar` | `name, value, targetContainer?` | generated variable; exported into `spec.application.services.<id>.environment` when its final `targetContainer` is main/side-car/both; a name owned by another service records an `# ERROR:` |
    | `mycrd.service.addFile` | `mount, source, file, content` | file in a volume mount under `spec.application.volumeMounts`; mounts are shared between services; a different `source` or an existing file records an `# ERROR:` and the file is not added |
    | `mycrd.service.referenceService` | `service` | records a reference to a whole service |
@@ -256,6 +263,34 @@ Adding a type:
    `value` and `content` may hold `@TOKEN@` markers. Node locations
    come from `mycrd.paths.*` (`templates/_paths.tpl`), the only place
    that knows where a node lives in the model.
+
+   `mycrd.service.value` substitutes markers when called: a handler sees
+   consumer tokens and tokens generated by types earlier in
+   `mycrd.serviceTypes`; a marker to a token a later type generates
+   stays in the value (the final substitution pass resolves it,
+   unchecked).
+
+### Values schema
+
+`mycrd.schema` (`templates/_schema.tpl`) describes the consumer values in
+crdkit's schema DSL (see `../crdkit/README.md`, "Values schema"):
+`target`, `renderMode`, `metadata.labels`, and `application.services` —
+a switch on `type` with one case per entry of `mycrd.serviceTypes`
+(`mycrd.serviceType.<type>.schema`, each including
+`mycrd.schema.serviceBase`: `type`, `enabled`, `environment`).
+
+- Structural pass (`mycrd.render`, before the chain): shapes, unknown
+  keys, types, defaults (`enabled: true`). Everything after it reads the
+  normalized values (`ctx.mycrd.input`), never `.Values`.
+- Per-target pass (`mycrd.integrations.schema`, last in the chain): every
+  per-target field (e.g. `greeting`, each `environment` variable)
+  resolved for the render target and checked; disabled services are
+  skipped. A variable is checked as its token.
+- `mycrd.service.value` checks a field for any target; each
+  `(path, target)` pair is reported once.
+- `make docs` writes the Markdown reference to [`VALUES.md`](VALUES.md);
+  `make test` snapshots it, `make test-diagnostics` checks the committed
+  file is current.
 
 ### References
 
@@ -323,8 +358,8 @@ rendered CR a shape at all (`apiVersion`/`kind`, `metadata.name`,
 service-type dispatcher), then `mycrd.integrations.references`, then
 `mycrd.integrations.schema` (always last: the per-target pass of the
 values schema, `mycrd.schema`). Before the chain, `mycrd.render`
-validates the values against `mycrd.schema` (currently `kind: any`,
-accepting everything). Further integrations (database, cos, messaging, outbound
+validates the values against `mycrd.schema` (structural pass). Further
+integrations (database, cos, messaging, outbound
 http, ...) land as `mycrd.integrations.*` defines as this library grows.
 
 Every integration must emit no literal text of its own — only mutate
@@ -378,14 +413,16 @@ mode"):
 
 Downstream tooling greps for the exact prefixes `# ERROR:` / `# WARNING:`.
 
-Service-level problems (unknown type, a non-boolean `enabled`, a variable
-declared by two services, invalid `targetContainer`, a mount `source` conflict, a file defined by
-two services, a self-referencing or dangling reference, ...) are
-reported the same way.
+Schema problems (`'<values path>' is not a known key — ignored`,
+`'<path>' for target '<t>' must be a scalar`, ...) and service-level
+problems (a variable declared by two services, invalid
+`targetContainer`, a mount `source` conflict, a file defined by two
+services, a self-referencing or dangling reference, ...) are reported
+the same way.
 
-Only a token actually referenced somewhere gets checked — a declared
-but unused token produces no diagnostic even if broken. Reference it
-(e.g. from an exported variable) to get it validated.
+Every `environment` variable of an enabled service is resolved for the
+render target by the per-target schema pass, so a broken one is
+reported even when nothing references it.
 
 ### Render mode
 
@@ -432,18 +469,20 @@ make test-diagnostics   # ./tests/diagnostics_test.sh — greps raw output
 make dev                # plain-renders every harness/ci/test-values/*.yaml
                         # fixture for quick manual/visual inspection
 make render VALUES=path/to/wip.yaml   # render one arbitrary values file
+make docs               # writes VALUES.md (the values reference)
 ```
 
 Suites under `tests/`: `token_resolution_test.yaml`,
 `services_test.yaml`, `references_test.yaml`, `helpers_test.yaml`,
-`paths_test.yaml`, `values_test.yaml`, `annotation_policy_test.yaml`, `render_mode_test.yaml`,
-`snapshot_test.yaml`. `harness/values.yaml` sets `renderMode: validate`,
+`paths_test.yaml`, `values_test.yaml`, `annotation_policy_test.yaml`,
+`render_mode_test.yaml`, `docs_test.yaml`, `snapshot_test.yaml`. `harness/values.yaml` sets `renderMode: validate`,
 so fixtures with deliberate errors keep rendering; deploy-mode fixtures
 override it, and the ones expected to abort live in
 `harness/ci/failure-cases/`.
 Harness probes (`annotation_policy_probe.yaml` via `policyProbe`,
 `paths_probe.yaml` via `pathsProbe`, `values_probe.yaml` via
-`valuesProbe`, `helpers_probe.yaml` via `helpersProbe`, all under `harness/templates/`) render only when their
+`valuesProbe`, `helpers_probe.yaml` via `helpersProbe`, `docs_probe.yaml`
+via `docsProbe`, all under `harness/templates/`) render only when their
 values key is set, and cover paths no end-to-end input reaches. Fixtures
 that set a probe key live in `harness/ci/probe-values/`, which
 `make dev` does not scan.
@@ -460,7 +499,7 @@ bottom-up, automatically — see `../CLAUDE.md`'s "Layout" section.
 
 ## Out of scope for now
 
-ArgoCD CMP wiring, GitLab CI pipeline files, an input shape schema
-(would reject the silently ignored inputs above), `helm-docs` integration, real integration implementations,
+ArgoCD CMP wiring, GitLab CI pipeline files, a JSON Schema export of
+`mycrd.schema` for editors, real integration implementations,
 and the real CRD's `apiVersion`/`kind`/`spec` shape (currently a
 placeholder — see `templates/integrations/_preamble.tpl`).
