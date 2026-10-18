@@ -18,7 +18,7 @@ Implementation notes:
   crdkit.tokens.substitute's `replace` call downstream.
 */}}
 {{- define "mycrd.systemTokens" -}}
-LIBRARY_VERSION: {{ include "crdkit.dependencyVersion" (dict "name" "my-crd" "context" .) }}
+LIBRARY_VERSION: {{ include "crdkit.dependencyVersion" (dict "name" "my-crd" "context" .) | quote }}
 ENV: {{ include "mycrd.deriveEnv" .Values.target | quote }}
 API_GROUP: "platform.company.io"
 {{- end -}}
