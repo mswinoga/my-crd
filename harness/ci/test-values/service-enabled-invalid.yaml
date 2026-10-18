@@ -1,6 +1,7 @@
 # 'enabled' must be a boolean: the string "false" is not one. Expect one
-# "# ERROR:" ("service 'STRICT': 'enabled' must be a boolean — treated
-# as enabled") and the service present in the output.
+# "# ERROR:" ("'application.services.STRICT.enabled' must be of type
+# 'bool' — ignored"); the schema default (true) applies, so the service
+# is present in the output.
 target: prod-01
 
 application:

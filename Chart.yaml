@@ -5,5 +5,5 @@ type: library
 version: 0.0.6
 dependencies:
   - name: crdkit
-    version: 0.0.5
+    version: 0.0.6
     repository: file://../crdkit

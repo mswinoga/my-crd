@@ -13,3 +13,21 @@ Interface:
 */}}
 {{- define "mycrd.serviceType.environment" -}}
 {{- end -}}
+
+{{/*
+mycrd.serviceType.environment.schema (callback)
+
+Invoked by mycrd.schema (one switch case per service type).
+Values schema of a `type: environment` service: the common service keys
+only.
+
+Interface:
+- Params: any value (ignored).
+- Returns YAML: a map schema node.
+*/}}
+{{- define "mycrd.serviceType.environment.schema" -}}
+kind: map
+doc: "A service that only declares variables."
+properties:
+  {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
+{{- end -}}

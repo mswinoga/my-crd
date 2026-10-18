@@ -16,12 +16,12 @@ Implementation notes:
   later in crdkit.render's single substitution pass — same mechanism a
   consumer's own values use.
 - metadata.labels precedence (dictMerge is mergeOverwrite, later call
-  wins): consumer's own Values.metadata.labels, then
+  wins): consumer's own metadata.labels, then
   crdkit.standardLabels, then this library's own library-version label
   — later chain integrations can still override any key afterward.
-- Reading consumer labels needs `.root.Values | toYaml | fromYaml`
-  first: Sprig's `dig` requires plain maps, and Helm's `.Values` is a
-  distinct `chartutil.Values` type that fails `dig`'s type assertion.
+- Consumer labels come from the normalized input (`ctx.mycrd.input`,
+  seeded by mycrd.render): a label the structural schema pass rejected
+  is not copied.
 - spec starts empty: input is never copied verbatim — every node under
   it is built by an integration from the input DSL (never read
   `Values.spec` here).
@@ -32,7 +32,7 @@ Implementation notes:
 {{- define "mycrd.integrations.preamble" -}}
 {{- include "crdkit.dictMerge" (list .model (dict "apiVersion" "@API_GROUP@/v1" "kind" "SomeCR")) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" (dict "name" .root.Release.Name)) -}}
-{{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dig "metadata" "labels" (dict) (.root.Values | toYaml | fromYaml))) -}}
+{{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dig "metadata" "labels" (dict) (dig "mycrd" "input" (dict) . | default dict))) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (include "crdkit.standardLabels" (dict "context" .root) | fromYaml)) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dict "platform.company.io/library-version" "@LIBRARY_VERSION@")) -}}
 {{- include "crdkit.dictMerge" (list .model "spec" (dict)) -}}

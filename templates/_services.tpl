@@ -158,41 +158,28 @@ declarations annotated with `service: <ID>`, and normalizes the
 library-owned declarations.
 
 Interface:
-- Params (dict): { "context": <consumer root $>, "diag": <dict with
-  "errors"/"warnings" lists, appended to in place>, "system": <dict>,
-  "defaults": <dict> }
+- Params (dict): { "input": <normalized values from the structural
+  schema pass>, "diag": <dict with "errors"/"warnings" lists, appended
+  to in place>, "system": <dict>, "defaults": <dict> }
 - Returns YAML: { "tokens": <dict>, "system": <dict>, "defaults": <dict> }
   — ready to pass to crdkit.render.
 
 Implementation notes:
 - Runs before crdkit builds ctx, so it records into the shared `diag`
   seed itself.
+- Shapes (maps, known `type`, boolean `enabled`, `environment` a map)
+  are checked and reported by the structural pass; `input` only holds
+  services that passed it.
 - Services are visited in alphabetical ID order, variables in
   alphabetical name order: the first service declaring a name owns it.
-- A service with a missing/unknown `type` is skipped entirely,
-  `environment` included.
-- A disabled service (mycrd.service.enabled) is skipped the same way,
-  before the type check, with no diagnostic: its variables are never
-  declared, so they cannot collide with another service's and a
-  `@NAME@` marker to one stays unresolved. A non-boolean `enabled`
-  records ERROR `service '<ID>': 'enabled' must be a boolean — treated
-  as enabled` here, once per service, and the service is processed as
-  enabled.
-- Malformed shapes record a WARNING each (absent or null is valid and
-  silent):
-  - `application` not a map: `values key 'application' must be a map —
-    ignored`.
-  - `application.services` not a map: `values key
-    'application.services' must be a map — ignored`.
-  - `services.<ID>` not a map: `service '<ID>' must be a map — service
-    skipped` (no unknown-type warning on top).
-  - `services.<ID>.environment` not a map: `service '<ID>':
-    'environment' must be a map — ignored`; the rest of the service
-    (type, DSL handler) is processed as usual.
+- A disabled service (mycrd.service.enabled) is skipped with no
+  diagnostic: its variables are never declared, so they cannot collide
+  with another service's and a `@NAME@` marker to one stays unresolved.
 - A scalar variable becomes `{default: <v>}`; `service` is always set to
   the parent service ID (an explicit one is overwritten with a WARNING).
 - `targetContainer` outside main/side-car/both/none is corrected to
-  `none` with an ERROR.
+  `none` with an ERROR (an annotation inside a token declaration, which
+  the schema keeps as written).
 - A variable named like a `defaults` token keeps the library's locked
   annotations and may widen `targetContainer` / fill in missing ones
   (mycrd.annotationPolicy); its value keys deep-merge over the
@@ -201,62 +188,27 @@ Implementation notes:
   its policy-approved annotations are written onto the system
   declaration (value keys record a WARNING), so a library-owned value
   can be exported without being overridable.
-- Read `.Values` through `toYaml | fromYaml` first: Sprig's dict
-  functions need plain maps, not Helm's `chartutil.Values`.
 */}}
 {{- define "mycrd.serviceTokens" -}}
 {{- $diag := .diag -}}
-{{- $values := .context.Values | toYaml | fromYaml -}}
-{{- $knownTypes := (include "mycrd.serviceTypes" . | fromYaml).value -}}
+{{- $input := .input | default dict -}}
 {{- $containers := list "main" "side-car" "both" "none" -}}
 
 {{- $system := include "mycrd.normalizeDeclarations" (dict "decls" .system) | fromYaml -}}
 {{- $defaults := include "mycrd.normalizeDeclarations" (dict "decls" .defaults) | fromYaml -}}
 
-{{- if $values.tokens -}}
+{{- if get $input "tokens" -}}
   {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'tokens' is not read — declare variables under application.services.<ID>.environment") -}}
 {{- end -}}
 
 {{- $tokens := dict -}}
 {{- $owners := dict -}}
 
-{{- $application := $values.application -}}
-{{- if kindIs "map" $application -}}
-  {{- if not (or (kindIs "map" $application.services) (kindIs "invalid" $application.services)) -}}
-    {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'application.services' must be a map — ignored") -}}
-  {{- end -}}
-{{- else if not (kindIs "invalid" $application) -}}
-  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'application' must be a map — ignored") -}}
-{{- end -}}
-{{- $services := (include "mycrd.values.services" (dict "root" .context) | fromYaml).value -}}
+{{- $services := (include "mycrd.values.services" (dict "ctx" (dict "mycrd" (dict "input" $input))) | fromYaml).value -}}
 {{- range $id := sortAlpha (keys $services) -}}
   {{- $svc := index $services $id -}}
-  {{- $type := "" -}}
-  {{- if not (kindIs "map" $svc) -}}
-    {{- $_ := set $diag "warnings" (append $diag.warnings (printf "service '%s' must be a map — service skipped" $id)) -}}
-  {{- else -}}
-    {{- $type = get $svc "type" | default "" -}}
-  {{- end -}}
-  {{/* the only place that reports a non-boolean `enabled`; every other check calls mycrd.service.enabled silently. */}}
-  {{- $enabled := "" -}}
-  {{- if kindIs "map" $svc -}}
-    {{- if and (hasKey $svc "enabled") (not (kindIs "bool" (get $svc "enabled"))) -}}
-      {{- $_ := set $diag "errors" (append $diag.errors (printf "service '%s': 'enabled' must be a boolean — treated as enabled" $id)) -}}
-    {{- end -}}
-    {{- $enabled = include "mycrd.service.enabled" (dict "id" $id "service" $svc) -}}
-  {{- end -}}
-  {{- if not (kindIs "map" $svc) -}}
-  {{- else if not $enabled -}}
-  {{- else if not (has $type $knownTypes) -}}
-    {{- $_ := set $diag "warnings" (append $diag.warnings (printf "service '%s' has unknown type '%v' — service skipped" $id $type)) -}}
-  {{- else -}}
-    {{- $env := dict -}}
-    {{- $rawEnv := index $svc "environment" -}}
-    {{- if kindIs "map" $rawEnv -}}
-      {{- $env = $rawEnv -}}
-    {{- else if not (kindIs "invalid" $rawEnv) -}}
-      {{- $_ := set $diag "warnings" (append $diag.warnings (printf "service '%s': 'environment' must be a map — ignored" $id)) -}}
-    {{- end -}}
+  {{- if include "mycrd.service.enabled" (dict "id" $id "service" $svc) -}}
+    {{- $env := get $svc "environment" | default dict -}}
     {{- range $name := sortAlpha (keys $env) -}}
       {{- $raw := index $env $name -}}
       {{- $decl := dict "default" $raw -}}
@@ -354,21 +306,20 @@ Implementation notes:
 mycrd.service.enabled (internal)
 
 Tells whether a service is enabled, judged by the `enabled` key of its
-raw declaration. Shared by every check that skips disabled services.
+declaration. Shared by every check that skips disabled services.
 
 Interface:
-- Params (dict): { "id": <service ID>, "service": <raw service
-  declaration from mycrd.values.services> }
+- Params (dict): { "id": <service ID>, "service": <service declaration
+  from mycrd.values.services> }
 - Returns: the plain string "true" when the service is enabled, an EMPTY
   string when it is disabled.
 
 Implementation notes:
 - Never return "false": a non-empty string is truthy in Go templates.
   Use as `{{ if include "mycrd.service.enabled" (dict ...) }}`.
-- Only the YAML boolean `false` disables. An absent key, `true` and any
-  non-boolean value (`"false"`, `0`, `no-way`) count as enabled;
-  mycrd.serviceTokens reports the non-boolean ERROR, so this define
-  stays silent and records nothing.
+- Only the YAML boolean `false` disables. The structural schema pass
+  reports a non-boolean `enabled` and replaces it with the default
+  `true`; this define records nothing.
 - `id` is part of the interface for call-site symmetry; the decision
   reads `service` only.
 */}}
@@ -462,8 +413,8 @@ Implementation notes:
   it before each type handler, so a handler always starts with its
   service added and never calls it itself.
 - Writes `spec.application.services.<id>.type` (the `type` of the
-  service in mycrd.values.services), so every dispatched service appears in the
-  output.
+  service in mycrd.values.services), so every dispatched service appears
+  in the output.
 - Exported variables: every token annotated `service: <id>` with
   targetContainer main/side-car/both (consumer declarations and library
   tokens exported by this service), via mycrd.service.exportVar, in
@@ -474,7 +425,7 @@ Implementation notes:
 {{- $ctx := .ctx -}}
 {{- $id := toString .id -}}
 {{- include "mycrd.service.registry" $ctx -}}
-{{- $services := (include "mycrd.values.services" (dict "root" $ctx.root) | fromYaml).value -}}
+{{- $services := (include "mycrd.values.services" (dict "ctx" $ctx) | fromYaml).value -}}
 {{- $type := "" -}}
 {{- $svc := get $services $id -}}
 {{- if kindIs "map" $svc -}}

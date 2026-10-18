@@ -1,6 +1,6 @@
-# mycrd.values.services: where services are read from the values,
-# through harness/templates/values_probe.yaml (renders only when
-# .Values.valuesProbe is set).
+# mycrd.values.services: where services are read from the normalized
+# input, through harness/templates/values_probe.yaml (renders only when
+# .Values.valuesProbe is set; runs the structural schema pass first).
 suite: my-crd values
 templates:
   - values_probe.yaml
@@ -20,7 +20,22 @@ tests:
       - equal:
           path: services
           value:
-            SVC1: {type: greeter, greeting: hi}
+            SVC1: {type: greeter, greeting: hi, enabled: true}
+
+  - it: services the structural pass rejects are not returned
+    set:
+      valuesProbe: true
+      application:
+        services:
+          BROKEN: x
+          MYSTERY: {type: no-such-type}
+          UNTYPED: {greeting: hi}
+          SVC1: {type: environment, enabled: false}
+    asserts:
+      - equal:
+          path: services
+          value:
+            SVC1: {type: environment, enabled: false}
 
   - it: application absent -> empty map
     set:

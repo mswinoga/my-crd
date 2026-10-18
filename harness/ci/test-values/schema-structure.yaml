@@ -1,0 +1,35 @@
+# Structural schema checks on the consumer values. Expect exactly:
+#  - "# WARNING: 'application.extra' is not a known key — ignored";
+#  - "# WARNING: 'application.services.HELLO.greetng' is not a known key
+#    — ignored" (a typo next to a valid greeting);
+#  - "# WARNING: 'application.services.PAUSED.greetng' is not a known key
+#    — ignored" (a disabled service is checked too);
+#  - "# WARNING: 'application.services.UNTYPED' has no 'type' — ignored";
+#  - "# WARNING: 'metadata.labels.tier' must be a scalar — ignored".
+# The consumer chart's own root keys (global, frontend) raise nothing;
+# HELLO renders with its enabled default and its greeting.
+target: prod-01
+
+global:
+  imageRegistry: example.io
+frontend:
+  replicas: 3
+
+metadata:
+  labels:
+    team: platform-eng
+    tier: [a, b]
+
+application:
+  extra: true
+  services:
+    HELLO:
+      type: greeter
+      greeting: hi
+      greetng: typo
+    PAUSED:
+      type: greeter
+      enabled: false
+      greetng: typo
+    UNTYPED:
+      greeting: lost

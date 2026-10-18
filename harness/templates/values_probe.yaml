@@ -6,8 +6,11 @@ so `make dev` and snapshots are unaffected.
 Input:  valuesProbe: true, plus the ordinary values under test
         (`application`, root `services`, ...).
 Output: a YAML document { services: <value returned by
-        mycrd.values.services> }.
+        mycrd.values.services> } — called with the values normalized by
+        the structural schema pass, as mycrd.render does.
 */ -}}
 {{- if .Values.valuesProbe }}
-{{- dict "services" (include "mycrd.values.services" (dict "root" .) | fromYaml).value | toYaml }}
+{{- $diag := dict "errors" (list) "warnings" (list) }}
+{{- $input := (include "crdkit.schema.validate" (dict "schema" (include "mycrd.schema" . | fromYaml) "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value }}
+{{- dict "services" (include "mycrd.values.services" (dict "ctx" (dict "mycrd" (dict "input" $input))) | fromYaml).value | toYaml }}
 {{- end }}

@@ -105,7 +105,7 @@ check "service-collision.yaml: ERROR naming both services, first one kept" \
   service-collision.yaml "^# ERROR: variable 'SHARED' is declared by services 'ALPHA' and 'BETA' — keeping 'ALPHA'" present
 
 check "unknown-service-type.yaml: WARNING that the service is skipped" \
-  unknown-service-type.yaml "^# WARNING: service 'MYSTERY' has unknown type 'no-such-type' — service skipped" present
+  unknown-service-type.yaml "^# WARNING: 'application.services.MYSTERY.type' has unknown value 'no-such-type' — ignored" present
 
 check "invalid-target-container.yaml: ERROR for a targetContainer outside the accepted set" \
   invalid-target-container.yaml "^# ERROR: invalid targetContainer 'sidecar-typo' for 'APP_BAD_CONTAINER'" present
@@ -138,25 +138,25 @@ check "internal-key.yaml: WARNING that a crdkit-internal key was removed" \
   internal-key.yaml "^# WARNING: token 'APP_LEAKY' declares crdkit-internal key '_generated'; it was removed" present
 
 check "malformed-service.yaml: WARNING that a non-map service is skipped" \
-  malformed-service.yaml "^# WARNING: service 'BROKEN' must be a map — service skipped" present
+  malformed-service.yaml "^# WARNING: 'application.services.BROKEN' must be a map — ignored" present
 
-check "malformed-service.yaml: no unknown-type warning on top of the shape warning" \
-  malformed-service.yaml "has unknown type" absent
+check_count "malformed-service.yaml: that WARNING is the only diagnostic (no type warning on top)" \
+  malformed-service.yaml '^# (ERROR|WARNING):' 1
 
 check "malformed-environment.yaml: WARNING for a non-map environment (environment service)" \
-  malformed-environment.yaml "^# WARNING: service 'ORDERS': 'environment' must be a map — ignored" present
+  malformed-environment.yaml "^# WARNING: 'application.services.ORDERS.environment' must be a map — ignored" present
 
 check "malformed-environment.yaml: WARNING for a non-map environment (greeter service)" \
-  malformed-environment.yaml "^# WARNING: service 'HELLO': 'environment' must be a map — ignored" present
+  malformed-environment.yaml "^# WARNING: 'application.services.HELLO.environment' must be a map — ignored" present
 
 check "application-malformed.yaml: WARNING that a non-map 'application' is ignored" \
-  application-malformed.yaml "^# WARNING: values key 'application' must be a map — ignored" present
+  application-malformed.yaml "^# WARNING: 'application' must be a map — ignored" present
 
 check_count "application-malformed.yaml: that WARNING is the only diagnostic" \
   application-malformed.yaml '^# (ERROR|WARNING):' 1
 
 check "application-services-malformed.yaml: WARNING that a non-map 'application.services' is ignored" \
-  application-services-malformed.yaml "^# WARNING: values key 'application.services' must be a map — ignored" present
+  application-services-malformed.yaml "^# WARNING: 'application.services' must be a map — ignored" present
 
 check_count "application-services-malformed.yaml: that WARNING is the only diagnostic" \
   application-services-malformed.yaml '^# (ERROR|WARNING):' 1
@@ -198,10 +198,28 @@ check "service-disabled.yaml: no ERROR at all" \
   service-disabled.yaml "^# ERROR:" absent
 
 check "service-enabled-invalid.yaml: ERROR that 'enabled' must be a boolean" \
-  service-enabled-invalid.yaml "^# ERROR: service 'STRICT': 'enabled' must be a boolean — treated as enabled" present
+  service-enabled-invalid.yaml "^# ERROR: 'application.services.STRICT.enabled' must be of type 'bool' — ignored" present
 
 check_count "service-enabled-invalid.yaml: the boolean ERROR is emitted exactly once and is the only diagnostic" \
   service-enabled-invalid.yaml '^# (ERROR|WARNING):' 1
+
+check "schema-structure.yaml: WARNING for an unknown key under application" \
+  schema-structure.yaml "^# WARNING: 'application.extra' is not a known key — ignored" present
+
+check "schema-structure.yaml: WARNING for an unknown key under a service" \
+  schema-structure.yaml "^# WARNING: 'application.services.HELLO.greetng' is not a known key — ignored" present
+
+check "schema-structure.yaml: a disabled service is checked too" \
+  schema-structure.yaml "^# WARNING: 'application.services.PAUSED.greetng' is not a known key — ignored" present
+
+check "schema-structure.yaml: WARNING for a service without type" \
+  schema-structure.yaml "^# WARNING: 'application.services.UNTYPED' has no 'type' — ignored" present
+
+check "schema-structure.yaml: WARNING for a structured label value" \
+  schema-structure.yaml "^# WARNING: 'metadata.labels.tier' must be a scalar — ignored" present
+
+check_count "schema-structure.yaml: the consumer chart's own root keys raise nothing" \
+  schema-structure.yaml '^# (ERROR|WARNING):' 5
 
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS

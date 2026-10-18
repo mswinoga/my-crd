@@ -40,3 +40,24 @@ Implementation notes:
         "content" .service.greeting) -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+mycrd.serviceType.greeter.schema (callback)
+
+Invoked by mycrd.schema (one switch case per service type).
+Values schema of a `type: greeter` service.
+
+Interface:
+- Params: any value (ignored).
+- Returns YAML: a map schema node.
+*/}}
+{{- define "mycrd.serviceType.greeter.schema" -}}
+kind: map
+doc: "Example type: exports `<SID>_GREETER` and a configMap mount `<ID>-config`."
+properties:
+  {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
+  greeting:
+    kind: scalar
+    type: string
+    doc: "Content of the file `message`; absent → nothing generated."
+{{- end -}}

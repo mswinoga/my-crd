@@ -5,20 +5,24 @@ so `make dev` and snapshots are unaffected.
 
 Input:  helpersProbe: { target: <string>, calls: [ {helper: <name after
         "mycrd.service.">, params: <dict without ctx>} ... ] } plus
-        ordinary `services:` values. A fresh ctx (empty model and
-        tokens) is built and the calls run in order — so a helper can be
+        ordinary `application.services` values. A fresh ctx (empty
+        model and tokens; `mycrd.schema`/`mycrd.input` seeded from the
+        structural schema pass, as mycrd.render does) is built and the
+        calls run in order — so a helper can be
         called for a service that was never added, which the dispatcher
         never allows end to end.
         With `references: true`, mycrd.integrations.references runs
         after the calls, as it does last in the chain.
 Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
-        registry: <ctx.mycrd>, diag: { errors, warnings }, results:
+        registry: <ctx.mycrd without schema/input>, diag: { errors, warnings }, results:
         [<text each call returned, in call order>] }
 */ -}}
 {{- if .Values.helpersProbe }}
 {{- $probe := .Values.helpersProbe | toYaml | fromYaml }}
 {{- $diag := dict "errors" (list) "warnings" (list) }}
-{{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 }}
+{{- $schema := include "mycrd.schema" . | fromYaml }}
+{{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value }}
+{{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 "mycrd" (dict "schema" $schema "input" $input) }}
 {{- $results := list }}
 {{- range $call := ($probe.calls | default (list)) }}
   {{- $results = append $results (include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params)) }}
@@ -26,5 +30,5 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- if $probe.references }}
   {{- include "mycrd.integrations.references" $ctx }}
 {{- end }}
-{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" ($ctx.mycrd | default dict) "diag" $diag "results" $results | toYaml }}
+{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" (omit $ctx.mycrd "schema" "input") "diag" $diag "results" $results | toYaml }}
 {{- end }}

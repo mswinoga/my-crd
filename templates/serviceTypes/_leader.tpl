@@ -42,3 +42,25 @@ Implementation notes:
         "file" "message") -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+mycrd.serviceType.leader.schema (callback)
+
+Invoked by mycrd.schema (one switch case per service type).
+Values schema of a `type: leader` service.
+
+Interface:
+- Params: any value (ignored).
+- Returns YAML: a map schema node.
+*/}}
+{{- define "mycrd.serviceType.leader.schema" -}}
+kind: map
+doc: "Example type: exports `<SID>_SEED` and references a greeter's variable and file."
+properties:
+  {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
+  greeter:
+    kind: scalar
+    type: string
+    markers: false
+    doc: "ID of the greeter service to reference; absent → nothing generated."
+{{- end -}}

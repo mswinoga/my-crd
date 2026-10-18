@@ -41,7 +41,7 @@ Implementation notes:
 {{- $schema := include "mycrd.schema" . | fromYaml -}}
 {{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value -}}
 {{- $prepared := include "mycrd.serviceTokens" (dict
-      "context" .
+      "input" $input
       "diag" $diag
       "system" (include "mycrd.systemTokens" . | fromYaml)
       "defaults" (include "mycrd.defaultTokens" . | fromYaml)
