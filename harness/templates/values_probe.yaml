@@ -1,0 +1,13 @@
+{{- /*
+Test probe for mycrd.values.services. Renders ONLY when
+.Values.valuesProbe is set (never in harness/values.yaml or a fixture),
+so `make dev` and snapshots are unaffected.
+
+Input:  valuesProbe: true, plus the ordinary values under test
+        (`application`, root `services`, ...).
+Output: a YAML document { services: <value returned by
+        mycrd.values.services> }.
+*/ -}}
+{{- if .Values.valuesProbe }}
+{{- dict "services" (include "mycrd.values.services" (dict "root" .) | fromYaml).value | toYaml }}
+{{- end }}

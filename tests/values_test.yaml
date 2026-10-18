@@ -1,0 +1,62 @@
+# mycrd.values.services: where services are read from the values,
+# through harness/templates/values_probe.yaml (renders only when
+# .Values.valuesProbe is set).
+suite: my-crd values
+templates:
+  - values_probe.yaml
+tests:
+  - it: probe renders nothing when valuesProbe is unset
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: services map under application
+    set:
+      valuesProbe: true
+      application:
+        services:
+          SVC1: {type: greeter, greeting: hi}
+    asserts:
+      - equal:
+          path: services
+          value:
+            SVC1: {type: greeter, greeting: hi}
+
+  - it: application absent -> empty map
+    set:
+      valuesProbe: true
+      application: null
+    asserts:
+      - equal:
+          path: services
+          value: {}
+
+  - it: application not a map -> empty map
+    set:
+      valuesProbe: true
+      application: x
+    asserts:
+      - equal:
+          path: services
+          value: {}
+
+  - it: application.services not a map -> empty map
+    set:
+      valuesProbe: true
+      application:
+        services: [a]
+    asserts:
+      - equal:
+          path: services
+          value: {}
+
+  - it: root services are not read
+    set:
+      valuesProbe: true
+      application: null
+      services:
+        SVC1: {type: greeter}
+    asserts:
+      - equal:
+          path: services
+          value: {}
