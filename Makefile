@@ -37,7 +37,7 @@ test: update-deps
 test-diagnostics: update-deps
 	./tests/diagnostics_test.sh
 
-# Writes the values reference (crdkit.schema.docs over mycrd.schema) to
+# Writes the values reference (crdkit.schema.document over mycrd.schema) to
 # VALUES.md through harness/templates/documentation.md.yaml; tests/docs_test.yaml
 # snapshots the same text. Commit the result.
 docs: update-deps

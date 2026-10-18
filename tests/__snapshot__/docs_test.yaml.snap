@@ -3,43 +3,168 @@ the Markdown reference matches the snapshot:
     |
       # my-crd values
 
-      | Key | Type | Per target | Default | Required | Description |
-      | --- | --- | --- | --- | --- | --- |
-      | `application` | map |  |  |  | The application the object describes. |
-      | `application.services` | map, keys match `^[A-Z0-9_]+$` |  |  |  | Services by ID. |
-      | `application.services.<key>` | map, by `type`: environment, greeter, leader |  |  |  | One service; its keys depend on `type`. |
-      | `metadata` | map |  |  |  | Metadata of the rendered object. |
-      | `metadata.labels` | map |  |  |  | Labels copied onto the rendered object; standard labels win on a collision. |
-      | `metadata.labels.<key>` | string | markers |  |  | Label value; may hold `@NAME@` markers. |
-      | `renderMode` | scalar | no |  |  | `validate` prints the render with its diagnostics; `deploy` (default) aborts on errors. |
-      | `target` | string | no |  |  | Render target: `<env>` or `<env>-<seq>` (e.g. `prod-01`). Selects every per-target value. |
-      | `<key>` | any |  |  |  | The consumer chart's own values; not read by my-crd. |
+      ```yaml
+      target:  # string
+      renderMode:  # scalar
+      metadata:  # map
+        labels:  # map
+          <key>:  # string
+      application:  # map
+        services:  # map
+          <ID>:  # map, by type
+            # type: environment
+            # type:  # string
+            # enabled:  # bool
+            # environment:  # map
+            #   <NAME>:  # scalar, per target
+            # type: greeter
+            # type:  # string
+            # enabled:  # bool
+            # environment:  # map
+            #   <NAME>:  # scalar, per target
+            # greeting:  # string, per target
+            # type: leader
+            # type:  # string
+            # enabled:  # bool
+            # environment:  # map
+            #   <NAME>:  # scalar, per target
+            # greeter:  # string
+      <key>:  # any
+      ```
 
-      ## `application.services.<key>` with `type: environment`
+      ## (root)
 
-      | Key | Type | Per target | Default | Required | Description |
-      | --- | --- | --- | --- | --- | --- |
-      | `application.services.<key>.enabled` | bool | no | `true` |  | `false` removes the service from the output. |
-      | `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
-      | `application.services.<key>.environment.<key>` | scalar | yes |  |  | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
-      | `application.services.<key>.type` | string | no |  |  | Service type; selects the handler and the keys below. |
+      Consumer values of my-crd.
 
-      ## `application.services.<key>` with `type: greeter`
+      | Key | Type | Per target | Description |
+      | --- | --- | --- | --- |
+      | `target` | string | no | Render target: `<env>` or `<env>-<seq>` (e.g. `prod-01`). Selects every per-target value. |
+      | `renderMode` | scalar | no | `validate` prints the render with its diagnostics; `deploy` (default) aborts on errors. |
+      | `metadata` | map |  | Metadata of the rendered object. |
+      | `application` | map |  | The application the object describes. |
+      | `<key>` | any |  | The consumer chart's own values; not read by my-crd. |
 
-      | Key | Type | Per target | Default | Required | Description |
-      | --- | --- | --- | --- | --- | --- |
-      | `application.services.<key>.enabled` | bool | no | `true` |  | `false` removes the service from the output. |
-      | `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
-      | `application.services.<key>.environment.<key>` | scalar | yes |  |  | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
-      | `application.services.<key>.greeting` | string | yes |  |  | Content of the file `message`; absent → nothing generated. |
-      | `application.services.<key>.type` | string | no |  |  | Service type; selects the handler and the keys below. |
+      ## `metadata`
 
-      ## `application.services.<key>` with `type: leader`
+      Metadata of the rendered object.
 
-      | Key | Type | Per target | Default | Required | Description |
-      | --- | --- | --- | --- | --- | --- |
-      | `application.services.<key>.enabled` | bool | no | `true` |  | `false` removes the service from the output. |
-      | `application.services.<key>.environment` | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
-      | `application.services.<key>.environment.<key>` | scalar | yes |  |  | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
-      | `application.services.<key>.greeter` | string | no |  |  | ID of the greeter service to reference; absent → nothing generated. |
-      | `application.services.<key>.type` | string | no |  |  | Service type; selects the handler and the keys below. |
+      | Key | Type | Description |
+      | --- | --- | --- |
+      | `labels` | map | Labels copied onto the rendered object; standard labels win on a collision. |
+
+      ## `metadata.labels`
+
+      Labels copied onto the rendered object; standard labels win on a collision.
+
+      | Key | Type | Per target | Description |
+      | --- | --- | --- | --- |
+      | `<key>` | string | markers | Label value; may hold `@NAME@` markers. |
+
+      ## `application`
+
+      The application the object describes.
+
+      | Key | Type | Description |
+      | --- | --- | --- |
+      | `services` | map, keys match `^[A-Z0-9_]+$` | Services by ID. |
+
+      ## `application.services`
+
+      Services by ID.
+
+      | Key | Type | Description |
+      | --- | --- | --- |
+      | `<ID>` | map, by `type`: environment, greeter, leader | One service; its keys depend on `type`. |
+
+      ## `application.services.*[type=environment]`
+
+      A service that only declares variables.
+
+      | Key | Type | Per target | Default | Description |
+      | --- | --- | --- | --- | --- |
+      | `type` (shared) | string | no |  | Service type; selects the handler and the keys below. |
+      | `enabled` (shared) | bool | no | `true` | `false` removes the service from the output. |
+      | `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
+
+      **Example** (generated)
+
+      ```yaml
+      application:
+        services:
+          <ID>:
+            enabled: true
+            environment: {}
+            type: environment
+      ```
+
+      ## `application.services.*[type=environment].environment`
+
+      Variables owned by the service, by name (`<ID>_`-prefixed by convention).
+
+      | Key | Type | Per target | Description |
+      | --- | --- | --- | --- |
+      | `<NAME>` | scalar | yes | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
+
+      ## `application.services.*[type=greeter]`
+
+      Example type: exports `<ID>_GREETER` and a configMap mount `<ID>-config`.
+
+      | Key | Type | Per target | Default | Description |
+      | --- | --- | --- | --- | --- |
+      | `type` (shared) | string | no |  | Service type; selects the handler and the keys below. |
+      | `enabled` (shared) | bool | no | `true` | `false` removes the service from the output. |
+      | `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
+      | `greeting` | string | yes |  | Content of the file `message`; absent → nothing generated. |
+
+      **Example** (generated)
+
+      ```yaml
+      application:
+        services:
+          <ID>:
+            enabled: true
+            environment: {}
+            greeting:
+              default: text
+              prod: text
+            type: greeter
+      ```
+
+      ## `application.services.*[type=greeter].environment`
+
+      Variables owned by the service, by name (`<ID>_`-prefixed by convention).
+
+      | Key | Type | Per target | Description |
+      | --- | --- | --- | --- |
+      | `<NAME>` | scalar | yes | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
+
+      ## `application.services.*[type=leader]`
+
+      Example type: exports `<ID>_SEED` and references a greeter's variable and file.
+
+      | Key | Type | Per target | Default | Description |
+      | --- | --- | --- | --- | --- |
+      | `type` (shared) | string | no |  | Service type; selects the handler and the keys below. |
+      | `enabled` (shared) | bool | no | `true` | `false` removes the service from the output. |
+      | `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
+      | `greeter` | string | no |  | ID of the greeter service to reference; absent → nothing generated. |
+
+      **Example** (generated)
+
+      ```yaml
+      application:
+        services:
+          <ID>:
+            enabled: true
+            environment: {}
+            greeter: text
+            type: leader
+      ```
+
+      ## `application.services.*[type=leader].environment`
+
+      Variables owned by the service, by name (`<ID>_`-prefixed by convention).
+
+      | Key | Type | Per target | Description |
+      | --- | --- | --- | --- |
+      | `<NAME>` | scalar | yes | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |

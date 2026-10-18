@@ -1,5 +1,5 @@
 {{- /*
-Values reference generator (crdkit.schema.docs over mycrd.schema).
+Values reference generator (crdkit.schema.document, md, over mycrd.schema).
 Renders ONLY when .Values.documentation is set (never in
 harness/values.yaml or a fixture), so `make dev` and snapshots are
 unaffected. `make docs` renders it with `--set documentation=true` and
@@ -15,7 +15,8 @@ Output: a YAML document { undocumented: [<schema path of every node
 {{- include "harness.undocumented" (dict "node" $schema "path" "(root)" "acc" $acc) }}
 undocumented: {{ $acc.list | toYaml | nindent 2 }}
 markdown: |
-{{- include "crdkit.schema.docs" (dict "schema" $schema "title" "my-crd values") | nindent 2 }}
+{{- $diag := dict "errors" (list) "warnings" (list) }}
+{{- include "crdkit.schema.document" (dict "format" "md" "schemaText" (include "mycrd.schema" . ) "title" "my-crd values" "diag" $diag) | nindent 2 }}
 {{- end }}
 
 {{- /*

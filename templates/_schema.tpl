@@ -53,6 +53,7 @@ properties:
         doc: "Services by ID."
         keys:
           pattern: "^[A-Z0-9_]+$"
+          label: "<ID>"
         values:
           doc: "One service; its keys depend on `type`."
           switch:
@@ -96,6 +97,7 @@ environment:
   doc: "Variables owned by the service, by name (`<ID>_`-prefixed by convention)."
   keys:
     pattern: "^[A-Z][A-Z0-9_]*$"
+    label: "<NAME>"
   values:
     type: scalar
     tokens: true

@@ -1,0 +1,26 @@
+# Example consumer values: one service of every type, wired together.
+# Documents the values reference (VALUES.md, VALUES.html,
+# input.schema.json) and must render with no diagnostics.
+target: prod-01
+
+metadata:
+  labels:
+    team: payments
+
+application:
+  services:
+    SHARED:
+      type: environment
+      environment:
+        SHARED_DB_HOST:
+          targetContainer: main
+          default: db.internal
+          prod: db.prod.internal
+    APP:
+      type: greeter
+      greeting:
+        default: "hello from @ENV@"
+        prod: "hello from production"
+    LEAD:
+      type: leader
+      greeter: APP
