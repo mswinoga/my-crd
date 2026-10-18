@@ -3,7 +3,7 @@ mycrd.integrations.references (callback)
 
 Invoked by crdkit's integration chain.
 Validates the references the service handlers recorded and writes the
-valid ones to `spec.services.<id>.references`.
+valid ones to `spec.application.services.<id>.references`.
 
 Interface:
 - Params: ctx (see crdkit.integrations.chain).

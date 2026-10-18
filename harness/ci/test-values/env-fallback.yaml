@@ -1,24 +1,18 @@
-# A service variable with only a "default" entry, rendered against a target that
-# my-crd's OWN escalation taxonomy (mycrd.parentTarget) recognizes but
-# has no more specific override declared for anywhere along the chain
-# -> resolves to "default" via legitimate escalation (test-01 -> test ->
-# TEST -> NONPROD -> default), with no diagnostics at all.
-#
-# Note this is now a narrower guarantee than it used to be: crdkit
-# itself has no concept of "env" anymore, so an entirely UNRECOGNIZED
-# target (one that doesn't match any rung in my-crd's own taxonomy —
-# see templates/_target.tpl) has nowhere to escalate to and would
-# legitimately ERROR instead of silently falling back — see crdkit's
-# CLAUDE.md/README "Target escalation" section. This fixture is
-# specifically about the recognized-but-unoverridden case.
+# A service variable with only a "default" entry, rendered against a
+# target my-crd's escalation taxonomy (mycrd.parentTarget) recognizes
+# but with no more specific override anywhere along the chain ->
+# resolves to "default" via escalation (test-01 -> test -> TEST ->
+# NONPROD -> default), with no diagnostics at all.
 target: test-01
 
-services:
-  app:
-    type: environment
-    environment:
-      REGION_TOKEN:
-        default: "us-east-1"
-
-spec:
-  region: "@REGION_TOKEN@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_REGION:
+          default: "us-east-1"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_REGION: {targetContainer: main, default: "@APP_REGION@"}

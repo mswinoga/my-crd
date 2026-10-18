@@ -5,24 +5,37 @@ tests:
   - it: resolves a simple scalar token
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.GREETING: "hello"
-      spec.message: "@GREETING@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_GREETING: "hello"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_GREETING@"}
     asserts:
       - equal:
-          path: spec.message
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "hello"
 
   - it: dict resolves the env-specific value when present
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.COLOR.default: "blue"
-      services.app.environment.COLOR.prod: "red"
-      spec.color: "@COLOR@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_COLOR: {default: "blue", prod: "red"}
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_COLOR@"}
     asserts:
       - equal:
-          path: spec.color
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "red"
 
   - it: dict falls back to default when the specific env isn't listed
@@ -32,107 +45,164 @@ tests:
       # entirely UNRECOGNIZED target would have nowhere to escalate to
       # and would legitimately ERROR instead, see crd/CLAUDE.md.
       target: test-01
-      services.app.type: environment
-      services.app.environment.COLOR.default: "blue"
-      services.app.environment.COLOR.prod: "red"
-      spec.color: "@COLOR@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_COLOR: {default: "blue", prod: "red"}
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_COLOR@"}
     asserts:
       - equal:
-          path: spec.color
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "blue"
 
   - it: a token referencing another token (one level) resolves correctly
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.A: "foo"
-      services.app.environment.B: "@A@-bar"
-      spec.message: "@B@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_A: "foo"
+              APP_B: "@APP_A@-bar"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_B@"}
     asserts:
       - equal:
-          path: spec.message
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "foo-bar"
 
   - it: a chain of 3+ tokens resolves via the iterative fixed-point resolver
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.T1: "one"
-      services.app.environment.T2: "@T1@-two"
-      services.app.environment.T3: "@T2@-three"
-      services.app.environment.T4: "@T3@-four"
-      spec.message: "@T4@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_T1: "one"
+              APP_T2: "@APP_T1@-two"
+              APP_T3: "@APP_T2@-three"
+              APP_T4: "@APP_T3@-four"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_T4@"}
     asserts:
       - equal:
-          path: spec.message
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "one-two-three-four"
 
   - it: "@AT@ resolves to a literal @ character"
     set:
       target: prod-01
-      spec.email: "user@AT@example.com"
+      application:
+        services:
+          PROBE:
+            type: environment
+            environment:
+              PROBE_EMAIL: {targetContainer: main, default: "user@AT@example.com"}
     asserts:
       - equal:
-          path: spec.email
+          path: spec.application.services.PROBE.environment.PROBE_EMAIL.value
           value: "user@example.com"
 
   - it: consumer overriding a default (non-locked) token wins, no diagnostic needed
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.LOG_LEVEL: "debug"
-      spec.level: "@LOG_LEVEL@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              LOG_LEVEL: "debug"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_LEVEL: {targetContainer: main, default: "@LOG_LEVEL@"}
     asserts:
       - equal:
-          path: spec.level
+          path: spec.application.services.PROBE.environment.PROBE_LEVEL.value
           value: "debug"
-      - matchRegex:
-          path: spec.level
-          pattern: "ERROR|WARNING"
-        not: true
 
   - it: a locked-token collision resolves to the library's value, not the consumer's
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.API_GROUP: "hijacked.example.com"
-      spec.group: "@API_GROUP@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              API_GROUP: "hijacked.example.com"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_GROUP: {targetContainer: main, default: "@API_GROUP@"}
     asserts:
       - equal:
-          path: spec.group
+          path: spec.application.services.PROBE.environment.PROBE_GROUP.value
           value: "platform.company.io"
 
   - it: the env-family tier fallback resolves when the exact env is unlisted
     set:
       target: qap1-01
-      services.app.type: environment
-      services.app.environment.REGION.NONPROD: "us-west-2"
-      services.app.environment.REGION.PROD: "us-east-1"
-      spec.region: "@REGION@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_REGION: {NONPROD: "us-west-2", PROD: "us-east-1"}
+          PROBE:
+            type: environment
+            environment:
+              PROBE_REGION: {targetContainer: main, default: "@APP_REGION@"}
     asserts:
       - equal:
-          path: spec.region
+          path: spec.application.services.PROBE.environment.PROBE_REGION.value
           value: "us-west-2"
 
   - it: standard labels are always present regardless of consumer input
     set:
       target: prod-01
-      services: {}
     asserts:
       - exists:
           path: metadata.labels["app.kubernetes.io/name"]
       - exists:
           path: metadata.labels["app.kubernetes.io/instance"]
 
+  - it: a numeric-looking release name stays a string label
+    release:
+      name: "123"
+    set:
+      target: prod-01
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "123"
+
   - it: a consumer-defined 'ENV' token collides with the reserved built-in and is discarded
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.ENV: "hijacked"
-      spec.env: "@ENV@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              ENV: "hijacked"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_ENV: {targetContainer: main, default: "@ENV@"}
     asserts:
       - equal:
-          path: spec.env
+          path: spec.application.services.PROBE.environment.PROBE_ENV.value
           value: "prod"
 
   - it: the match tier wins over env/tier/default, evaluated against the full target string
@@ -140,7 +210,7 @@ tests:
       - ../harness/ci/test-values/target-match.yaml
     asserts:
       - equal:
-          path: spec.subenv
+          path: spec.application.services.PROBE.environment.PROBE_SUBENV.value
           value: "canary"
 
   - it: match rule values can reference capture groups from the pattern
@@ -148,7 +218,7 @@ tests:
       - ../harness/ci/test-values/target-match.yaml
     asserts:
       - equal:
-          path: spec.envFromTarget
+          path: spec.application.services.PROBE.environment.PROBE_ENV_FROM_TARGET.value
           value: "qam1"
 
   - it: "@ENV@ is a reserved built-in token derived from target"
@@ -156,61 +226,77 @@ tests:
       - ../harness/ci/test-values/target-match.yaml
     asserts:
       - equal:
-          path: spec.builtinEnv
+          path: spec.application.services.PROBE.environment.PROBE_BUILTIN_ENV.value
           value: "qam1"
 
   - it: a regular token can chain off the built-in ENV token deterministically
     set:
       target: prod-01
-      services.app.type: environment
-      services.app.environment.ENV_LABEL: "release-@ENV@"
-      spec.envLabel: "@ENV_LABEL@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_ENV_LABEL: "release-@ENV@"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_ENV_LABEL: {targetContainer: main, default: "@APP_ENV_LABEL@"}
     asserts:
       - equal:
-          path: spec.envLabel
+          path: spec.application.services.PROBE.environment.PROBE_ENV_LABEL.value
           value: "release-prod"
 
-  - it: a token declaring targetContainer still resolves its value normally through the full pipeline
+  - it: a chained, at-escaped and labelled token all resolve through the full pipeline
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
       - equal:
-          path: spec.dbHost
-          value: "db.internal"
+          path: spec.application.services.PROBE.environment.PROBE_MESSAGE.value
+          value: "chain: hello-world + prod-value"
+      - equal:
+          path: spec.application.services.PROBE.environment.PROBE_AT_LITERAL.value
+          value: "user@example.com"
+      - equal:
+          path: metadata.labels.cost-center
+          value: "cc-prod-value-1234"
 
-  - it: "mycrd.integrations.services lists every accepted targetContainer (main/side-car/both) under spec.services.<ID>.environment"
+  - it: "mycrd.integrations.services lists every accepted targetContainer (main/side-car/both) under spec.application.services.<ID>.environment"
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
       - equal:
-          path: spec.services.app.type
+          path: spec.application.services.APP.type
           value: "environment"
       - equal:
-          path: spec.services.app.environment.DB_HOST
+          path: spec.application.services.APP.environment.APP_DB_HOST
           value:
             value: "db.internal"
             targetContainer: "main"
       - equal:
-          path: spec.services.app.environment.SIDECAR_TOKEN
+          path: spec.application.services.APP.environment.APP_SIDECAR
           value:
             value: "sidecar-value"
             targetContainer: "side-car"
       - equal:
-          path: spec.services.app.environment.BOTH_TOKEN
+          path: spec.application.services.APP.environment.APP_BOTH
           value:
             value: "both-value"
             targetContainer: "both"
+      - equal:
+          path: spec.application.services.WORKER.environment
+          value:
+            WORKER_QUEUE:
+              value: "jobs-prod"
+              targetContainer: "both"
 
   - it: "mycrd.integrations.services excludes targetContainer: none and tokens with no targetContainer at all"
     values:
       - ../harness/ci/test-values/full-featured.yaml
     asserts:
-      - exists:
-          path: spec.services.app.environment.NONE_TOKEN
-        not: true
-      - exists:
-          path: spec.services.app.environment.SCALAR_TOKEN
-        not: true
-      - exists:
-          path: spec.services.app.environment.ENV_TOKEN
-        not: true
+      - notExists:
+          path: spec.application.services.APP.environment.APP_NONE
+      - notExists:
+          path: spec.application.services.APP.environment.APP_SCALAR
+      - notExists:
+          path: spec.application.services.APP.environment.APP_ENV_VALUE

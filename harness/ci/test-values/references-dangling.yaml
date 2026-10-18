@@ -3,7 +3,8 @@
 # the file) and no `references` key on SVC2.
 target: prod-01
 
-services:
-  SVC2:
-    type: leader
-    greeter: NOWHERE
+application:
+  services:
+    SVC2:
+      type: leader
+      greeter: NOWHERE

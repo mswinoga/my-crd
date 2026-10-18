@@ -1,14 +1,16 @@
 # A variable setting 'service' itself. Expect a "# WARNING:" and the
-# parent service ID ('app') to win.
+# parent service ID ('APP') to win.
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      OWNED:
-        default: "v"
-        service: someone-else
-
-spec:
-  value: "@OWNED@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_OWNED:
+          default: "v"
+          service: someone-else
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@APP_OWNED@"}

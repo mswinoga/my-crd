@@ -14,89 +14,96 @@ tests:
 
   - it: probe - service.add writes the type and marks the service added
     set:
-      services:
-        app:
-          type: environment
+      application:
+        services:
+          APP:
+            type: environment
       helpersProbe:
         calls:
-          - {helper: add, params: {id: app}}
+          - {helper: add, params: {id: APP}}
     asserts:
       - equal:
           path: model
           value:
             spec:
-              services:
-                app:
-                  type: environment
+              application:
+                services:
+                  APP:
+                    type: environment
       - equal:
           path: registry.added
-          value: {app: true}
+          value: {APP: true}
       - equal:
           path: diag.errors
           value: []
 
   - it: probe - addVar after service.add exports the variable and records its owner
     set:
-      services:
-        app:
-          type: environment
+      application:
+        services:
+          APP:
+            type: environment
       helpersProbe:
         calls:
-          - {helper: add, params: {id: app}}
-          - {helper: addVar, params: {id: app, name: ADDED, value: "v", targetContainer: main}}
+          - {helper: add, params: {id: APP}}
+          - {helper: addVar, params: {id: APP, name: APP_ADDED, value: "v", targetContainer: main}}
     asserts:
       - equal:
           path: model
           value:
             spec:
-              services:
-                app:
-                  type: environment
-                  environment:
-                    ADDED: {value: "@ADDED@", targetContainer: main}
+              application:
+                services:
+                  APP:
+                    type: environment
+                    environment:
+                      APP_ADDED: {value: "@APP_ADDED@", targetContainer: main}
       - equal:
           path: registry.owners
           value:
-            /spec/services/app/environment/ADDED: app
+            /spec/application/services/APP/environment/APP_ADDED: APP
       - equal:
           path: diag.errors
           value: []
 
   - it: probe - addVar with targetContainer none registers the token but does not export it
     set:
-      services:
-        app:
-          type: environment
+      application:
+        services:
+          APP:
+            type: environment
       helpersProbe:
         calls:
-          - {helper: add, params: {id: app}}
-          - {helper: addVar, params: {id: app, name: INTERNAL, value: "v", targetContainer: none}}
-          - {helper: addVar, params: {id: app, name: PLAIN, value: "v"}}
+          - {helper: add, params: {id: APP}}
+          - {helper: addVar, params: {id: APP, name: APP_INTERNAL, value: "v", targetContainer: none}}
+          - {helper: addVar, params: {id: APP, name: APP_PLAIN, value: "v"}}
     asserts:
       - equal:
           path: model
           value:
             spec:
-              services:
-                app:
-                  type: environment
+              application:
+                services:
+                  APP:
+                    type: environment
       - equal:
           path: registry.owners
           value: {}
       - exists:
-          path: tokens.INTERNAL
+          path: tokens.APP_INTERNAL
       - equal:
           path: diag.errors
           value: []
 
   - it: probe - addVar for a service that was not added records an ERROR and changes nothing
     set:
-      services:
-        app:
-          type: environment
+      application:
+        services:
+          APP:
+            type: environment
       helpersProbe:
         calls:
-          - {helper: addVar, params: {id: app, name: LOST, value: "v", targetContainer: main}}
+          - {helper: addVar, params: {id: APP, name: APP_LOST, value: "v", targetContainer: main}}
     asserts:
       - equal:
           path: model
@@ -110,39 +117,41 @@ tests:
       - equal:
           path: diag.errors
           value:
-            - "service 'app' was not added — helper 'mycrd.service.addVar' ignored"
+            - "service 'APP' was not added — helper 'mycrd.service.addVar' ignored"
 
   - it: probe - an added service does not make another service's helper call valid
     set:
-      services:
-        app:
-          type: environment
-        other:
-          type: environment
+      application:
+        services:
+          APP:
+            type: environment
+          OTHER:
+            type: environment
       helpersProbe:
         calls:
-          - {helper: add, params: {id: app}}
-          - {helper: addVar, params: {id: other, name: LOST, value: "v", targetContainer: main}}
+          - {helper: add, params: {id: APP}}
+          - {helper: addVar, params: {id: OTHER, name: OTHER_LOST, value: "v", targetContainer: main}}
     asserts:
       - equal:
           path: diag.errors
           value:
-            - "service 'other' was not added — helper 'mycrd.service.addVar' ignored"
+            - "service 'OTHER' was not added — helper 'mycrd.service.addVar' ignored"
       - notExists:
-          path: model.spec.services.other
+          path: model.spec.application.services.OTHER
 
   - it: probe - addFile creates the mount with its source and records owner and contributor
     set:
-      services:
-        a:
-          type: environment
+      application:
+        services:
+          A:
+            type: environment
       helpersProbe:
         calls:
-          - {helper: add, params: {id: a}}
-          - {helper: addFile, params: {id: a, mount: m, source: configMap, file: app.conf, content: "@ENV@"}}
+          - {helper: add, params: {id: A}}
+          - {helper: addFile, params: {id: A, mount: m, source: configMap, file: app.conf, content: "@ENV@"}}
     asserts:
       - equal:
-          path: model.spec.volumeMounts
+          path: model.spec.application.volumeMounts
           value:
             m:
               source: configMap
@@ -151,23 +160,24 @@ tests:
       - equal:
           path: registry.owners
           value:
-            /spec/volumeMounts/m/files/app.conf: a
+            /spec/application/volumeMounts/m/files/app.conf: A
       - equal:
           path: registry.contributors
           value:
-            /spec/volumeMounts/m: {a: true}
+            /spec/application/volumeMounts/m: {A: true}
       - equal:
           path: diag.errors
           value: []
 
   - it: probe - addFile for a service that was not added records an ERROR and creates nothing
     set:
-      services:
-        a:
-          type: environment
+      application:
+        services:
+          A:
+            type: environment
       helpersProbe:
         calls:
-          - {helper: addFile, params: {id: a, mount: m, source: configMap, file: f, content: "x"}}
+          - {helper: addFile, params: {id: A, mount: m, source: configMap, file: f, content: "x"}}
     asserts:
       - equal:
           path: model
@@ -178,58 +188,58 @@ tests:
       - equal:
           path: diag.errors
           value:
-            - "service 'a' was not added — helper 'mycrd.service.addFile' ignored"
+            - "service 'A' was not added — helper 'mycrd.service.addFile' ignored"
 
   - it: mount-conflicts - the same file from two services records an ERROR and keeps the first
     values:
       - ../harness/ci/probe-values/mount-conflicts.yaml
     asserts:
       - equal:
-          path: model.spec.volumeMounts.shared-same
+          path: model.spec.application.volumeMounts.shared-same
           value:
             source: configMap
             files:
               app.conf: "from a"
       - contains:
           path: diag.errors
-          content: "file 'app.conf' in mount 'shared-same' is already defined by service 'a'"
+          content: "file 'app.conf' in mount 'shared-same' is already defined by service 'A'"
       - equal:
-          path: registry.contributors["/spec/volumeMounts/shared-same"]
-          value: {a: true}
+          path: registry.contributors["/spec/application/volumeMounts/shared-same"]
+          value: {A: true}
 
   - it: mount-conflicts - a different source on a shared mount records an ERROR and the file is not added
     values:
       - ../harness/ci/probe-values/mount-conflicts.yaml
     asserts:
       - equal:
-          path: model.spec.volumeMounts.shared-source
+          path: model.spec.application.volumeMounts.shared-source
           value:
             source: configMap
             files:
               x.txt: "x"
       - contains:
           path: diag.errors
-          content: "mount 'shared-source' has source 'configMap', service 'b' asked for 'secret' — file 'y.txt' not added"
+          content: "mount 'shared-source' has source 'configMap', service 'B' asked for 'secret' — file 'y.txt' not added"
       - equal:
-          path: registry.contributors["/spec/volumeMounts/shared-source"]
-          value: {a: true}
+          path: registry.contributors["/spec/application/volumeMounts/shared-source"]
+          value: {A: true}
       - notExists:
-          path: registry.owners["/spec/volumeMounts/shared-source/files/y.txt"]
+          path: registry.owners["/spec/application/volumeMounts/shared-source/files/y.txt"]
 
   - it: mount-conflicts - different files from two services share one mount and both contribute
     values:
       - ../harness/ci/probe-values/mount-conflicts.yaml
     asserts:
       - equal:
-          path: model.spec.volumeMounts.shared-ok
+          path: model.spec.application.volumeMounts.shared-ok
           value:
             source: configMap
             files:
               one.conf: "1"
               two.conf: "2"
       - equal:
-          path: registry.contributors["/spec/volumeMounts/shared-ok"]
-          value: {a: true, b: true}
+          path: registry.contributors["/spec/application/volumeMounts/shared-ok"]
+          value: {A: true, B: true}
 
   - it: mount-conflicts - exactly the two expected ERRORs are recorded, in call order
     values:
@@ -238,14 +248,14 @@ tests:
       - equal:
           path: diag.errors
           value:
-            - "file 'app.conf' in mount 'shared-same' is already defined by service 'a'"
-            - "mount 'shared-source' has source 'configMap', service 'b' asked for 'secret' — file 'y.txt' not added"
+            - "file 'app.conf' in mount 'shared-same' is already defined by service 'A'"
+            - "mount 'shared-source' has source 'configMap', service 'B' asked for 'secret' — file 'y.txt' not added"
 
   - it: probe - service.enabled with enabled absent returns true
     set:
       helpersProbe:
         calls:
-          - {helper: enabled, params: {id: app, service: {}}}
+          - {helper: enabled, params: {id: APP, service: {}}}
     asserts:
       - equal:
           path: results[0]
@@ -258,7 +268,7 @@ tests:
     set:
       helpersProbe:
         calls:
-          - {helper: enabled, params: {id: app, service: {enabled: true}}}
+          - {helper: enabled, params: {id: APP, service: {enabled: true}}}
     asserts:
       - equal:
           path: results[0]
@@ -271,7 +281,7 @@ tests:
     set:
       helpersProbe:
         calls:
-          - {helper: enabled, params: {id: app, service: {enabled: false}}}
+          - {helper: enabled, params: {id: APP, service: {enabled: false}}}
     asserts:
       - equal:
           path: results[0]
@@ -284,7 +294,7 @@ tests:
     set:
       helpersProbe:
         calls:
-          - {helper: enabled, params: {id: app, service: {enabled: "false"}}}
+          - {helper: enabled, params: {id: APP, service: {enabled: "false"}}}
     asserts:
       - equal:
           path: results[0]
@@ -297,7 +307,7 @@ tests:
     set:
       helpersProbe:
         calls:
-          - {helper: enabled, params: {id: app, service: {enabled: 0}}}
+          - {helper: enabled, params: {id: APP, service: {enabled: 0}}}
     asserts:
       - equal:
           path: results[0]
@@ -310,7 +320,7 @@ tests:
     set:
       helpersProbe:
         calls:
-          - {helper: enabled, params: {id: app, service: {enabled: no-way}}}
+          - {helper: enabled, params: {id: APP, service: {enabled: no-way}}}
     asserts:
       - equal:
           path: results[0]
@@ -323,7 +333,7 @@ tests:
     set:
       helpersProbe:
         calls:
-          - {helper: enabled, params: {id: app, service: "text"}}
+          - {helper: enabled, params: {id: APP, service: "text"}}
     asserts:
       - equal:
           path: results[0]

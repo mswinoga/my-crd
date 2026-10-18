@@ -1,18 +1,19 @@
 # A leader whose greeter (SVC1) is disabled. Expect two "# ERROR:"s:
 #  - the variable reference: "service 'SVC2' references
-#    '/spec/services/SVC1/environment/SVC1_GREETER', which belongs to
-#    disabled service 'SVC1' — dropped";
+#    '/spec/application/services/SVC1/environment/SVC1_GREETER', which
+#    belongs to disabled service 'SVC1' — dropped";
 #  - the file reference (the mount is never created): "service 'SVC2'
-#    references '/spec/volumeMounts/SVC1-config/files/message', which
-#    does not exist — dropped".
+#    references '/spec/application/volumeMounts/SVC1-config/files/message',
+#    which does not exist — dropped".
 # SVC2 has no 'references' key.
 target: prod-01
 
-services:
-  SVC1:
-    type: greeter
-    enabled: false
-    greeting: hello
-  SVC2:
-    type: leader
-    greeter: SVC1
+application:
+  services:
+    SVC1:
+      type: greeter
+      enabled: false
+      greeting: hello
+    SVC2:
+      type: leader
+      greeter: SVC1

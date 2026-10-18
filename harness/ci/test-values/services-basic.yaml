@@ -1,25 +1,25 @@
 # Two environment services declaring variables. Must render with no
 # diagnostics: a scalar variable, a target-keyed dict variable that
-# exports to the main container, a cross-reference between services,
+# exports to the main container, a cross-reference between variables,
 # and a second service owning its own variable.
 target: prod-01
 
-services:
-  orders:
-    type: environment
-    environment:
-      DB_HOST:
-        default: "db.internal"
-        prod: "db.prod"
-        targetContainer: main
-      POOL: "10"
-      DSN: "postgres://@DB_HOST@/orders?pool=@POOL@"
-  billing:
-    type: environment
-    environment:
-      CURRENCY: "EUR"
-
-spec:
-  dbHost: "@DB_HOST@"
-  dsn: "@DSN@"
-  currency: "@CURRENCY@"
+application:
+  services:
+    ORDERS:
+      type: environment
+      environment:
+        ORDERS_DB_HOST:
+          default: "db.internal"
+          prod: "db.prod"
+          targetContainer: main
+        ORDERS_POOL: "10"
+        ORDERS_DSN:
+          targetContainer: main
+          default: "postgres://@ORDERS_DB_HOST@/orders?pool=@ORDERS_POOL@"
+    BILLING:
+      type: environment
+      environment:
+        BILLING_CURRENCY:
+          targetContainer: main
+          default: "EUR"

@@ -5,7 +5,7 @@ Location of a service's node in the rendered model.
 
 Interface:
 - Params (dict): { "service": <service ID> }
-- Returns YAML: { "value": [spec, services, <service>] }
+- Returns YAML: { "value": [spec, application, services, <service>] }
 
 Implementation notes:
 - Every mycrd.paths.* define is the only place that knows where a node
@@ -18,6 +18,7 @@ Implementation notes:
 {{- define "mycrd.paths.service" -}}
 value:
 - spec
+- application
 - services
 - {{ .service | quote }}
 {{- end -}}
@@ -29,11 +30,12 @@ Location of a service's environment variable in the rendered model.
 
 Interface:
 - Params (dict): { "service": <service ID>, "name": <variable name> }
-- Returns YAML: { "value": [spec, services, <service>, environment, <name>] }
+- Returns YAML: { "value": [spec, application, services, <service>, environment, <name>] }
 */}}
 {{- define "mycrd.paths.var" -}}
 value:
 - spec
+- application
 - services
 - {{ .service | quote }}
 - environment
@@ -47,11 +49,12 @@ Location of a volume mount in the rendered model.
 
 Interface:
 - Params (dict): { "mount": <mount name> }
-- Returns YAML: { "value": [spec, volumeMounts, <mount>] }
+- Returns YAML: { "value": [spec, application, volumeMounts, <mount>] }
 */}}
 {{- define "mycrd.paths.mount" -}}
 value:
 - spec
+- application
 - volumeMounts
 - {{ .mount | quote }}
 {{- end -}}
@@ -63,7 +66,7 @@ Location of a file inside a volume mount in the rendered model.
 
 Interface:
 - Params (dict): { "mount": <mount name>, "file": <file name> }
-- Returns YAML: { "value": [spec, volumeMounts, <mount>, files, <file>] }
+- Returns YAML: { "value": [spec, application, volumeMounts, <mount>, files, <file>] }
 
 Implementation notes:
 - A file name may contain dots (`app.conf`); each segment stays one
@@ -72,6 +75,7 @@ Implementation notes:
 {{- define "mycrd.paths.file" -}}
 value:
 - spec
+- application
 - volumeMounts
 - {{ .mount | quote }}
 - files

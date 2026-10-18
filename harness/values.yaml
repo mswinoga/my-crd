@@ -9,7 +9,5 @@ renderMode: validate
 
 target: dev-01
 
-services: {}
-
-spec:
-  replicas: 1
+application:
+  services: {}

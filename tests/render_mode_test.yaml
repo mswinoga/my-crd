@@ -15,20 +15,23 @@ tests:
     set:
       renderMode: deploy
       target: prod-01
-      spec.value: "@NOT_A_TOKEN@"
+      application.services.PROBE.type: environment
+      application.services.PROBE.environment.PROBE_VALUE:
+        targetContainer: main
+        default: "@NOT_A_TOKEN@"
     asserts:
       - equal:
-          path: spec.value
+          path: spec.application.services.PROBE.environment.PROBE_VALUE.value
           value: "@NOT_A_TOKEN@"
 
   - it: validate mode renders the object even with errors
     set:
       renderMode: validate
       target: prod-01
-      services.alpha.type: environment
-      services.alpha.environment.SHARED: "one"
-      services.beta.type: environment
-      services.beta.environment.SHARED: "two"
+      application.services.ALPHA.type: environment
+      application.services.ALPHA.environment.SHARED: "one"
+      application.services.BETA.type: environment
+      application.services.BETA.environment.SHARED: "two"
     asserts:
       - equal:
           path: kind
@@ -42,16 +45,19 @@ tests:
     set:
       renderMode: deploy
       target: prod-01
-      services.alpha.type: environment
-      services.alpha.environment.SHARED: "one"
-      services.beta.type: environment
-      services.beta.environment.SHARED: "two"
-      spec.value: "@NOT_A_TOKEN@"
+      application.services.ALPHA.type: environment
+      application.services.ALPHA.environment.SHARED: "one"
+      application.services.BETA.type: environment
+      application.services.BETA.environment.SHARED: "two"
+      application.services.PROBE.type: environment
+      application.services.PROBE.environment.PROBE_VALUE:
+        targetContainer: main
+        default: "@NOT_A_TOKEN@"
     asserts:
       - failedTemplate:
           errorMessage: |-
             release: RELEASE-NAME   namespace: NAMESPACE   target: prod-01   library: my-crd 0.0.5
-            # ERROR: variable 'SHARED' is declared by services 'alpha' and 'beta' — keeping 'alpha'
+            # ERROR: variable 'SHARED' is declared by services 'ALPHA' and 'BETA' — keeping 'ALPHA'
             # WARNING: '@NOT_A_TOKEN@' in the rendered model does not match any known token after resolution — possible typo
             re-run with renderMode: validate to see the rendered object
 
@@ -59,10 +65,10 @@ tests:
     set:
       renderMode: null
       target: prod-01
-      services.alpha.type: environment
-      services.alpha.environment.SHARED: "one"
-      services.beta.type: environment
-      services.beta.environment.SHARED: "two"
+      application.services.ALPHA.type: environment
+      application.services.ALPHA.environment.SHARED: "one"
+      application.services.BETA.type: environment
+      application.services.BETA.environment.SHARED: "two"
     asserts:
       - failedTemplate:
           errorPattern: "# ERROR: variable 'SHARED' is declared by services"

@@ -3,14 +3,12 @@
 # still resolves its variable.
 target: prod-01
 
-services:
-  broken: "not-a-map"
-  orders:
-    type: environment
-    environment:
-      DB_HOST:
-        default: "db.internal"
-        targetContainer: main
-
-spec:
-  dbHost: "@DB_HOST@"
+application:
+  services:
+    BROKEN: "not-a-map"
+    ORDERS:
+      type: environment
+      environment:
+        ORDERS_DB_HOST:
+          default: "db.internal"
+          targetContainer: main

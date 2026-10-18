@@ -22,8 +22,9 @@ Implementation notes:
 - Reading consumer labels needs `.root.Values | toYaml | fromYaml`
   first: Sprig's `dig` requires plain maps, and Helm's `.Values` is a
   distinct `chartutil.Values` type that fails `dig`'s type assertion.
-- spec is copied from Values.spec verbatim, markers unresolved — same
-  later substitution pass handles it.
+- spec starts empty: input is never copied verbatim — every node under
+  it is built by an integration from the input DSL (never read
+  `Values.spec` here).
 - Mutation-only: every include here is empty-returning
   (crdkit.dictMerge) — never mix literal text output into a
   mutation-phase define.
@@ -34,5 +35,5 @@ Implementation notes:
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dig "metadata" "labels" (dict) (.root.Values | toYaml | fromYaml))) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (include "crdkit.standardLabels" (dict "context" .root) | fromYaml)) -}}
 {{- include "crdkit.dictMerge" (list .model "metadata" "labels" (dict "platform.company.io/library-version" "@LIBRARY_VERSION@")) -}}
-{{- include "crdkit.dictMerge" (list .model "spec" (.root.Values.spec | default dict)) -}}
+{{- include "crdkit.dictMerge" (list .model "spec" (dict)) -}}
 {{- end -}}

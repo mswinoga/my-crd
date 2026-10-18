@@ -3,13 +3,15 @@
 # still resolves).
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      BAD_CONTAINER:
-        default: "still-resolves"
-        targetContainer: sidecar-typo
-
-spec:
-  value: "@BAD_CONTAINER@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_BAD_CONTAINER:
+          default: "still-resolves"
+          targetContainer: sidecar-typo
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@APP_BAD_CONTAINER@"}

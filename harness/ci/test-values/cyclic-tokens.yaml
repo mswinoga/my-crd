@@ -1,14 +1,16 @@
-# Direct two-variable cycle in a service: A references B, B references A. Expect an
-# "# ERROR:" comment naming the cycle, and the render must NOT hang or
-# exceed the bounded iteration budget.
+# Direct two-variable cycle in a service: APP_A references APP_B, APP_B
+# references APP_A. PROBE_VALUE uses APP_A. Expect an "# ERROR:" naming
+# the cycle; the render must NOT hang.
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      A: "@B@"
-      B: "@A@"
-
-spec:
-  value: "@A@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_A: "@APP_B@"
+        APP_B: "@APP_A@"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@APP_A@"}

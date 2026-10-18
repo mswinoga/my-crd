@@ -3,14 +3,16 @@
 # generated value never resolves, the variable's own default does.
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      LEAKY:
-        default: "declared"
-        _generated:
-          prod-01: "injected"
-
-spec:
-  value: "@LEAKY@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_LEAKY:
+          default: "declared"
+          _generated:
+            prod-01: "injected"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@APP_LEAKY@"}

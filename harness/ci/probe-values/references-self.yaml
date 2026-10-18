@@ -9,25 +9,26 @@
 #  - b references its own file b.txt             -> WARNING
 target: prod-01
 
-services:
-  a: {type: environment}
-  b: {type: environment}
-  c: {type: environment}
+application:
+  services:
+    A: {type: environment}
+    B: {type: environment}
+    C: {type: environment}
 
 helpersProbe:
   references: true
   calls:
-    - {helper: add, params: {id: a}}
-    - {helper: add, params: {id: b}}
-    - {helper: add, params: {id: c}}
-    - {helper: addVar, params: {id: a, name: A_VAR, value: "1", targetContainer: main}}
-    - {helper: addFile, params: {id: a, mount: a-mount, source: configMap, file: a.txt, content: "a"}}
-    - {helper: addFile, params: {id: b, mount: shared, source: configMap, file: b.txt, content: "b"}}
-    - {helper: addFile, params: {id: c, mount: shared, source: configMap, file: c.txt, content: "c"}}
-    - {helper: referenceService, params: {id: a, service: a}}
-    - {helper: referenceVar, params: {id: a, service: a, name: A_VAR}}
-    - {helper: referenceFile, params: {id: a, mount: a-mount, file: a.txt}}
-    - {helper: referenceMount, params: {id: a, mount: a-mount}}
-    - {helper: referenceMount, params: {id: b, mount: shared}}
-    - {helper: referenceFile, params: {id: b, mount: shared, file: c.txt}}
-    - {helper: referenceFile, params: {id: b, mount: shared, file: b.txt}}
+    - {helper: add, params: {id: A}}
+    - {helper: add, params: {id: B}}
+    - {helper: add, params: {id: C}}
+    - {helper: addVar, params: {id: A, name: A_VAR, value: "1", targetContainer: main}}
+    - {helper: addFile, params: {id: A, mount: a-mount, source: configMap, file: a.txt, content: "a"}}
+    - {helper: addFile, params: {id: B, mount: shared, source: configMap, file: b.txt, content: "b"}}
+    - {helper: addFile, params: {id: C, mount: shared, source: configMap, file: c.txt, content: "c"}}
+    - {helper: referenceService, params: {id: A, service: A}}
+    - {helper: referenceVar, params: {id: A, service: A, name: A_VAR}}
+    - {helper: referenceFile, params: {id: A, mount: a-mount, file: a.txt}}
+    - {helper: referenceMount, params: {id: A, mount: a-mount}}
+    - {helper: referenceMount, params: {id: B, mount: shared}}
+    - {helper: referenceFile, params: {id: B, mount: shared, file: c.txt}}
+    - {helper: referenceFile, params: {id: B, mount: shared, file: b.txt}}

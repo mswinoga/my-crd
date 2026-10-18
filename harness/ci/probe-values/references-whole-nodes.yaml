@@ -1,33 +1,34 @@
 # Input for tests/references_test.yaml (NOT scanned by `make dev`: it
 # sets the probe key). References to whole nodes and ordering cases that
 # no service type can produce end to end:
-#  - 'a' references the whole service 'b' and the whole mount 'b-mount'
+#  - 'a' references the whole service 'B' and the whole mount 'b-mount'
 #    (both exist)                             -> kept
-#  - 'b' references the whole service 'a'     -> kept (a cycle is fine)
+#  - 'b' references the whole service 'A'     -> kept (a cycle is fine)
 #  - 'a' references 'late's variable, recorded BEFORE 'late' exists
 #                                             -> kept (validated last)
 #  - duplicate and unordered references       -> unique and sorted
-#  - 'a' references the service 'ghost' and the mount 'ghost-mount'
+#  - 'a' references the service 'GHOST' and the mount 'ghost-mount'
 #                                             -> ERROR each, dropped
 target: prod-01
 
-services:
-  a: {type: environment}
-  b: {type: environment}
-  late: {type: environment}
+application:
+  services:
+    A: {type: environment}
+    B: {type: environment}
+    LATE: {type: environment}
 
 helpersProbe:
   references: true
   calls:
-    - {helper: add, params: {id: a}}
-    - {helper: add, params: {id: b}}
-    - {helper: referenceMount, params: {id: a, mount: b-mount}}
-    - {helper: referenceService, params: {id: a, service: b}}
-    - {helper: referenceService, params: {id: a, service: b}}
-    - {helper: referenceVar, params: {id: a, service: late, name: LATE_VAR}}
-    - {helper: referenceService, params: {id: a, service: ghost}}
-    - {helper: referenceMount, params: {id: a, mount: ghost-mount}}
-    - {helper: referenceService, params: {id: b, service: a}}
-    - {helper: add, params: {id: late}}
-    - {helper: addVar, params: {id: late, name: LATE_VAR, value: "x", targetContainer: both}}
-    - {helper: addFile, params: {id: b, mount: b-mount, source: configMap, file: f, content: "f"}}
+    - {helper: add, params: {id: A}}
+    - {helper: add, params: {id: B}}
+    - {helper: referenceMount, params: {id: A, mount: b-mount}}
+    - {helper: referenceService, params: {id: A, service: B}}
+    - {helper: referenceService, params: {id: A, service: B}}
+    - {helper: referenceVar, params: {id: A, service: LATE, name: LATE_VAR}}
+    - {helper: referenceService, params: {id: A, service: GHOST}}
+    - {helper: referenceMount, params: {id: A, mount: ghost-mount}}
+    - {helper: referenceService, params: {id: B, service: A}}
+    - {helper: add, params: {id: LATE}}
+    - {helper: addVar, params: {id: LATE, name: LATE_VAR, value: "x", targetContainer: both}}
+    - {helper: addFile, params: {id: B, mount: b-mount, source: configMap, file: f, content: "f"}}

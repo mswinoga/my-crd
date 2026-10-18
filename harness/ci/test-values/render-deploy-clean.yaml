@@ -5,7 +5,9 @@ renderMode: deploy
 
 target: prod-01
 
-services: {}
-
-spec:
-  value: "@NOT_A_TOKEN@"
+application:
+  services:
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@NOT_A_TOKEN@"}

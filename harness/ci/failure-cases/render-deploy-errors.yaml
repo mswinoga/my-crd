@@ -3,21 +3,23 @@
 # expected to make `helm template` exit non-zero. Exercised by
 # tests/render_mode_test.yaml and tests/diagnostics_test.sh.
 #
-# Two services declare SHARED (ERROR); the unresolved marker adds a
+# Two services declare SHARED, deliberately unprefixed (ERROR); the unresolved marker adds a
 # WARNING, so the control data carries both kinds.
 renderMode: deploy
 
 target: prod-01
 
-services:
-  alpha:
-    type: environment
-    environment:
-      SHARED: "one"
-  beta:
-    type: environment
-    environment:
-      SHARED: "two"
-
-spec:
-  value: "@NOT_A_TOKEN@"
+application:
+  services:
+    ALPHA:
+      type: environment
+      environment:
+        SHARED: "one"
+    BETA:
+      type: environment
+      environment:
+        SHARED: "two"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@NOT_A_TOKEN@"}

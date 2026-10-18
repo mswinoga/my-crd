@@ -2,7 +2,5 @@
 # cleanly with no diagnostics.
 target: prod-01
 
-services: {}
-
-spec:
-  replicas: 1
+application:
+  services: {}

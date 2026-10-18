@@ -1,31 +1,35 @@
 # A disabled greeter (SVC1, enabled: false) next to an enabled one
 # (SVC2). Expect:
-#  - no spec.services.SVC1, no spec.volumeMounts.SVC1-config;
+#  - no spec.application.services.SVC1, no
+#    spec.application.volumeMounts.SVC1-config;
 #  - SVC1's environment variables are not declared: the marker
-#    "@OFF_ONLY@" stays unresolved (one "# WARNING:" ... possible typo);
-#  - SHARED is declared by both services: no collision ERROR, SVC2's
-#    value wins;
+#    "@SVC1_OFF_ONLY@" stays unresolved (one "# WARNING:" ... possible
+#    typo);
+#  - SHARED (deliberately unprefixed) is declared by both services: no
+#    collision ERROR, SVC2's value wins;
 #  - the library token ENV, listed only under SVC1, is not exported;
 #  - no other diagnostic.
 target: prod-01
 
-services:
-  SVC1:
-    type: greeter
-    enabled: false
-    greeting: bye
-    environment:
-      OFF_ONLY: gone
-      SHARED: from-disabled
-      ENV:
-        targetContainer: main
-  SVC2:
-    type: greeter
-    enabled: true
-    greeting: hi
-    environment:
-      SHARED: from-enabled
-
-spec:
-  orphan: "@OFF_ONLY@"
-  shared: "@SHARED@"
+application:
+  services:
+    SVC1:
+      type: greeter
+      enabled: false
+      greeting: bye
+      environment:
+        SVC1_OFF_ONLY: gone
+        SHARED: from-disabled
+        ENV:
+          targetContainer: main
+    SVC2:
+      type: greeter
+      enabled: true
+      greeting: hi
+      environment:
+        SHARED: from-enabled
+    PROBE:
+      type: environment
+      environment:
+        PROBE_ORPHAN: {targetContainer: main, default: "@SVC1_OFF_ONLY@"}
+        PROBE_SHARED: {targetContainer: main, default: "@SHARED@"}

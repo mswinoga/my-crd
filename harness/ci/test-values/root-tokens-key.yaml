@@ -1,10 +1,14 @@
 # A root 'tokens:' key. Expect a "# WARNING:" that it is not read:
-# variables live under services.<ID>.environment, so @ROOT_TOKEN@ stays
-# unresolved.
+# variables live under application.services.<ID>.environment, so
+# @ROOT_TOKEN@ stays unresolved.
 target: prod-01
 
 tokens:
   ROOT_TOKEN: "ignored"
 
-spec:
-  value: "@ROOT_TOKEN@"
+application:
+  services:
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@ROOT_TOKEN@"}

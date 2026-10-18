@@ -3,16 +3,14 @@
 # variable.
 target: prod-01
 
-services:
-  orders:
-    type: environment
-    environment:
-      - DB_HOST
-  hello:
-    type: greeter
-    greeting: "hi"
-    environment:
-      - not-a-map
-
-spec:
-  greeter: "@HELLO_GREETER@"
+application:
+  services:
+    ORDERS:
+      type: environment
+      environment:
+        - ORDERS_DB_HOST
+    HELLO:
+      type: greeter
+      greeting: "hi"
+      environment:
+        - not-a-map

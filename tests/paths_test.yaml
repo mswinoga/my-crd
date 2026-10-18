@@ -18,10 +18,10 @@ tests:
     asserts:
       - equal:
           path: results[0].segments
-          value: [spec, services, SVC1]
+          value: [spec, application, services, SVC1]
       - equal:
           path: results[0].pointer
-          value: /spec/services/SVC1
+          value: /spec/application/services/SVC1
 
   - it: var path
     set:
@@ -31,10 +31,10 @@ tests:
     asserts:
       - equal:
           path: results[0].segments
-          value: [spec, services, SVC1, environment, SVC1_GREETER]
+          value: [spec, application, services, SVC1, environment, SVC1_GREETER]
       - equal:
           path: results[0].pointer
-          value: /spec/services/SVC1/environment/SVC1_GREETER
+          value: /spec/application/services/SVC1/environment/SVC1_GREETER
 
   - it: mount path
     set:
@@ -44,10 +44,10 @@ tests:
     asserts:
       - equal:
           path: results[0].segments
-          value: [spec, volumeMounts, SVC1-config]
+          value: [spec, application, volumeMounts, SVC1-config]
       - equal:
           path: results[0].pointer
-          value: /spec/volumeMounts/SVC1-config
+          value: /spec/application/volumeMounts/SVC1-config
 
   - it: file path
     set:
@@ -57,10 +57,10 @@ tests:
     asserts:
       - equal:
           path: results[0].segments
-          value: [spec, volumeMounts, SVC1-config, files, message]
+          value: [spec, application, volumeMounts, SVC1-config, files, message]
       - equal:
           path: results[0].pointer
-          value: /spec/volumeMounts/SVC1-config/files/message
+          value: /spec/application/volumeMounts/SVC1-config/files/message
 
   - it: dots and dashes are left untouched
     set:
@@ -70,10 +70,10 @@ tests:
     asserts:
       - equal:
           path: results[0].segments
-          value: [spec, volumeMounts, SVC1-config, files, app.conf]
+          value: [spec, application, volumeMounts, SVC1-config, files, app.conf]
       - equal:
           path: results[0].pointer
-          value: /spec/volumeMounts/SVC1-config/files/app.conf
+          value: /spec/application/volumeMounts/SVC1-config/files/app.conf
 
   - it: pointer escapes "/" as "~1"
     set:
@@ -113,4 +113,4 @@ tests:
     asserts:
       - equal:
           path: results[0].pointer
-          value: /spec/volumeMounts/m/files/dir~1app~01
+          value: /spec/application/volumeMounts/m/files/dir~1app~01

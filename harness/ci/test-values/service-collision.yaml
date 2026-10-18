@@ -1,17 +1,20 @@
-# The same variable name declared by two services. Expect an
-# "# ERROR:" naming both services; the alphabetically first service
-# ('alpha') keeps the name, so @SHARED@ resolves to its value.
+# The same variable name declared by two services (deliberately
+# unprefixed). Expect an "# ERROR:" naming both services; the
+# alphabetically first service ('ALPHA') keeps the name, so @SHARED@
+# resolves to its value.
 target: prod-01
 
-services:
-  beta:
-    type: environment
-    environment:
-      SHARED: "from-beta"
-  alpha:
-    type: environment
-    environment:
-      SHARED: "from-alpha"
-
-spec:
-  shared: "@SHARED@"
+application:
+  services:
+    BETA:
+      type: environment
+      environment:
+        SHARED: "from-beta"
+    ALPHA:
+      type: environment
+      environment:
+        SHARED: "from-alpha"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_SHARED: {targetContainer: main, default: "@SHARED@"}

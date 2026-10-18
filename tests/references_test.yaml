@@ -18,7 +18,7 @@ tests:
       - ../harness/ci/test-values/references-basic.yaml
     asserts:
       - equal:
-          path: spec.services
+          path: spec.application.services
           value:
             SVC1:
               type: greeter
@@ -33,10 +33,10 @@ tests:
                   value: "5"
                   targetContainer: main
               references:
-                - /spec/services/SVC1/environment/SVC1_GREETER
-                - /spec/volumeMounts/SVC1-config/files/message
+                - /spec/application/services/SVC1/environment/SVC1_GREETER
+                - /spec/application/volumeMounts/SVC1-config/files/message
       - equal:
-          path: spec.volumeMounts
+          path: spec.application.volumeMounts
           value:
             SVC1-config:
               source: configMap
@@ -47,34 +47,36 @@ tests:
     template: call.yaml
     set:
       target: prod-01
-      services:
-        A-leader:
-          type: leader
-          greeter: B-greeter
-        B-greeter:
-          type: greeter
-          greeting: hi
+      application:
+        services:
+          A-leader:
+            type: leader
+            greeter: B-greeter
+          B-greeter:
+            type: greeter
+            greeting: hi
     asserts:
       - equal:
-          path: spec.services.A-leader.references
+          path: spec.application.services.A-leader.references
           value:
-            - /spec/services/B-greeter/environment/B_GREETER_GREETER
-            - /spec/volumeMounts/B-greeter-config/files/message
+            - /spec/application/services/B-greeter/environment/B_GREETER_GREETER
+            - /spec/application/volumeMounts/B-greeter-config/files/message
 
   - it: a leader without greeter generates nothing and has no references
     template: call.yaml
     set:
       target: prod-01
-      services:
-        lone:
-          type: leader
+      application:
+        services:
+          LONE:
+            type: leader
     asserts:
       - equal:
-          path: spec.services.lone
+          path: spec.application.services.LONE
           value:
             type: leader
       - notExists:
-          path: spec.volumeMounts
+          path: spec.application.volumeMounts
 
   - it: a reference to a greeter that does not exist is dropped and the references key is absent
     template: call.yaml
@@ -82,7 +84,7 @@ tests:
       - ../harness/ci/test-values/references-dangling.yaml
     asserts:
       - equal:
-          path: spec.services.SVC2
+          path: spec.application.services.SVC2
           value:
             type: leader
             environment:
@@ -96,11 +98,11 @@ tests:
       - ../harness/ci/test-values/references-not-exported.yaml
     asserts:
       - equal:
-          path: spec.services.SVC2.references
+          path: spec.application.services.SVC2.references
           value:
-            - /spec/volumeMounts/SVC1-config/files/message
+            - /spec/application/volumeMounts/SVC1-config/files/message
       - notExists:
-          path: spec.services.SVC1.environment
+          path: spec.application.services.SVC1.environment
 
   - it: a leader of a disabled greeter drops both references and has no references key
     template: call.yaml
@@ -108,7 +110,7 @@ tests:
       - ../harness/ci/test-values/references-disabled.yaml
     asserts:
       - equal:
-          path: spec.services
+          path: spec.application.services
           value:
             SVC2:
               type: leader
@@ -117,35 +119,36 @@ tests:
                   value: "5"
                   targetContainer: main
       - notExists:
-          path: spec.services.SVC2.references
+          path: spec.application.services.SVC2.references
       - notExists:
-          path: spec.volumeMounts
+          path: spec.application.volumeMounts
 
   - it: two leaders of one greeter each list the same targets
     template: call.yaml
     set:
       target: prod-01
-      services:
-        G:
-          type: greeter
-          greeting: hi
-        L1:
-          type: leader
-          greeter: G
-        L2:
-          type: leader
-          greeter: G
+      application:
+        services:
+          G:
+            type: greeter
+            greeting: hi
+          L1:
+            type: leader
+            greeter: G
+          L2:
+            type: leader
+            greeter: G
     asserts:
       - equal:
-          path: spec.services.L1.references
+          path: spec.application.services.L1.references
           value:
-            - /spec/services/G/environment/G_GREETER
-            - /spec/volumeMounts/G-config/files/message
+            - /spec/application/services/G/environment/G_GREETER
+            - /spec/application/volumeMounts/G-config/files/message
       - equal:
-          path: spec.services.L2.references
+          path: spec.application.services.L2.references
           value:
-            - /spec/services/G/environment/G_GREETER
-            - /spec/volumeMounts/G-config/files/message
+            - /spec/application/services/G/environment/G_GREETER
+            - /spec/application/volumeMounts/G-config/files/message
 
   - it: a service referencing nothing has no references key
     template: call.yaml
@@ -153,7 +156,7 @@ tests:
       - ../harness/ci/test-values/references-basic.yaml
     asserts:
       - notExists:
-          path: spec.services.SVC1.references
+          path: spec.application.services.SVC1.references
 
   # ---- probe: self-references ----
 
@@ -165,13 +168,13 @@ tests:
       - equal:
           path: diag.warnings
           value:
-            - "service 'a' references '/spec/services/a', which it defines itself — dropped"
-            - "service 'a' references '/spec/services/a/environment/A_VAR', which it defines itself — dropped"
-            - "service 'a' references '/spec/volumeMounts/a-mount', which it defines itself — dropped"
-            - "service 'a' references '/spec/volumeMounts/a-mount/files/a.txt', which it defines itself — dropped"
-            - "service 'b' references '/spec/volumeMounts/shared/files/b.txt', which it defines itself — dropped"
+            - "service 'A' references '/spec/application/services/A', which it defines itself — dropped"
+            - "service 'A' references '/spec/application/services/A/environment/A_VAR', which it defines itself — dropped"
+            - "service 'A' references '/spec/application/volumeMounts/a-mount', which it defines itself — dropped"
+            - "service 'A' references '/spec/application/volumeMounts/a-mount/files/a.txt', which it defines itself — dropped"
+            - "service 'B' references '/spec/application/volumeMounts/shared/files/b.txt', which it defines itself — dropped"
       - notExists:
-          path: model.spec.services.a.references
+          path: model.spec.application.services.A.references
       - equal:
           path: diag.errors
           value: []
@@ -182,10 +185,10 @@ tests:
       - ../harness/ci/probe-values/references-self.yaml
     asserts:
       - equal:
-          path: model.spec.services.b.references
+          path: model.spec.application.services.B.references
           value:
-            - /spec/volumeMounts/shared
-            - /spec/volumeMounts/shared/files/c.txt
+            - /spec/application/volumeMounts/shared
+            - /spec/application/volumeMounts/shared/files/c.txt
 
   # ---- probe: whole nodes, cycles, duplicates, late targets ----
 
@@ -195,11 +198,11 @@ tests:
       - ../harness/ci/probe-values/references-whole-nodes.yaml
     asserts:
       - equal:
-          path: model.spec.services.a.references
+          path: model.spec.application.services.A.references
           value:
-            - /spec/services/b
-            - /spec/services/late/environment/LATE_VAR
-            - /spec/volumeMounts/b-mount
+            - /spec/application/services/B
+            - /spec/application/services/LATE/environment/LATE_VAR
+            - /spec/application/volumeMounts/b-mount
 
   - it: probe - services referencing each other (a cycle) record no diagnostics for the cycle
     template: helpers_probe.yaml
@@ -207,9 +210,9 @@ tests:
       - ../harness/ci/probe-values/references-whole-nodes.yaml
     asserts:
       - equal:
-          path: model.spec.services.b.references
+          path: model.spec.application.services.B.references
           value:
-            - /spec/services/a
+            - /spec/application/services/A
 
   - it: probe - references to a missing service and a missing mount record an ERROR each, in pointer order
     template: helpers_probe.yaml
@@ -219,8 +222,8 @@ tests:
       - equal:
           path: diag.errors
           value:
-            - "service 'a' references '/spec/services/ghost', which does not exist — dropped"
-            - "service 'a' references '/spec/volumeMounts/ghost-mount', which does not exist — dropped"
+            - "service 'A' references '/spec/application/services/GHOST', which does not exist — dropped"
+            - "service 'A' references '/spec/application/volumeMounts/ghost-mount', which does not exist — dropped"
       - equal:
           path: diag.warnings
           value: []
@@ -231,32 +234,33 @@ tests:
       - ../harness/ci/probe-values/references-whole-nodes.yaml
     asserts:
       - equal:
-          path: registry.references.b
+          path: registry.references.B
           value:
-            /spec/services/a:
-              segments: [spec, services, a]
+            /spec/application/services/A:
+              segments: [spec, application, services, A]
 
   - it: probe - a reference helper for a service that was not added records an ERROR and nothing else
     template: helpers_probe.yaml
     set:
-      services:
-        a:
-          type: environment
+      application:
+        services:
+          A:
+            type: environment
       helpersProbe:
         references: true
         calls:
-          - {helper: referenceService, params: {id: a, service: a}}
-          - {helper: referenceVar, params: {id: a, service: a, name: X}}
-          - {helper: referenceMount, params: {id: a, mount: m}}
-          - {helper: referenceFile, params: {id: a, mount: m, file: f}}
+          - {helper: referenceService, params: {id: A, service: A}}
+          - {helper: referenceVar, params: {id: A, service: A, name: X}}
+          - {helper: referenceMount, params: {id: A, mount: m}}
+          - {helper: referenceFile, params: {id: A, mount: m, file: f}}
     asserts:
       - equal:
           path: diag.errors
           value:
-            - "service 'a' was not added — helper 'mycrd.service.referenceService' ignored"
-            - "service 'a' was not added — helper 'mycrd.service.referenceVar' ignored"
-            - "service 'a' was not added — helper 'mycrd.service.referenceMount' ignored"
-            - "service 'a' was not added — helper 'mycrd.service.referenceFile' ignored"
+            - "service 'A' was not added — helper 'mycrd.service.referenceService' ignored"
+            - "service 'A' was not added — helper 'mycrd.service.referenceVar' ignored"
+            - "service 'A' was not added — helper 'mycrd.service.referenceMount' ignored"
+            - "service 'A' was not added — helper 'mycrd.service.referenceFile' ignored"
       - equal:
           path: registry.references
           value: {}
@@ -267,21 +271,23 @@ tests:
   - it: probe - the references integration without any reference changes nothing
     template: helpers_probe.yaml
     set:
-      services:
-        a:
-          type: environment
+      application:
+        services:
+          A:
+            type: environment
       helpersProbe:
         references: true
         calls:
-          - {helper: add, params: {id: a}}
+          - {helper: add, params: {id: A}}
     asserts:
       - equal:
           path: model
           value:
             spec:
-              services:
-                a:
-                  type: environment
+              application:
+                services:
+                  A:
+                    type: environment
       - equal:
           path: diag
           value:

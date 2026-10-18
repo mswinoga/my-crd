@@ -1,16 +1,19 @@
-# The 'hello' greeter service generates HELLO_GREETER, but service
-# 'alpha' already declares a variable of that name. Expect an "# ERROR:"
-# ("already owned by service 'alpha'"); alpha's value is what resolves.
+# The 'HELLO' greeter service generates HELLO_GREETER, but service
+# 'ALPHA' already declares a variable of that name (deliberately
+# unprefixed). Expect an "# ERROR:" ("already owned by service
+# 'ALPHA'"); ALPHA's value is what resolves.
 target: prod-01
 
-services:
-  alpha:
-    type: environment
-    environment:
-      HELLO_GREETER: "from-alpha"
-  hello:
-    type: greeter
-    greeting: "generated"
-
-spec:
-  greeter: "@HELLO_GREETER@"
+application:
+  services:
+    ALPHA:
+      type: environment
+      environment:
+        HELLO_GREETER: "from-alpha"
+    HELLO:
+      type: greeter
+      greeting: "generated"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_GREETER: {targetContainer: main, default: "@HELLO_GREETER@"}

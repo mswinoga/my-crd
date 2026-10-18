@@ -1,0 +1,5 @@
+# `application` given as a string instead of a map: ignored with a
+# WARNING; the render still succeeds with an empty spec.
+target: prod-01
+
+application: "not-a-map"

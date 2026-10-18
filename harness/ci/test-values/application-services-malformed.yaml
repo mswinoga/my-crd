@@ -1,0 +1,6 @@
+# `application.services` given as a string instead of a map: ignored
+# with a WARNING; the render still succeeds.
+target: prod-01
+
+application:
+  services: "not-a-map"

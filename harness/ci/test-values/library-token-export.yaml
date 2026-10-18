@@ -7,16 +7,13 @@
 #    applied").
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      LOG_LEVEL:
-        targetContainer: main
-      ENV:
-        targetContainer: both
-        prod: "hijacked"
-
-spec:
-  level: "@LOG_LEVEL@"
-  env: "@ENV@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        LOG_LEVEL:
+          targetContainer: main
+        ENV:
+          targetContainer: both
+          prod: "hijacked"

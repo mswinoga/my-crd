@@ -4,7 +4,9 @@
 # family/super-tier fallback still works normally off of it.
 target: staging
 
-services: {}
-
-spec:
-  region: "@ENV@"
+application:
+  services:
+    PROBE:
+      type: environment
+      environment:
+        PROBE_REGION: {targetContainer: main, default: "@ENV@"}

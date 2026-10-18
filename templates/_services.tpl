@@ -152,7 +152,8 @@ value: {{ $final | toYaml | nindent 2 }}
 mycrd.serviceTokens (internal)
 
 Pre-render step: warns about a non-empty root `tokens:` (a values key
-nothing reads), turns `Values.services.<ID>.environment` into token
+nothing reads), turns `application.services.<ID>.environment` (read via
+mycrd.values.services) into token
 declarations annotated with `service: <ID>`, and normalizes the
 library-owned declarations.
 
@@ -179,8 +180,10 @@ Implementation notes:
   enabled.
 - Malformed shapes record a WARNING each (absent or null is valid and
   silent):
-  - root `services` not a map: `values key 'services' must be a map —
+  - `application` not a map: `values key 'application' must be a map —
     ignored`.
+  - `application.services` not a map: `values key
+    'application.services' must be a map — ignored`.
   - `services.<ID>` not a map: `service '<ID>' must be a map — service
     skipped` (no unknown-type warning on top).
   - `services.<ID>.environment` not a map: `service '<ID>':
@@ -211,18 +214,21 @@ Implementation notes:
 {{- $defaults := include "mycrd.normalizeDeclarations" (dict "decls" .defaults) | fromYaml -}}
 
 {{- if $values.tokens -}}
-  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'tokens' is not read — declare variables under services.<ID>.environment") -}}
+  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'tokens' is not read — declare variables under application.services.<ID>.environment") -}}
 {{- end -}}
 
 {{- $tokens := dict -}}
 {{- $owners := dict -}}
 
-{{- $services := dict -}}
-{{- if kindIs "map" $values.services -}}
-  {{- $services = $values.services -}}
-{{- else if not (kindIs "invalid" $values.services) -}}
-  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'services' must be a map — ignored") -}}
+{{- $application := $values.application -}}
+{{- if kindIs "map" $application -}}
+  {{- if not (or (kindIs "map" $application.services) (kindIs "invalid" $application.services)) -}}
+    {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'application.services' must be a map — ignored") -}}
+  {{- end -}}
+{{- else if not (kindIs "invalid" $application) -}}
+  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'application' must be a map — ignored") -}}
 {{- end -}}
+{{- $services := (include "mycrd.values.services" (dict "root" .context) | fromYaml).value -}}
 {{- range $id := sortAlpha (keys $services) -}}
   {{- $svc := index $services $id -}}
   {{- $type := "" -}}
@@ -343,7 +349,7 @@ raw declaration. Shared by every check that skips disabled services.
 
 Interface:
 - Params (dict): { "id": <service ID>, "service": <raw service
-  declaration under Values.services> }
+  declaration from mycrd.values.services> }
 - Returns: the plain string "true" when the service is enabled, an EMPTY
   string when it is disabled.
 
@@ -409,7 +415,7 @@ Interface:
 - Returns: nothing (mutates ctx.model and ctx.mycrd in place).
 
 Implementation notes:
-- Writes `spec.services.<id>.environment.<name>: {value: "@<name>@",
+- Writes `spec.application.services.<id>.environment.<name>: {value: "@<name>@",
   targetContainer: <tc>}` only when the token's CURRENT targetContainer
   is main/side-car/both; any other token is left out of the model.
 - `value` holds a `@<name>@` marker, resolved by crdkit.render's single
@@ -446,8 +452,8 @@ Implementation notes:
 - Scope is internal, not protected: mycrd.integrations.services calls
   it before each type handler, so a handler always starts with its
   service added and never calls it itself.
-- Writes `spec.services.<id>.type` (the `type` under
-  `Values.services.<id>`), so every dispatched service appears in the
+- Writes `spec.application.services.<id>.type` (the `type` of the
+  service in mycrd.values.services), so every dispatched service appears in the
   output.
 - Exported variables: every token annotated `service: <id>` with
   targetContainer main/side-car/both (consumer declarations and library
@@ -459,13 +465,11 @@ Implementation notes:
 {{- $ctx := .ctx -}}
 {{- $id := toString .id -}}
 {{- include "mycrd.service.registry" $ctx -}}
-{{- $services := ($ctx.root.Values | toYaml | fromYaml).services | default dict -}}
+{{- $services := (include "mycrd.values.services" (dict "root" $ctx.root) | fromYaml).value -}}
 {{- $type := "" -}}
-{{- if kindIs "map" $services -}}
-  {{- $svc := get $services $id -}}
-  {{- if kindIs "map" $svc -}}
-    {{- $type = get $svc "type" | default "" -}}
-  {{- end -}}
+{{- $svc := get $services $id -}}
+{{- if kindIs "map" $svc -}}
+  {{- $type = get $svc "type" | default "" -}}
 {{- end -}}
 {{- $segments := (include "mycrd.paths.service" (dict "service" $id) | fromYaml).value -}}
 {{- include "crdkit.dictMerge" (concat (list $ctx.model) $segments (list (dict "type" $type))) -}}

@@ -1,10 +1,11 @@
 # 'enabled' must be a boolean: the string "false" is not one. Expect one
-# "# ERROR:" ("service 'strict': 'enabled' must be a boolean — treated
+# "# ERROR:" ("service 'STRICT': 'enabled' must be a boolean — treated
 # as enabled") and the service present in the output.
 target: prod-01
 
-services:
-  strict:
-    type: greeter
-    enabled: "false"
-    greeting: hello
+application:
+  services:
+    STRICT:
+      type: greeter
+      enabled: "false"
+      greeting: hello

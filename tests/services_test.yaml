@@ -1,8 +1,10 @@
-# services.<ID>.environment -> tokens (mycrd.serviceTokens), service
-# registration and output (mycrd.service.*, mycrd.integrations.services).
-# Assertions on resolved values and output shape only; diagnostic
-# comments are covered by diagnostics_test.sh. Helper behavior that no
-# end-to-end input reaches is in helpers_test.yaml.
+# application.services.<ID>.environment -> tokens (mycrd.serviceTokens),
+# service registration and output (mycrd.service.*,
+# mycrd.integrations.services). Assertions on resolved values and output
+# shape only; diagnostic comments are covered by diagnostics_test.sh.
+# Helper behavior that no end-to-end input reaches is in
+# helpers_test.yaml. A token is made "used" through an exported variable
+# of a PROBE service.
 suite: my-crd services
 templates:
   - call.yaml
@@ -10,123 +12,148 @@ tests:
   - it: a scalar variable of an environment service resolves through @NAME@
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            GREETING: "hello"
-      spec.m: "@GREETING@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_GREETING: "hello"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_GREETING@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "hello"
 
   - it: a dict variable resolves its target-specific entry for a sequenced target
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            COLOR:
-              default: "blue"
-              prod: "red"
-      spec.m: "@COLOR@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_COLOR:
+                default: "blue"
+                prod: "red"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_COLOR@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "red"
 
   - it: a dict variable falls back to default for a target without a specific entry
     set:
       target: test-01
-      services:
-        app:
-          type: environment
-          environment:
-            COLOR:
-              default: "blue"
-              prod: "red"
-      spec.m: "@COLOR@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              APP_COLOR:
+                default: "blue"
+                prod: "red"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_COLOR@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "blue"
 
   - it: a variable declared by two services keeps the alphabetically first service's value
     set:
       target: prod-01
-      services:
-        zeta:
-          type: environment
-          environment:
-            SHARED: "from-zeta"
-        alpha:
-          type: environment
-          environment:
-            SHARED: "from-alpha"
-      spec.m: "@SHARED@"
+      application:
+        services:
+          ZETA:
+            type: environment
+            environment:
+              SHARED: "from-zeta"
+          ALPHA:
+            type: environment
+            environment:
+              SHARED: "from-alpha"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@SHARED@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "from-alpha"
 
   - it: variables of a service with an unknown type are not declared (marker stays unresolved)
     set:
       target: prod-01
-      services:
-        mystery:
-          type: no-such-type
-          environment:
-            GHOST: "never"
-      spec.m: "@GHOST@"
+      application:
+        services:
+          MYSTERY:
+            type: no-such-type
+            environment:
+              MYSTERY_GHOST: "never"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@MYSTERY_GHOST@"}
     asserts:
       - equal:
-          path: spec.m
-          value: "@GHOST@"
+          path: spec.application.services.PROBE.environment.PROBE_M.value
+          value: "@MYSTERY_GHOST@"
 
   - it: variables of a service without a type are not declared
     set:
       target: prod-01
-      services:
-        typeless:
-          environment:
-            GHOST: "never"
-      spec.m: "@GHOST@"
+      application:
+        services:
+          TYPELESS:
+            environment:
+              TYPELESS_GHOST: "never"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@TYPELESS_GHOST@"}
     asserts:
       - equal:
-          path: spec.m
-          value: "@GHOST@"
+          path: spec.application.services.PROBE.environment.PROBE_M.value
+          value: "@TYPELESS_GHOST@"
 
-  - it: variables of different services can reference each other
+  - it: variables of one service can reference each other
     values:
       - ../harness/ci/test-values/services-basic.yaml
     asserts:
       - equal:
-          path: spec.dsn
+          path: spec.application.services.ORDERS.environment.ORDERS_DSN.value
           value: "postgres://db.prod/orders?pool=10"
       - equal:
-          path: spec.currency
+          path: spec.application.services.BILLING.environment.BILLING_CURRENCY.value
           value: "EUR"
 
   - it: a service without an environment block is accepted
     set:
       target: prod-01
-      services:
-        bare:
-          type: environment
-      spec.m: "ok"
+      application:
+        services:
+          BARE:
+            type: environment
     asserts:
       - equal:
-          path: spec.m
-          value: "ok"
+          path: spec.application.services.BARE
+          value: 
+            type: environment
 
   - it: an invalid targetContainer is corrected without losing the variable's value
     values:
       - ../harness/ci/test-values/invalid-target-container.yaml
     asserts:
       - equal:
-          path: spec.value
+          path: spec.application.services.PROBE.environment.PROBE_VALUE.value
           value: "still-resolves"
 
   - it: an explicit 'service' key on a variable does not prevent resolution
@@ -134,106 +161,136 @@ tests:
       - ../harness/ci/test-values/explicit-service-key.yaml
     asserts:
       - equal:
-          path: spec.value
+          path: spec.application.services.PROBE.environment.PROBE_VALUE.value
           value: "v"
 
   - it: a consumer scalar overriding a library default replaces its value
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            LOG_LEVEL: "debug"
-      spec.m: "@LOG_LEVEL@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              LOG_LEVEL: "debug"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@LOG_LEVEL@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "debug"
 
   - it: a consumer dict variable overriding a library default keeps the library default for other targets
     set:
       target: test-01
-      services:
-        app:
-          type: environment
-          environment:
-            LOG_LEVEL:
-              prod: "debug"
-      spec.m: "@LOG_LEVEL@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              LOG_LEVEL:
+                prod: "debug"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@LOG_LEVEL@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "info"
 
   - it: a root 'tokens:' key declares nothing (marker stays unresolved)
     set:
       target: prod-01
-      tokens.X: "v"
-      spec.m: "@X@"
+      tokens:
+        X: "v"
+      application:
+        services:
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@X@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "@X@"
 
   - it: exporting a library default (LOG_LEVEL with targetContainer) keeps the library value
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            LOG_LEVEL:
-              targetContainer: main
-      spec.m: "@LOG_LEVEL@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              LOG_LEVEL:
+                targetContainer: main
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@LOG_LEVEL@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "info"
 
   - it: a consumer value on a library default still overrides it when annotations are also given
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            LOG_LEVEL:
-              default: "warn"
-              targetContainer: main
-      spec.m: "@LOG_LEVEL@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              LOG_LEVEL:
+                default: "warn"
+                targetContainer: main
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@LOG_LEVEL@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "warn"
 
   - it: a consumer declaration of a locked library token (ENV) cannot change its value
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            ENV:
-              prod: "x"
-      spec.m: "@ENV@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              ENV:
+                prod: "x"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@ENV@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "prod"
 
   - it: a scalar consumer declaration of a locked library token cannot change its value
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            API_GROUP: "hijacked.example.com"
-      spec.m: "@API_GROUP@"
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              API_GROUP: "hijacked.example.com"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@API_GROUP@"}
     asserts:
       - equal:
-          path: spec.m
+          path: spec.application.services.PROBE.environment.PROBE_M.value
           value: "platform.company.io"
 
   - it: the library-token-export fixture keeps both library values
@@ -241,44 +298,45 @@ tests:
       - ../harness/ci/test-values/library-token-export.yaml
     asserts:
       - equal:
-          path: spec.level
+          path: spec.application.services.APP.environment.LOG_LEVEL.value
           value: "info"
       - equal:
-          path: spec.env
+          path: spec.application.services.APP.environment.ENV.value
           value: "prod"
 
   - it: a greeter service generates <SID>_GREETER holding its ID
     set:
       target: prod-01
-      services:
-        greeter:
-          type: greeter
-          greeting: "hi @ENV@"
-      spec.g: "@GREETER_GREETER@"
+      application:
+        services:
+          GREETER:
+            type: greeter
+            greeting: "hi @ENV@"
     asserts:
       - equal:
-          path: spec.g
-          value: "greeter"
+          path: spec.application.services.GREETER.environment.GREETER_GREETER.value
+          value: "GREETER"
 
   - it: a greeter service generates the mount <ID>-config with the greeting as file 'message'
     set:
       target: prod-01
-      services:
-        SVC1:
-          type: greeter
-          greeting: hello
+      application:
+        services:
+          SVC1:
+            type: greeter
+            greeting: hello
     asserts:
       - equal:
-          path: spec.services.SVC1
-          value:
+          path: spec.application.services.SVC1
+          value: 
             type: greeter
             environment:
               SVC1_GREETER:
                 value: SVC1
                 targetContainer: main
       - equal:
-          path: spec.volumeMounts
-          value:
+          path: spec.application.volumeMounts
+          value: 
             SVC1-config:
               source: configMap
               files:
@@ -287,110 +345,112 @@ tests:
   - it: a marker in the greeting is resolved in the file content
     set:
       target: prod-01
-      services:
-        greeter:
-          type: greeter
-          greeting: "hi @ENV@"
+      application:
+        services:
+          GREETER:
+            type: greeter
+            greeting: "hi @ENV@"
     asserts:
       - equal:
-          path: spec.volumeMounts.greeter-config.files.message
+          path: spec.application.volumeMounts.GREETER-config.files.message
           value: "hi prod"
 
   - it: a consumer's target entry for the generated variable overrides it
     set:
       target: prod-01
-      services:
-        greeter:
-          type: greeter
-          greeting: "hi"
-          environment:
-            GREETER_GREETER:
-              prod: "custom"
-      spec.g: "@GREETER_GREETER@"
+      application:
+        services:
+          GREETER:
+            type: greeter
+            greeting: "hi"
+            environment:
+              GREETER_GREETER:
+                prod: "custom"
     asserts:
       - equal:
-          path: spec.g
-          value: "custom"
-      - equal:
-          path: spec.services.greeter.environment.GREETER_GREETER
-          value:
+          path: spec.application.services.GREETER.environment.GREETER_GREETER
+          value: 
             value: "custom"
             targetContainer: main
 
   - it: a consumer's default for the generated variable beats the generated value
     set:
       target: prod-01
-      services:
-        greeter:
-          type: greeter
-          greeting: "hi"
-          environment:
-            GREETER_GREETER: "mine"
-      spec.g: "@GREETER_GREETER@"
+      application:
+        services:
+          GREETER:
+            type: greeter
+            greeting: "hi"
+            environment:
+              GREETER_GREETER: "mine"
     asserts:
       - equal:
-          path: spec.g
+          path: spec.application.services.GREETER.environment.GREETER_GREETER.value
           value: "mine"
 
   - it: a consumer's entry for another target does not hide the generated value
     set:
       target: test-01
-      services:
-        greeter:
-          type: greeter
-          greeting: "generated"
-          environment:
-            GREETER_GREETER:
-              prod: "custom"
-      spec.g: "@GREETER_GREETER@"
+      application:
+        services:
+          GREETER:
+            type: greeter
+            greeting: "generated"
+            environment:
+              GREETER_GREETER:
+                prod: "custom"
     asserts:
       - equal:
-          path: spec.g
-          value: "greeter"
+          path: spec.application.services.GREETER.environment.GREETER_GREETER.value
+          value: "GREETER"
 
   - it: a service ID with a hyphen yields an underscored variable name and a hyphenated mount
     set:
       target: prod-01
-      services:
-        my-greeter:
-          type: greeter
-          greeting: "hello"
-      spec.g: "@MY_GREETER_GREETER@"
+      application:
+        services:
+          MY-GREETER:
+            type: greeter
+            greeting: "hello"
     asserts:
       - equal:
-          path: spec.g
-          value: "my-greeter"
+          path: spec.application.services.MY-GREETER.environment.MY_GREETER_GREETER.value
+          value: "MY-GREETER"
       - equal:
-          path: spec.volumeMounts.my-greeter-config.files.message
+          path: spec.application.volumeMounts.MY-GREETER-config.files.message
           value: "hello"
 
   - it: two greeters generate their own variable and their own mount
     set:
       target: prod-01
-      services:
-        b:
-          type: greeter
-          greeting: "from b"
-        a:
-          type: greeter
-          greeting: "from a"
-      spec.a: "@A_GREETER@"
-      spec.b: "@B_GREETER@"
+      application:
+        services:
+          B:
+            type: greeter
+            greeting: "from b"
+          A:
+            type: greeter
+            greeting: "from a"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_A: {targetContainer: main, default: "@A_GREETER@"}
+              PROBE_B: {targetContainer: main, default: "@B_GREETER@"}
     asserts:
       - equal:
-          path: spec.a
-          value: "a"
+          path: spec.application.services.PROBE.environment.PROBE_A.value
+          value: "A"
       - equal:
-          path: spec.b
-          value: "b"
+          path: spec.application.services.PROBE.environment.PROBE_B.value
+          value: "B"
       - equal:
-          path: spec.volumeMounts
-          value:
-            a-config:
+          path: spec.application.volumeMounts
+          value: 
+            A-config:
               source: configMap
               files:
                 message: "from a"
-            b-config:
+            B-config:
               source: configMap
               files:
                 message: "from b"
@@ -398,55 +458,63 @@ tests:
   - it: a greeter service without greeting generates nothing but still appears with its type
     set:
       target: prod-01
-      services:
-        quiet:
-          type: greeter
-      spec.g: "@QUIET_GREETER@"
+      application:
+        services:
+          QUIET:
+            type: greeter
+          PROBE:
+            type: environment
+            environment:
+              PROBE_G: {targetContainer: main, default: "@QUIET_GREETER@"}
     asserts:
       - equal:
-          path: spec.g
+          path: spec.application.services.PROBE.environment.PROBE_G.value
           value: "@QUIET_GREETER@"
       - equal:
-          path: spec.services.quiet
-          value:
+          path: spec.application.services.QUIET
+          value: 
             type: greeter
       - notExists:
-          path: spec.volumeMounts
+          path: spec.application.volumeMounts
 
   - it: a service of unknown type generates nothing even if it has a greeting
     set:
       target: prod-01
-      services:
-        ghost:
-          type: no-such-type
-          greeting: "boo"
-      spec.g: "@GHOST_GREETER@"
+      application:
+        services:
+          GHOST:
+            type: no-such-type
+            greeting: "boo"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_G: {targetContainer: main, default: "@GHOST_GREETER@"}
     asserts:
       - equal:
-          path: spec.g
+          path: spec.application.services.PROBE.environment.PROBE_G.value
           value: "@GHOST_GREETER@"
       - notExists:
-          path: spec.volumeMounts
+          path: spec.application.volumeMounts
 
   - it: a generated variable owned by another service does not replace the owner's value
     values:
       - ../harness/ci/test-values/generated-owner-conflict.yaml
     asserts:
       - equal:
-          path: spec.greeter
+          path: spec.application.services.PROBE.environment.PROBE_GREETER.value
           value: "from-alpha"
       - notExists:
-          path: spec.services.hello.environment
+          path: spec.application.services.HELLO.environment
 
   - it: the greeter-service fixture resolves its generated variable and file
     values:
       - ../harness/ci/test-values/greeter-service.yaml
     asserts:
       - equal:
-          path: spec.greeter
-          value: "hello"
+          path: spec.application.services.HELLO.environment.HELLO_GREETER.value
+          value: "HELLO"
       - equal:
-          path: spec.volumeMounts.hello-config.files.message
+          path: spec.application.volumeMounts.HELLO-config.files.message
           value: "hi prod"
 
   - it: crdkit-internal keys in a consumer variable are dropped (no injected generated value)
@@ -454,7 +522,7 @@ tests:
       - ../harness/ci/test-values/internal-key.yaml
     asserts:
       - equal:
-          path: spec.value
+          path: spec.application.services.PROBE.environment.PROBE_VALUE.value
           value: "declared"
 
   - it: a service declared as a non-map is skipped while its valid sibling still resolves
@@ -462,107 +530,107 @@ tests:
       - ../harness/ci/test-values/malformed-service.yaml
     asserts:
       - equal:
-          path: spec.dbHost
+          path: spec.application.services.ORDERS.environment.ORDERS_DB_HOST.value
           value: "db.internal"
       - notExists:
-          path: spec.services.broken
+          path: spec.application.services.BROKEN
 
   - it: a non-map environment is ignored while the greeter handler still generates its variable
     values:
       - ../harness/ci/test-values/malformed-environment.yaml
     asserts:
       - equal:
-          path: spec.greeter
-          value: "hello"
-      - equal:
-          path: spec.services.hello.environment.HELLO_GREETER.value
-          value: "hello"
+          path: spec.application.services.HELLO.environment.HELLO_GREETER.value
+          value: "HELLO"
 
-  # ---- service output: spec.services.<ID> ----
+  # ---- service output: spec.application.services.<ID> ----
 
-  - it: spec.variables is not rendered
-    values:
-      - ../harness/ci/test-values/full-featured.yaml
-    asserts:
-      - exists:
-          path: spec.variables
-        not: true
-
-  - it: a service with exported variables appears with its type and the resolved value
+  - it: a service with exported variables appears with its type and the resolved values
     values:
       - ../harness/ci/test-values/services-basic.yaml
     asserts:
       - equal:
-          path: spec.services.orders
-          value:
+          path: spec.application.services.ORDERS
+          value: 
             type: environment
             environment:
-              DB_HOST:
+              ORDERS_DB_HOST:
                 value: "db.prod"
+                targetContainer: main
+              ORDERS_DSN:
+                value: "postgres://db.prod/orders?pool=10"
                 targetContainer: main
 
   - it: a service without exported variables appears with its type only
-    values:
-      - ../harness/ci/test-values/services-basic.yaml
+    set:
+      target: prod-01
+      application:
+        services:
+          QUIET:
+            type: environment
+            environment:
+              QUIET_VAR: "x"
     asserts:
       - equal:
-          path: spec.services.billing
-          value:
+          path: spec.application.services.QUIET
+          value: 
             type: environment
 
-  - it: no spec.services at all when no service is declared
+  - it: spec is empty when no service is declared
     values:
       - ../harness/ci/test-values/minimal.yaml
     asserts:
-      - exists:
-          path: spec.services
-        not: true
+      - equal:
+          path: spec
+          value: {}
 
-  - it: every dispatched service appears in spec.services, exported variables or not
+  - it: every dispatched service appears, exported variables or not
     set:
       target: prod-01
-      services:
-        quiet:
-          type: environment
-        loud:
-          type: environment
-          environment:
-            LOUD: {default: "x", targetContainer: main}
+      application:
+        services:
+          QUIET:
+            type: environment
+          LOUD:
+            type: environment
+            environment:
+              LOUD_VAR: {default: "x", targetContainer: main}
     asserts:
       - equal:
-          path: spec.services.quiet
-          value:
+          path: spec.application.services.QUIET
+          value: 
             type: environment
       - equal:
-          path: spec.services.loud.environment.LOUD
-          value:
+          path: spec.application.services.LOUD.environment.LOUD_VAR
+          value: 
             value: "x"
             targetContainer: main
 
   - it: a service with an unknown type is not dispatched and does not appear
     set:
       target: prod-01
-      services:
-        mystery:
-          type: no-such-type
+      application:
+        services:
+          MYSTERY:
+            type: no-such-type
     asserts:
-      - exists:
-          path: spec.services
-        not: true
+      - notExists:
+          path: spec.application
 
   - it: an exported library default (LOG_LEVEL) is attributed to the declaring service
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          environment:
-            LOG_LEVEL:
-              targetContainer: main
+      application:
+        services:
+          APP:
+            type: environment
+            environment:
+              LOG_LEVEL:
+                targetContainer: main
     asserts:
       - equal:
-          path: spec.services.app.environment.LOG_LEVEL
-          value:
+          path: spec.application.services.APP.environment.LOG_LEVEL
+          value: 
             value: "info"
             targetContainer: main
 
@@ -571,8 +639,8 @@ tests:
       - ../harness/ci/test-values/library-token-export.yaml
     asserts:
       - equal:
-          path: spec.services.app.environment.ENV
-          value:
+          path: spec.application.services.APP.environment.ENV
+          value: 
             value: "prod"
             targetContainer: both
 
@@ -581,70 +649,66 @@ tests:
       - ../harness/ci/test-values/greeter-service.yaml
     asserts:
       - equal:
-          path: spec.services.hello
-          value:
+          path: spec.application.services.HELLO
+          value: 
             type: greeter
             environment:
               HELLO_GREETER:
-                value: "hello"
+                value: "HELLO"
                 targetContainer: main
 
   - it: variables of different services are grouped per service
     set:
       target: prod-01
-      services:
-        a:
-          type: environment
-          environment:
-            A_VAR: {default: "1", targetContainer: main}
-            A_TWO: {default: "2", targetContainer: both}
-        b:
-          type: environment
-          environment:
-            B_VAR: {default: "3", targetContainer: side-car}
+      application:
+        services:
+          A:
+            type: environment
+            environment:
+              A_VAR: {default: "1", targetContainer: main}
+              A_TWO: {default: "2", targetContainer: both}
+          B:
+            type: environment
+            environment:
+              B_VAR: {default: "3", targetContainer: side-car}
     asserts:
       - equal:
-          path: spec.services
-          value:
-            a:
+          path: spec.application.services
+          value: 
+            A:
               type: environment
               environment:
                 A_TWO: {value: "2", targetContainer: both}
                 A_VAR: {value: "1", targetContainer: main}
-            b:
+            B:
               type: environment
               environment:
                 B_VAR: {value: "3", targetContainer: side-car}
-
-  - it: the full-featured fixture exports variables of two services separately
-    values:
-      - ../harness/ci/test-values/full-featured.yaml
-    asserts:
-      - equal:
-          path: spec.services.worker
-          value:
-            type: environment
-            environment:
-              QUEUE:
-                value: "jobs-prod"
-                targetContainer: both
 
   - it: a variable with a corrected (invalid) targetContainer is not exported
     values:
       - ../harness/ci/test-values/invalid-target-container.yaml
     asserts:
       - equal:
-          path: spec.services.app
-          value:
+          path: spec.application.services.APP
+          value: 
             type: environment
 
-  - it: the consumer's own spec keys survive next to spec.services
+  - it: a consumer's own spec is not copied to the output
     values:
       - ../harness/ci/test-values/services-basic.yaml
+    set:
+      spec:
+        replicas: 3
+        x: "@ENV@"
     asserts:
-      - equal:
+      - notExists:
           path: spec.replicas
-          value: 1
+      - notExists:
+          path: spec.x
+      - equal:
+          path: spec.application.services.BILLING.type
+          value: environment
 
   # ---- enabled ----
 
@@ -653,95 +717,97 @@ tests:
       - ../harness/ci/test-values/service-disabled.yaml
     asserts:
       - notExists:
-          path: spec.services.SVC1
+          path: spec.application.services.SVC1
       - notExists:
-          path: spec.volumeMounts.SVC1-config
+          path: spec.application.volumeMounts.SVC1-config
       - exists:
-          path: spec.services.SVC2
+          path: spec.application.services.SVC2
       - exists:
-          path: spec.volumeMounts.SVC2-config
+          path: spec.application.volumeMounts.SVC2-config
 
   - it: a marker to a disabled service's variable stays unresolved
     values:
       - ../harness/ci/test-values/service-disabled.yaml
     asserts:
       - equal:
-          path: spec.orphan
-          value: "@OFF_ONLY@"
+          path: spec.application.services.PROBE.environment.PROBE_ORPHAN.value
+          value: "@SVC1_OFF_ONLY@"
 
   - it: an enabled service reusing a disabled service's variable name owns it
     values:
       - ../harness/ci/test-values/service-disabled.yaml
     asserts:
       - equal:
-          path: spec.shared
+          path: spec.application.services.PROBE.environment.PROBE_SHARED.value
           value: from-enabled
 
   - it: a library token listed only in a disabled service stays unexported
     values:
       - ../harness/ci/test-values/service-disabled.yaml
     asserts:
-      - notExists:
-          path: spec.services.SVC2.environment.ENV
       - equal:
-          path: spec.services
-          value:
-            SVC2:
-              type: greeter
-              environment:
-                SVC2_GREETER:
-                  value: SVC2
-                  targetContainer: main
+          path: spec.application.services.SVC2
+          value: 
+            type: greeter
+            environment:
+              SVC2_GREETER:
+                value: SVC2
+                targetContainer: main
 
   - it: enabled true and an absent enabled render the same service
     set:
       target: prod-01
-      services:
-        explicit:
-          type: greeter
-          enabled: true
-          greeting: hi
-        implicit:
-          type: greeter
-          greeting: hi
+      application:
+        services:
+          EXPLICIT:
+            type: greeter
+            enabled: true
+            greeting: hi
+          IMPLICIT:
+            type: greeter
+            greeting: hi
     asserts:
       - equal:
-          path: spec.services.explicit.environment.EXPLICIT_GREETER
-          value: {value: explicit, targetContainer: main}
+          path: spec.application.services.EXPLICIT.environment.EXPLICIT_GREETER
+          value: {value: EXPLICIT, targetContainer: main}
       - equal:
-          path: spec.services.implicit.environment.IMPLICIT_GREETER
-          value: {value: implicit, targetContainer: main}
+          path: spec.application.services.IMPLICIT.environment.IMPLICIT_GREETER
+          value: {value: IMPLICIT, targetContainer: main}
       - equal:
-          path: spec.volumeMounts.explicit-config.files.message
+          path: spec.application.volumeMounts.EXPLICIT-config.files.message
           value: hi
       - equal:
-          path: spec.volumeMounts.implicit-config.files.message
+          path: spec.application.volumeMounts.IMPLICIT-config.files.message
           value: hi
 
   - it: a disabled environment service declares no variables
     set:
       target: prod-01
-      services:
-        app:
-          type: environment
-          enabled: false
-          environment:
-            GONE: "x"
-      spec.m: "@GONE@"
+      application:
+        services:
+          APP:
+            type: environment
+            enabled: false
+            environment:
+              APP_GONE: "x"
+          PROBE:
+            type: environment
+            environment:
+              PROBE_M: {targetContainer: main, default: "@APP_GONE@"}
     asserts:
       - notExists:
-          path: spec.services.app
+          path: spec.application.services.APP
       - equal:
-          path: spec.m
-          value: "@GONE@"
+          path: spec.application.services.PROBE.environment.PROBE_M.value
+          value: "@APP_GONE@"
 
   - it: a non-boolean enabled keeps the service enabled
     values:
       - ../harness/ci/test-values/service-enabled-invalid.yaml
     asserts:
       - equal:
-          path: spec.services.strict.type
+          path: spec.application.services.STRICT.type
           value: greeter
       - equal:
-          path: spec.volumeMounts.strict-config.files.message
+          path: spec.application.volumeMounts.STRICT-config.files.message
           value: hello

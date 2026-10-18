@@ -4,14 +4,15 @@
 # dropped"); the file reference is still kept.
 target: prod-01
 
-services:
-  SVC1:
-    type: greeter
-    greeting: hello
-    environment:
-      SVC1_GREETER:
-        default: "internal"
-        targetContainer: none
-  SVC2:
-    type: leader
-    greeter: SVC1
+application:
+  services:
+    SVC1:
+      type: greeter
+      greeting: hello
+      environment:
+        SVC1_GREETER:
+          default: "internal"
+          targetContainer: none
+    SVC2:
+      type: leader
+      greeter: SVC1

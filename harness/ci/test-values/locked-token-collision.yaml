@@ -1,13 +1,15 @@
-# Consumer declares a service variable that collides with a systemTokens key
-# (API_GROUP). Expect a "# WARNING:" comment, and the rendered value must
-# be the LIBRARY's locked value, not the consumer's.
+# Consumer declares a service variable that collides with a systemTokens
+# key (API_GROUP). Expect a "# WARNING:" comment, and the rendered value
+# must be the LIBRARY's locked value, not the consumer's.
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      API_GROUP: "consumer-tries-to-override.example.com"
-
-spec:
-  group: "@API_GROUP@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        API_GROUP: "consumer-tries-to-override.example.com"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_GROUP: {targetContainer: main, default: "@API_GROUP@"}

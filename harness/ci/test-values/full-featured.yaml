@@ -1,66 +1,66 @@
-# Exercises every service-variable feature at once (all declared under
-# services.app.environment):
-#  - SCALAR_TOKEN: plain scalar, same in every env
-#  - ENV_TOKEN: dict with a "default" fallback AND an env-specific override
-#  - NO_DEFAULT_TOKEN: dict with no entry for env "prod" and no "default"
+# Exercises every service-variable feature at once:
+#  - APP_SCALAR: plain scalar, same in every env
+#  - APP_ENV_VALUE: dict with a "default" fallback AND an env-specific
+#    override
+#  - APP_NO_DEFAULT: dict with no entry for env "prod" and no "default"
 #    -> must produce an "# ERROR:" comment
-#  - CHAINED_TOKEN: references two other tokens (one-level reference)
-#  - AT_USAGE: exercises the built-in @AT@ -> "@" escape
-#  - the "missingRefLooksLikeATypo" reference below points at a token
-#    name that doesn't exist -> must produce a "# WARNING:" comment
-#    (possible typo)
-#  - DB_HOST/SIDECAR_TOKEN/BOTH_TOKEN: declare an accepted targetContainer
-#    (main/side-car/both) -> exported by mycrd.integrations.services
-#    under spec.services.app.environment, in addition to
+#  - APP_CHAINED: references two other variables (one-level reference)
+#  - APP_AT_USAGE: exercises the built-in @AT@ -> "@" escape
+#  - PROBE_TYPO points at a token name that doesn't exist -> must
+#    produce a "# WARNING:" comment (possible typo)
+#  - APP_DB_HOST/APP_SIDECAR/APP_BOTH: declare an accepted
+#    targetContainer (main/side-car/both) -> exported under
+#    spec.application.services.APP.environment, in addition to
 #    resolving/substituting normally.
-#  - worker: a second service exporting QUEUE (both) next to the
-#    non-exported WORKER_TUNING -> spec.services.worker.
-#  - NONE_TOKEN: explicit targetContainer: none -> excluded from
-#    spec.services (same as SCALAR_TOKEN, which declares none at all).
+#  - WORKER: a second service exporting WORKER_QUEUE (both) next to the
+#    non-exported WORKER_TUNING -> spec.application.services.WORKER.
+#  - APP_NONE: explicit targetContainer: none -> not exported (same as
+#    APP_SCALAR, which declares none at all).
+#  - PROBE: exported variables using the others, so each one resolves.
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      SCALAR_TOKEN: "hello-world"
-      ENV_TOKEN:
-        default: "nonprod-value"
-        prod: "prod-value"
-      NO_DEFAULT_TOKEN:
-        dev: "dev-only-value"
-      CHAINED_TOKEN: "chain: @SCALAR_TOKEN@ + @ENV_TOKEN@"
-      AT_USAGE: "literal at sign lives here: @AT@"
-      DB_HOST:
-        targetContainer: main
-        default: "db.internal"
-      SIDECAR_TOKEN:
-        targetContainer: side-car
-        default: "sidecar-value"
-      BOTH_TOKEN:
-        targetContainer: both
-        default: "both-value"
-      NONE_TOKEN:
-        targetContainer: none
-        default: "none-value"
-  worker:
-    type: environment
-    environment:
-      QUEUE:
-        targetContainer: both
-        default: "jobs"
-        prod: "jobs-prod"
-      WORKER_TUNING: "fast"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_SCALAR: "hello-world"
+        APP_ENV_VALUE:
+          default: "nonprod-value"
+          prod: "prod-value"
+        APP_NO_DEFAULT:
+          dev: "dev-only-value"
+        APP_CHAINED: "chain: @APP_SCALAR@ + @APP_ENV_VALUE@"
+        APP_AT_USAGE: "literal at sign lives here: @AT@"
+        APP_DB_HOST:
+          targetContainer: main
+          default: "db.internal"
+        APP_SIDECAR:
+          targetContainer: side-car
+          default: "sidecar-value"
+        APP_BOTH:
+          targetContainer: both
+          default: "both-value"
+        APP_NONE:
+          targetContainer: none
+          default: "none-value"
+    WORKER:
+      type: environment
+      environment:
+        WORKER_QUEUE:
+          targetContainer: both
+          default: "jobs"
+          prod: "jobs-prod"
+        WORKER_TUNING: "fast"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_MESSAGE: {targetContainer: main, default: "@APP_CHAINED@"}
+        PROBE_AT_LITERAL: {targetContainer: main, default: "user@AT@example.com"}
+        PROBE_TYPO: {targetContainer: main, default: "@THIS_TOKEN_DOES_NOT_EXIST@"}
+        PROBE_BROKEN: {targetContainer: main, default: "@APP_NO_DEFAULT@"}
 
 metadata:
   labels:
     team: platform-eng
-    cost-center: "cc-@ENV_TOKEN@-1234"
-
-spec:
-  replicas: 3
-  message: "@CHAINED_TOKEN@"
-  atLiteral: "user@AT@example.com"
-  missingRefLooksLikeATypo: "@THIS_TOKEN_DOES_NOT_EXIST@"
-  brokenToken: "@NO_DEFAULT_TOKEN@"
-  dbHost: "@DB_HOST@"
+    cost-center: "cc-@APP_ENV_VALUE@-1234"

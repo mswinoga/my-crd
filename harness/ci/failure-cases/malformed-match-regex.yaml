@@ -10,13 +10,15 @@
 # a diagnostic comment — see crdkit's CLAUDE.md for why.
 target: prod-01
 
-services:
-  app:
-    type: environment
-    environment:
-      BAD_REGEX:
-        match:
-          - "qa[pm1-0[0-9]": "unreachable"
-
-spec:
-  value: "@BAD_REGEX@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_BAD_REGEX:
+          match:
+            - "qa[pm1-0[0-9]": "unreachable"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE: {targetContainer: main, default: "@APP_BAD_REGEX@"}

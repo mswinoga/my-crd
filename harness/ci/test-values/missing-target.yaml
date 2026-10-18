@@ -1,27 +1,24 @@
-# "target" being entirely unset is no longer proactively checked at
-# all — crdkit dropped that check along with every other env/family/tier
-# concept it used to own (see crdkit's CLAUDE.md/README). An empty
-# target with nothing ever resolved against it now produces ZERO
-# diagnostics (see minimal.yaml for that case, which also uses no
-# tokens). This fixture instead shows what DOES happen once something
-# actually tries to resolve a token against an empty target: my-crd's
-# own escalation taxonomy (mycrd.parentTarget) has nowhere to route an
-# empty string, so the chain is exhausted immediately -> a real ERROR,
-# lazily, only because BROKEN_TOKEN is actually referenced below.
+# An empty target is not checked by itself: it only produces an ERROR
+# once something resolves a token against it. my-crd's escalation
+# taxonomy (mycrd.parentTarget) has nowhere to route an empty string, so
+# the chain is exhausted immediately -> an ERROR, because PROBE_VALUE
+# uses APP_BROKEN.
 #
-# Deliberately does NOT use a "default:" key here — "default" is a
-# hardcoded, crdkit-level fallback (see crdkit's CLAUDE.md/README) that
-# resolves regardless of target/taxonomy, so it would defeat the whole
-# point of this fixture by always succeeding. "PROD" only resolves via
-# escalation, which an empty target can never reach.
+# Deliberately no "default:" key — "default" resolves regardless of
+# target/taxonomy, which would defeat this fixture. "PROD" only
+# resolves via escalation, which an empty target never reaches.
 target: ""
 
-services:
-  app:
-    type: environment
-    environment:
-      BROKEN_TOKEN:
-        PROD: "unreachable-without-a-matching-rung"
-
-spec:
-  value: "@BROKEN_TOKEN@"
+application:
+  services:
+    APP:
+      type: environment
+      environment:
+        APP_BROKEN:
+          PROD: "unreachable-without-a-matching-rung"
+    PROBE:
+      type: environment
+      environment:
+        PROBE_VALUE:
+          targetContainer: main
+          PROD: "@APP_BROKEN@"
