@@ -241,7 +241,22 @@ Adding a type:
    (params `{ctx, id, service}`) and `mycrd.serviceType.<type>.schema`:
    the type's values schema, a map node including
    `mycrd.schema.serviceBase` into its `properties`, every node with a
-   `doc` (see "Values schema").
+   `doc` (see "Values schema"):
+
+   ```gotemplate
+   {{- define "mycrd.serviceType.greeter.schema" -}}
+   type: map
+   doc: "Example type: exports `<ID>_GREETER` and a configMap mount `<ID>-config`."
+   properties:
+     {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
+     greeting:
+       type: string          # string | int | number | bool | scalar | map | list | any
+       doc: "Content of the file `message`; absent → nothing generated."
+   {{- end -}}
+   ```
+
+   A scalar-type or list field is per-target by default (a token
+   declaration or `@NAME@` markers); `markers: false` makes it static.
 2. Add the name to `mycrd.serviceTypes` (`templates/_services.tpl`).
 3. Run `make docs` and commit `VALUES.md`.
 4. Read fields through `mycrd.service.value` and contribute output
