@@ -46,41 +46,43 @@ target: prod      # opaque string to crdkit; this library recognizes a
                   # the CLI, not committed to a values file. Only
                   # checked lazily, if a token resolution needs it.
 
-services:
-  orders:                                # service ID (any string)
-    type: environment                    # a type from mycrd.serviceTypes
-    enabled: true                        # optional boolean; false disables the
-                                         # service — see "Disabled services"
-    environment:                         # variables of this service
-      VAR1: "val1"                       # scalar: same for every target
-      VAR2:                              # dict: a literal key per target/rung
-        default: "nonprod"
-        prod: "prod"
-      VAR3: "this @VAR1@ is nice"        # variables can reference others
-      VAR4:
-        default: "generic"
-        match:                           # regex against the full target string,
-          - "prod-0[1-3]": "canary-@AT@1"  # tried once, wins over any literal
-                                         # key — see "Target escalation" below
-      DB_HOST:
-        targetContainer: main            # export: main/side-car/both (absent = none)
-        default: "db.internal"           # same dedicated-attribute/match/escalation
-                                         # resolution as any variable
-  hello:
-    type: greeter                        # example type (see "Service types")
-    greeting: "hi @ENV@"
-  boss:
-    type: leader                         # example type: references a greeter
-    greeter: hello
+application:
+  services:
+    ORDERS:                                # service ID (upper case by convention)
+      type: environment                    # a type from mycrd.serviceTypes
+      enabled: true                        # optional boolean; false disables the
+                                           # service — see "Disabled services"
+      environment:                         # variables of this service, prefixed
+                                           # <SID>_ by convention
+        ORDERS_VAR1: "val1"                # scalar: same for every target
+        ORDERS_VAR2:                       # dict: a literal key per target/rung
+          default: "nonprod"
+          prod: "prod"
+        ORDERS_VAR3: "this @ORDERS_VAR1@ is nice"  # variables can reference others
+        ORDERS_VAR4:
+          default: "generic"
+          match:                           # regex against the full target string,
+            - "prod-0[1-3]": "canary-@AT@1"  # tried once, wins over any literal
+                                           # key — see "Target escalation" below
+        ORDERS_DB_HOST:
+          targetContainer: main            # export: main/side-car/both (absent = none)
+          default: "db.internal"           # same dedicated-attribute/match/escalation
+                                           # resolution as any variable
+        ORDERS_ENV:
+          targetContainer: main
+          default: "@ENV@"                 # this library's own env-equivalent
+                                           # token (see "Library-owned tokens"
+                                           # below) — NOT a crdkit built-in
+    HELLO:
+      type: greeter                        # example type (see "Service types")
+      greeting: "hi @ENV@"
+    BOSS:
+      type: leader                         # example type: references a greeter
+      greeter: HELLO
 
-some:
-  other:
-    part:
-      attr: "@VAR3@ resolves here"       # @NAME@ markers work anywhere
-                                         # outside of services: itself
-      env: "@ENV@"                       # this library's own env-equivalent
-                                         # token (see "Library-owned tokens"
-                                         # below) — NOT a crdkit built-in
+metadata:
+  labels:                                  # merged into the CR's labels; @NAME@
+    team: "payments-@ENV@"                 # markers resolve here too
 ```
 
 Variable names must be `UPPER_SNAKE_CASE` (`^[A-Z][A-Z0-9_]*$`) — a
@@ -95,8 +97,18 @@ library defines itself (see "Library-owned tokens" below); consumers
 can't override it because it's in `system`, not because crdkit reserves
 the name.
 
-Variables are declared only under `services.<ID>.environment`; a root
-`tokens:` key is not read and records a `# WARNING:`.
+The rendered CR is built only from these keys — nothing is copied
+verbatim. Other input is ignored silently: a root `spec`, a root
+`services`, any key under `application` other than `services`.
+`@NAME@` markers are resolved in service variables, in type-specific
+service keys (e.g. `greeting`) and in `metadata.labels`.
+
+Variables are declared only under
+`application.services.<ID>.environment`; a root `tokens:` key is not
+read and records a `# WARNING:`.
+
+Conventions (not checked): service IDs are upper case; a service's
+variables are prefixed `<SID>_`, as generated variables are.
 
 Reserved service keys: `type`, `environment`, `enabled`. Every other key
 belongs to the service type (e.g. `greeting`, `greeter`).
@@ -111,10 +123,10 @@ belongs to the service type (e.g. `greeting`, `greeter`).
   enabled.
 - The value is static: it is not target-dependent and holds no `@NAME@`
   markers. Per-environment switching uses per-environment values files.
-- A disabled service is absent from `spec`: no `spec.services.<ID>`, no
-  files, no references, and its type handler does not run. A type
-  handler of an enabled service still sees `enabled` in `.service` when
-  it was written.
+- A disabled service is absent from `spec`: no
+  `spec.application.services.<ID>`, no files, no references, and its
+  type handler does not run. A type handler of an enabled service still
+  sees `enabled` in `.service` when it was written.
 - Its `environment` variables are not declared: a `@NAME@` marker to one
   stays unresolved (the usual "possible typo" `# WARNING:`), a name it
   shares with an enabled service causes no collision, and a library token
@@ -138,10 +150,13 @@ belongs to the service type (e.g. `greeting`, `greeter`).
   `# ERROR:` is recorded.
 - A service with a missing or unknown `type` is skipped entirely
   (`# WARNING:`), its `environment` included.
-- Malformed shapes record a `# WARNING:` and are ignored: root `services`
-  not a map (whole key ignored), `services.<ID>` not a map (service
-  skipped), `services.<ID>.environment` not a map (only the environment
-  is ignored; the service's type handler still runs).
+- Malformed shapes record a `# WARNING:` and are ignored: `application`
+  not a map (`values key 'application' must be a map — ignored`),
+  `application.services` not a map (`values key 'application.services'
+  must be a map — ignored`), `application.services.<ID>` not a map
+  (service skipped), `application.services.<ID>.environment` not a map
+  (only the environment is ignored; the service's type handler still
+  runs).
 - `targetContainer` is one of `main`, `side-car`, `both`, `none`
   (default); any other value records an `# ERROR:` and is treated as
   `none`. Tokens with `main`/`side-car`/`both` are EXPORTED into the
@@ -231,8 +246,8 @@ Adding a type:
 
    | Helper | Extra params | Effect |
    |---|---|---|
-   | `mycrd.service.addVar` | `name, value, targetContainer?` | generated variable; exported into `spec.services.<id>.environment` when its final `targetContainer` is main/side-car/both; a name owned by another service records an `# ERROR:` |
-   | `mycrd.service.addFile` | `mount, source, file, content` | file in a volume mount under `spec.volumeMounts`; mounts are shared between services; a different `source` or an existing file records an `# ERROR:` and the file is not added |
+   | `mycrd.service.addVar` | `name, value, targetContainer?` | generated variable; exported into `spec.application.services.<id>.environment` when its final `targetContainer` is main/side-car/both; a name owned by another service records an `# ERROR:` |
+   | `mycrd.service.addFile` | `mount, source, file, content` | file in a volume mount under `spec.application.volumeMounts`; mounts are shared between services; a different `source` or an existing file records an `# ERROR:` and the file is not added |
    | `mycrd.service.referenceService` | `service` | records a reference to a whole service |
    | `mycrd.service.referenceVar` | `service, name` | records a reference to a variable of a service |
    | `mycrd.service.referenceMount` | `mount` | records a reference to a whole mount |
@@ -248,8 +263,9 @@ A reference tells the controller that a service depends on a node of the
 rendered CR: another service, a variable, a mount, or a file in a mount.
 References are metadata — nothing is copied or mounted.
 
-- Written to `spec.services.<id>.references` as JSON Pointers (RFC 6901)
-  from the CR root, e.g. `/spec/services/SVC1/environment/SVC1_GREETER`.
+- Written to `spec.application.services.<id>.references` as JSON
+  Pointers (RFC 6901) from the CR root, e.g.
+  `/spec/application/services/SVC1/environment/SVC1_GREETER`.
   A `/` or `~` inside a name is escaped `~1` / `~0`.
 - Recorded by type handlers through the `mycrd.service.reference*`
   helpers; validated after every handler ran, by
@@ -268,32 +284,34 @@ References are metadata — nothing is copied or mounted.
     is omitted when none remain.
 
 ```yaml
-services:
-  SVC1: {type: greeter, greeting: hello}
-  SVC2: {type: leader, greeter: SVC1}
+application:
+  services:
+    SVC1: {type: greeter, greeting: hello}
+    SVC2: {type: leader, greeter: SVC1}
 ```
 
 renders
 
 ```yaml
 spec:
-  services:
-    SVC1:
-      type: greeter
-      environment:
-        SVC1_GREETER: {value: SVC1, targetContainer: main}
-    SVC2:
-      type: leader
-      environment:
-        SVC2_SEED: {value: "5", targetContainer: main}
-      references:
-        - /spec/services/SVC1/environment/SVC1_GREETER
-        - /spec/volumeMounts/SVC1-config/files/message
-  volumeMounts:
-    SVC1-config:
-      source: configMap
-      files:
-        message: hello
+  application:
+    services:
+      SVC1:
+        type: greeter
+        environment:
+          SVC1_GREETER: {value: SVC1, targetContainer: main}
+      SVC2:
+        type: leader
+        environment:
+          SVC2_SEED: {value: "5", targetContainer: main}
+        references:
+          - /spec/application/services/SVC1/environment/SVC1_GREETER
+          - /spec/application/volumeMounts/SVC1-config/files/message
+    volumeMounts:
+      SVC1-config:
+        source: configMap
+        files:
+          message: hello
 ```
 
 ### Integrations
@@ -301,7 +319,7 @@ spec:
 `mycrd.render` wires a fixed chain into `crdkit.render`:
 `mycrd.integrations.preamble` always first — the only thing giving the
 rendered CR a shape at all (`apiVersion`/`kind`, `metadata.name`,
-`metadata.labels`, `spec`) — then `mycrd.integrations.services` (the
+`metadata.labels`, an empty `spec`) — then `mycrd.integrations.services` (the
 service-type dispatcher), then `mycrd.integrations.references` (always
 last). Further integrations (database, cos, messaging, outbound
 http, ...) land as `mycrd.integrations.*` defines as this library grows.
@@ -313,29 +331,32 @@ Every integration must emit no literal text of its own — only mutate
 integration never recurses into it itself.
 
 The dispatcher calls `mycrd.service.add` before each type handler. It
-writes `spec.services.<id>.type` and every exported variable the
+writes `spec.application.services.<id>.type` and every exported variable the
 service declares. A service helper called for a service that was not
 added records an `# ERROR:` and does nothing.
 
 ### Output
 
-Every dispatched service lands under `spec.services.<ID>`; mounts under
-`spec.volumeMounts.<mount>`:
+Every dispatched service lands under `spec.application.services.<ID>`;
+mounts under `spec.application.volumeMounts.<mount>`. `spec` is always
+present; `spec.application` and below exist only when something is
+generated:
 
 ```yaml
 spec:
-  services:
-    orders:
-      type: environment
-      environment:
-        DB_HOST:
-          value: db.prod          # resolved for the render's target
-          targetContainer: main
-  volumeMounts:
-    hello-config:
-      source: configMap
-      files:
-        message: "hi prod"
+  application:
+    services:
+      ORDERS:
+        type: environment
+        environment:
+          ORDERS_DB_HOST:
+            value: db.prod        # resolved for the render's target
+            targetContainer: main
+    volumeMounts:
+      HELLO-config:
+        source: configMap
+        files:
+          message: "hi prod"
 ```
 
 A service without exported variables appears with its `type` only. A
@@ -361,7 +382,7 @@ reported the same way.
 
 Only a token actually referenced somewhere gets checked — a declared
 but unused token produces no diagnostic even if broken. Reference it
-(e.g. via a spare `@NAME@` marker) to get it validated.
+(e.g. from an exported variable) to get it validated.
 
 ### Render mode
 
@@ -412,14 +433,14 @@ make render VALUES=path/to/wip.yaml   # render one arbitrary values file
 
 Suites under `tests/`: `token_resolution_test.yaml`,
 `services_test.yaml`, `references_test.yaml`, `helpers_test.yaml`,
-`paths_test.yaml`, `annotation_policy_test.yaml`, `render_mode_test.yaml`,
+`paths_test.yaml`, `values_test.yaml`, `annotation_policy_test.yaml`, `render_mode_test.yaml`,
 `snapshot_test.yaml`. `harness/values.yaml` sets `renderMode: validate`,
 so fixtures with deliberate errors keep rendering; deploy-mode fixtures
 override it, and the ones expected to abort live in
 `harness/ci/failure-cases/`.
 Harness probes (`annotation_policy_probe.yaml` via `policyProbe`,
-`paths_probe.yaml` via `pathsProbe`, `helpers_probe.yaml` via
-`helpersProbe`, all under `harness/templates/`) render only when their
+`paths_probe.yaml` via `pathsProbe`, `values_probe.yaml` via
+`valuesProbe`, `helpers_probe.yaml` via `helpersProbe`, all under `harness/templates/`) render only when their
 values key is set, and cover paths no end-to-end input reaches. Fixtures
 that set a probe key live in `harness/ci/probe-values/`, which
 `make dev` does not scan.
@@ -436,7 +457,7 @@ bottom-up, automatically — see `../CLAUDE.md`'s "Layout" section.
 
 ## Out of scope for now
 
-ArgoCD CMP wiring, GitLab CI pipeline files, full `values.schema.json`
-generation, `helm-docs` integration, real integration implementations,
+ArgoCD CMP wiring, GitLab CI pipeline files, an input shape schema
+(would reject the silently ignored inputs above), `helm-docs` integration, real integration implementations,
 and the real CRD's `apiVersion`/`kind`/`spec` shape (currently a
 placeholder — see `templates/integrations/_preamble.tpl`).
