@@ -1,0 +1,28 @@
+# Value pass of the schema (per-target values, render target prod-01).
+# Expect exactly:
+#  - "# ERROR: 'application.services.HELLO.greeting' for target
+#    'prod-01' must be a scalar" (a list for prod, a string by default);
+#  - an ERROR for APP_LIST, a variable whose value is a structure;
+# and nothing for PAUSED (disabled: not checked by the value pass) nor
+# for APP_OK.
+target: prod-01
+
+application:
+  services:
+    HELLO:
+      type: greeter
+      greeting:
+        default: hi
+        prod: [a, b]
+    PAUSED:
+      type: greeter
+      enabled: false
+      greeting:
+        default: hi
+        prod: [a, b]
+    APP:
+      type: environment
+      environment:
+        APP_OK: fine
+        APP_LIST:
+          default: [a, b]

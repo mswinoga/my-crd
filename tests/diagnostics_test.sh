@@ -221,6 +221,18 @@ check "schema-structure.yaml: WARNING for a structured label value" \
 check_count "schema-structure.yaml: the consumer chart's own root keys raise nothing" \
   schema-structure.yaml '^# (ERROR|WARNING):' 5
 
+check "schema-values.yaml: ERROR naming the target for a per-target value of the wrong kind" \
+  schema-values.yaml "^# ERROR: 'application.services.HELLO.greeting' for target 'prod-01' must be a scalar" present
+
+check "schema-values.yaml: ERROR for a structured environment variable" \
+  schema-values.yaml "^# ERROR: 'APP_LIST' resolves to a structured value" present
+
+check "schema-values.yaml: the value pass skips a disabled service" \
+  schema-values.yaml "^# (ERROR|WARNING):.*PAUSED" absent
+
+check_count "schema-values.yaml: exactly these two diagnostics" \
+  schema-values.yaml '^# (ERROR|WARNING):' 2
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always
