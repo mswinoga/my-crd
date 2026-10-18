@@ -8,6 +8,3 @@
 renderMode: validate
 
 target: dev-01
-
-application:
-  services: {}
