@@ -1,18 +1,18 @@
 # The values reference (VALUES.md) through
-# harness/templates/docs_probe.yaml (renders only when .Values.docsProbe
+# harness/templates/documentation.yaml (renders only when .Values.documentation
 # is set). `make docs` writes the same Markdown to VALUES.md.
 suite: my-crd values reference
 templates:
-  - docs_probe.yaml
+  - documentation.yaml
 tests:
-  - it: probe renders nothing when docsProbe is unset
+  - it: renders nothing when documentation is unset
     asserts:
       - hasDocuments:
           count: 0
 
   - it: every schema node has a doc (except a switch case's switch key)
     set:
-      docsProbe: true
+      documentation: true
     asserts:
       - equal:
           path: undocumented
@@ -20,7 +20,7 @@ tests:
 
   - it: the Markdown reference matches the snapshot
     set:
-      docsProbe: true
+      documentation: true
     asserts:
       - matchSnapshot:
           path: markdown

@@ -494,9 +494,10 @@ override it, and the ones expected to abort live in
 `harness/ci/failure-cases/`.
 Harness probes (`annotation_policy_probe.yaml` via `policyProbe`,
 `paths_probe.yaml` via `pathsProbe`, `values_probe.yaml` via
-`valuesProbe`, `helpers_probe.yaml` via `helpersProbe`, `docs_probe.yaml`
-via `docsProbe`, all under `harness/templates/`) render only when their
-values key is set, and cover paths no end-to-end input reaches. Fixtures
+`valuesProbe`, `helpers_probe.yaml` via `helpersProbe`, all under
+`harness/templates/`) render only when their values key is set, and
+cover paths no end-to-end input reaches. `harness/templates/documentation.yaml`
+(`--set documentation=true`) generates `VALUES.md` the same way. Fixtures
 that set a probe key live in `harness/ci/probe-values/`, which
 `make dev` does not scan.
 

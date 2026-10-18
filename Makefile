@@ -38,9 +38,9 @@ test-diagnostics: update-deps
 	./tests/diagnostics_test.sh
 
 # Writes the values reference (crdkit.schema.docs over mycrd.schema) to
-# VALUES.md through the harness docs probe; tests/docs_test.yaml
+# VALUES.md through harness/templates/documentation.yaml; tests/docs_test.yaml
 # snapshots the same text. Commit the result.
 docs: update-deps
-	helm template harness -f harness/ci/probe-values/docs.yaml \
-		--show-only templates/docs_probe.yaml \
+	helm template harness --set documentation=true \
+		--show-only templates/documentation.yaml \
 		| sed -n '/^markdown: |$$/,$$p' | sed '1d; s/^  //' > VALUES.md

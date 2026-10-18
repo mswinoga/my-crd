@@ -1,15 +1,15 @@
 {{- /*
-Test probe for the values reference (crdkit.schema.docs over
-mycrd.schema). Renders ONLY when .Values.docsProbe is set (never in
+Values reference generator (crdkit.schema.docs over mycrd.schema).
+Renders ONLY when .Values.documentation is set (never in
 harness/values.yaml or a fixture), so `make dev` and snapshots are
-unaffected. `make docs` renders it with harness/ci/probe-values/docs.yaml
-and writes `markdown` to VALUES.md.
+unaffected. `make docs` renders it with `--set documentation=true` and
+writes `markdown` to VALUES.md; tests/docs_test.yaml checks it.
 
-Input:  docsProbe: true
+Input:  documentation: true
 Output: a YAML document { undocumented: [<schema path of every node
         without a `doc`>], markdown: <the Markdown reference> }
 */ -}}
-{{- if .Values.docsProbe }}
+{{- if .Values.documentation }}
 {{- $schema := include "mycrd.schema" . | fromYaml }}
 {{- $acc := dict "list" (list) }}
 {{- include "harness.undocumented" (dict "node" $schema "path" "(root)" "acc" $acc) }}
