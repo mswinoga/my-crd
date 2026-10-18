@@ -2,7 +2,7 @@ apiVersion: v2
 name: my-crd
 description: Example CR-rendering library built on crdkit
 type: library
-version: 0.0.6
+version: 0.0.7
 dependencies:
   - name: crdkit
     version: 0.0.6
