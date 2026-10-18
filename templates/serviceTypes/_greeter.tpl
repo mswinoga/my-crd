@@ -9,7 +9,7 @@ greeting.
 
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "service":
-  <the service declaration; reads `greeting`> }
+  <the normalized service declaration; reads `greeting`> }
 - Returns: nothing (mutates the model and ctx.tokens through
   mycrd.service.addVar / mycrd.service.addFile).
 
@@ -17,8 +17,8 @@ Implementation notes:
 - A service without `greeting` generates nothing.
 - Generated values have the lowest priority, so
   `services.<ID>.environment.<SID>_GREETER` overrides the variable.
-- `greeting` may hold `@TOKEN@` markers; they are resolved in the file
-  content by the normal substitution pass.
+- `greeting` is per-target: read through mycrd.service.value, so it is
+  resolved for the render target and checked against its schema.
 - Service types follow this shape: one `mycrd.serviceType.<type>`
   define in templates/serviceTypes/_<type>.tpl, listed in
   mycrd.serviceTypes.
@@ -37,7 +37,7 @@ Implementation notes:
         "mount" (printf "%s-config" .id)
         "source" "configMap"
         "file" "message"
-        "content" .service.greeting) -}}
+        "content" (include "mycrd.service.value" (dict "ctx" .ctx "id" .id "field" (list "greeting")) | fromYaml).value) -}}
 {{- end -}}
 {{- end -}}
 

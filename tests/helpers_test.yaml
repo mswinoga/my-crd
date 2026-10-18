@@ -341,3 +341,90 @@ tests:
       - equal:
           path: registry
           value: {}
+
+  - it: probe - service.value resolves a per-target field for ctx.target and for an explicit target
+    set:
+      application:
+        services:
+          HELLO:
+            type: greeter
+            greeting: {default: hi, prod: hello-prod}
+      helpersProbe:
+        calls:
+          - {helper: add, params: {id: HELLO}}
+          - {helper: value, params: {id: HELLO, field: [greeting]}}
+          - {helper: value, params: {id: HELLO, field: [greeting], target: dev-01}}
+          - {helper: value, params: {id: HELLO, field: [type]}}
+          - {helper: value, params: {id: HELLO, field: [nothing]}}
+    asserts:
+      - equal:
+          path: results
+          value:
+            - ""
+            - "value:\n  hello-prod"
+            - "value:\n  hi"
+            - "value:\n  greeter"
+            - "value:\n  null"
+      - equal:
+          path: diag
+          value: {errors: [], warnings: []}
+
+  - it: probe - service.value records an ERROR naming the target it resolved for
+    set:
+      application:
+        services:
+          HELLO:
+            type: greeter
+            greeting: {default: hi, dev: [a, b]}
+      helpersProbe:
+        calls:
+          - {helper: add, params: {id: HELLO}}
+          - {helper: value, params: {id: HELLO, field: [greeting], target: dev-01}}
+          - {helper: value, params: {id: HELLO, field: [greeting]}}
+    asserts:
+      - equal:
+          path: diag.errors
+          value:
+            - "'application.services.HELLO.greeting' for target 'dev-01' must be a scalar"
+      - equal:
+          path: registry.validated
+          value:
+            application.services.HELLO.greeting|dev-01: true
+            application.services.HELLO.greeting|prod-01: true
+
+  - it: probe - the same (path, target) from service.value and the value pass is reported once
+    set:
+      application:
+        services:
+          HELLO:
+            type: greeter
+            greeting: {default: [a, b]}
+      helpersProbe:
+        schema: true
+        calls:
+          - {helper: add, params: {id: HELLO}}
+          - {helper: value, params: {id: HELLO, field: [greeting]}}
+    asserts:
+      - equal:
+          path: diag.errors
+          value:
+            - "'application.services.HELLO.greeting' for target 'prod-01' must be a scalar"
+
+  - it: probe - service.value for a service that was not added records the guard ERROR
+    set:
+      application:
+        services:
+          HELLO:
+            type: greeter
+            greeting: hi
+      helpersProbe:
+        calls:
+          - {helper: value, params: {id: HELLO, field: [greeting]}}
+    asserts:
+      - equal:
+          path: results
+          value: ["value:\n  null"]
+      - equal:
+          path: diag.errors
+          value:
+            - "service 'HELLO' was not added — helper 'mycrd.service.value' ignored"

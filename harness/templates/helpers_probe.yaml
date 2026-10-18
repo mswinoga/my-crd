@@ -12,7 +12,8 @@ Input:  helpersProbe: { target: <string>, calls: [ {helper: <name after
         called for a service that was never added, which the dispatcher
         never allows end to end.
         With `references: true`, mycrd.integrations.references runs
-        after the calls, as it does last in the chain.
+        after the calls; with `schema: true`, mycrd.integrations.schema
+        runs after that (the chain's order).
 Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
         registry: <ctx.mycrd without schema/input>, diag: { errors, warnings }, results:
         [<text each call returned, in call order>] }
@@ -22,13 +23,16 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- $diag := dict "errors" (list) "warnings" (list) }}
 {{- $schema := include "mycrd.schema" . | fromYaml }}
 {{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value }}
-{{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 "mycrd" (dict "schema" $schema "input" $input) }}
+{{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 "parentTargetTemplate" "mycrd.parentTarget" "mycrd" (dict "schema" $schema "input" $input) }}
 {{- $results := list }}
 {{- range $call := ($probe.calls | default (list)) }}
   {{- $results = append $results (include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params)) }}
 {{- end }}
 {{- if $probe.references }}
   {{- include "mycrd.integrations.references" $ctx }}
+{{- end }}
+{{- if $probe.schema }}
+  {{- include "mycrd.integrations.schema" $ctx }}
 {{- end }}
 {{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" (omit $ctx.mycrd "schema" "input") "diag" $diag "results" $results | toYaml }}
 {{- end }}
