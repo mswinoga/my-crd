@@ -1,9 +1,9 @@
 # The values reference (VALUES.md) through
-# harness/templates/documentation.yaml (renders only when .Values.documentation
+# harness/templates/documentation.md.yaml (renders only when .Values.documentation
 # is set). `make docs` writes the same Markdown to VALUES.md.
 suite: my-crd values reference
 templates:
-  - documentation.yaml
+  - documentation.md.yaml
 tests:
   - it: renders nothing when documentation is unset
     asserts:

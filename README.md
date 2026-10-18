@@ -496,7 +496,7 @@ Harness probes (`annotation_policy_probe.yaml` via `policyProbe`,
 `paths_probe.yaml` via `pathsProbe`, `values_probe.yaml` via
 `valuesProbe`, `helpers_probe.yaml` via `helpersProbe`, all under
 `harness/templates/`) render only when their values key is set, and
-cover paths no end-to-end input reaches. `harness/templates/documentation.yaml`
+cover paths no end-to-end input reaches. `harness/templates/documentation.md.yaml`
 (`--set documentation=true`) generates `VALUES.md` the same way. Fixtures
 that set a probe key live in `harness/ci/probe-values/`, which
 `make dev` does not scan.

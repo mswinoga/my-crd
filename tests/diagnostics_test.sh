@@ -67,7 +67,7 @@ done
 
 # VALUES.md is generated (`make docs`): it must match the documentation template.
 if helm template harness --set documentation=true \
-    --show-only templates/documentation.yaml \
+    --show-only templates/documentation.md.yaml \
     | sed -n '/^markdown: |$/,$p' | sed '1d; s/^  //' | diff -q - VALUES.md >/dev/null; then
   echo "ok: VALUES.md matches the values reference (make docs)"
 else
