@@ -1,4 +1,4 @@
-.PHONY: update-deps dev render test test-diagnostics
+.PHONY: update-deps dev render test test-diagnostics docs
 
 # Refreshes BOTH levels of the file:// dependency chain, bottom-up:
 # first my-crd's own bundled crdkit (in case crdkit changed), then
@@ -36,3 +36,11 @@ test: update-deps
 # `helm template` output instead. See README.md "Testing" section.
 test-diagnostics: update-deps
 	./tests/diagnostics_test.sh
+
+# Writes the values reference (crdkit.schema.docs over mycrd.schema) to
+# VALUES.md through the harness docs probe; tests/docs_test.yaml
+# snapshots the same text. Commit the result.
+docs: update-deps
+	helm template harness -f harness/ci/probe-values/docs.yaml \
+		--show-only templates/docs_probe.yaml \
+		| sed -n '/^markdown: |$$/,$$p' | sed '1d; s/^  //' > VALUES.md

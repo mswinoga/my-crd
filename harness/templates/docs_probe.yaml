@@ -1,0 +1,58 @@
+{{- /*
+Test probe for the values reference (crdkit.schema.docs over
+mycrd.schema). Renders ONLY when .Values.docsProbe is set (never in
+harness/values.yaml or a fixture), so `make dev` and snapshots are
+unaffected. `make docs` renders it with harness/ci/probe-values/docs.yaml
+and writes `markdown` to VALUES.md.
+
+Input:  docsProbe: true
+Output: a YAML document { undocumented: [<schema path of every node
+        without a `doc`>], markdown: <the Markdown reference> }
+*/ -}}
+{{- if .Values.docsProbe }}
+{{- $schema := include "mycrd.schema" . | fromYaml }}
+{{- $acc := dict "list" (list) }}
+{{- include "harness.undocumented" (dict "node" $schema "path" "(root)" "acc" $acc) }}
+undocumented: {{ $acc.list | toYaml | nindent 2 }}
+markdown: |
+{{- include "crdkit.schema.docs" (dict "schema" $schema "title" "my-crd values") | nindent 2 }}
+{{- end }}
+
+{{- /*
+harness.undocumented (internal)
+
+Collects the schema path of every node without a `doc`, recursively.
+
+Interface:
+- Params (dict): { "node": <schema node>, "path": <schema path>,
+  "skip": <key to leave out of `properties`, optional>, "acc": <dict
+  with a "list" key, appended to in place> }
+- Returns: nothing.
+
+Implementation notes:
+- A switch case's switch key (`type`) is left out: the switch node
+  documents it.
+*/ -}}
+{{- define "harness.undocumented" -}}
+{{- $node := .node -}}
+{{- $path := .path -}}
+{{- $acc := .acc -}}
+{{- if not $node.doc -}}
+  {{- $_ := set $acc "list" (append $acc.list $path) -}}
+{{- end -}}
+{{- range $key, $child := $node.properties | default dict -}}
+  {{- if ne $key ($.skip | default "") -}}
+    {{- include "harness.undocumented" (dict "node" $child "path" (printf "%s.properties.%s" $path $key) "acc" $acc) -}}
+  {{- end -}}
+{{- end -}}
+{{- range $key := list "values" "items" -}}
+  {{- if hasKey $node $key -}}
+    {{- include "harness.undocumented" (dict "node" (index $node $key) "path" (printf "%s.%s" $path $key) "acc" $acc) -}}
+  {{- end -}}
+{{- end -}}
+{{- if hasKey $node "switch" -}}
+  {{- range $case, $child := $node.switch.cases -}}
+    {{- include "harness.undocumented" (dict "node" $child "path" (printf "%s.switch.cases.%s" $path $case) "skip" $node.switch.by "acc" $acc) -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}

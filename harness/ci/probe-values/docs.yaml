@@ -1,0 +1,3 @@
+# Renders the values reference probe (harness/templates/docs_probe.yaml);
+# used by `make docs` to write VALUES.md.
+docsProbe: true

@@ -99,5 +99,5 @@ environment:
   values:
     kind: scalar
     tokens: true
-    doc: "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotations `targetContainer`)."
+    doc: "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`)."
 {{- end -}}

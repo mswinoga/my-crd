@@ -65,6 +65,16 @@ for f in harness/ci/test-values/*.yaml; do
     "$(basename "$f")" '^# ERROR: schema invalid' absent
 done
 
+# VALUES.md is generated (`make docs`): it must match the docs probe.
+if helm template harness -f harness/ci/probe-values/docs.yaml \
+    --show-only templates/docs_probe.yaml \
+    | sed -n '/^markdown: |$/,$p' | sed '1d; s/^  //' | diff -q - VALUES.md >/dev/null; then
+  echo "ok: VALUES.md matches the values reference (make docs)"
+else
+  echo "FAIL: VALUES.md is out of date — run make docs"
+  fail=1
+fi
+
 check "render-deploy-clean.yaml: deploy mode renders when only warnings exist" \
   render-deploy-clean.yaml '^kind: SomeCR' present
 
