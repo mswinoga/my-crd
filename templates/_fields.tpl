@@ -17,7 +17,8 @@ rewrite a marker `@T@` to `@<ID>..T@` (mycrd.templateMarkers).
 mycrd.fieldMarkers (internal)
 
 Rewrites every relative marker `@.<path>@` to the absolute marker
-`@<id>.<path>@`, in every string leaf of a value.
+`@<id>.<path>@`, and every `@.@` to the plain text `<id>` (the service
+ID), in every string leaf of a value.
 
 Interface:
 - Params (dict): { "id": <service ID>, "value": <any> }
@@ -27,9 +28,10 @@ Implementation notes:
 - Walks dicts and lists recursively; map keys and non-string scalars
   are left as they are.
 - Markers are found like crdkit finds them (leftmost, non-overlapping,
-  crdkit's marker pattern); only one starting with `@.` and at least one
-  name character is rewritten, so `@.@`, `@AT@` escapes and plain text
-  stay.
+  crdkit's marker pattern); only one starting with `@.` is rewritten, so
+  `@AT@` escapes and plain text stay.
+- `@.@` becomes text, not a token: the ID is known here, nothing is left
+  to resolve.
 */}}
 {{- define "mycrd.fieldMarkers" -}}
 {{- $id := toString .id -}}
@@ -38,6 +40,7 @@ Implementation notes:
   {{/* tokenize like crdkit (leftmost, non-overlapping markers), so "@AT@.x@AT@" stays an escape: mark every marker, rewrite the relative ones, unmark. */}}
   {{- $marked := regexReplaceAll "@([A-Za-z0-9_.]+)@" $value "\x00${1}\x01" -}}
   {{- $rewritten := regexReplaceAll "\x00\\.([A-Za-z0-9_.]+)\x01" $marked (printf "@%s.${1}@" $id) -}}
+  {{- $rewritten = $rewritten | replace "\x00.\x01" $id -}}
 value: {{ $rewritten | replace "\x00" "@" | replace "\x01" "@" | quote }}
 {{- else if kindIs "map" $value -}}
   {{- $result := dict -}}
@@ -226,7 +229,7 @@ Interface:
 
 Implementation notes:
 - A declaration (scalar or dict, every string leaf) is a template when
-  it holds a relative marker (`@.<path>@`, mycrd.markerNames) or a
+  it holds a relative marker (`@.<path>@` or `@.@`, mycrd.markerNames) or a
   marker to another template; the second rule is iterated to a fixed
   point (at most one pass per declaration).
 - A cycle between templates is not checked here: crdkit's cycle ERROR
@@ -243,7 +246,7 @@ Implementation notes:
   {{- $names := (include "mycrd.markerNames" (dict "value" $decl) | fromYaml).value -}}
   {{- $_ := set $markers $name $names -}}
   {{- range $marker := $names -}}
-    {{- if regexMatch "^\\.[A-Za-z0-9_.]+$" $marker -}}
+    {{- if regexMatch "^\\.[A-Za-z0-9_.]*$" $marker -}}
       {{- $_ := set $found $name true -}}
     {{- end -}}
   {{- end -}}

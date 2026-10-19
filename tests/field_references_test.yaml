@@ -30,6 +30,18 @@ tests:
           path: spec.application.services.HELLO.environment.HELLO_DEV.value
           value: "dev=hi from dev"
 
+  - it: "@.@ in a value becomes the service ID"
+    values:
+      - ../harness/ci/test-values/field-references.yaml
+    set:
+      application.services.BYE.environment.BYE_ID:
+        default: "id=@.@/@.greeting@"
+        targetContainer: main
+    asserts:
+      - equal:
+          path: spec.application.services.BYE.environment.BYE_ID.value
+          value: "id=BYE/bye"
+
   - it: two services with the same field names resolve their own values
     values:
       - ../harness/ci/test-values/field-references.yaml

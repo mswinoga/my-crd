@@ -121,7 +121,7 @@ belongs to the service type (e.g. `greeting`, `greeter`).
 
 A service field or `environment` declaration may reference another
 field of the SAME service: `@.<field>@` (`@.tls.cert@` for a key of a
-map field).
+map field). `@.@` is the service's own ID (`SVC1` below).
 
 ```yaml
 application:
@@ -346,8 +346,9 @@ Adding a type:
 
 For type authors, not a consumer feature. A library token
 (`mycrd.systemTokens` / `mycrd.defaultTokens`) holding `@.<field>@`
-references — directly or through a marker to another template — is a
-template: its references bind to the service that uses it.
+or `@.@` references — directly or through a marker to another
+template — is a template: its references bind to the service that uses
+it (`@.@` → that service's ID).
 
 ```yaml
 # mycrd.systemTokens

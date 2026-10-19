@@ -429,7 +429,7 @@ tests:
           value:
             - "service 'HELLO' was not added — helper 'mycrd.service.value' ignored"
 
-  - it: probe - fieldMarkers rewrites relative markers in every string leaf, keys and non-strings untouched
+  - it: probe - fieldMarkers rewrites relative markers and @.@ in every string leaf, keys and non-strings untouched
     set:
       helpersProbe:
         fieldMarkers:
@@ -464,7 +464,7 @@ tests:
               match:
                 - "qa-(.*)": "qa-$1-@SVC1.host@"
               targetContainer: main
-            - "user@AT@example.com @.@ @AT@.x@AT@ plain @ENV@ @OTHER.x@"
+            - "user@AT@example.com SVC1 @AT@.x@AT@ plain @ENV@ @OTHER.x@"
             - 5
             - false
 
@@ -620,13 +620,14 @@ tests:
             C_DIRECT: "c/@.instance@/@.bucket@"
             PLAIN: "@ENV@/@LOG_LEVEL@"
             ESCAPED: "@AT@.instance@AT@"
+            ID_ONLY: "svc/@.@"
           defaults:
             PER_TARGET: {default: "d", prod: "p-@.bucket@"}
             LOG_LEVEL: info
     asserts:
       - equal:
           path: templates
-          value: [A_LAST, B_MID, C_DIRECT, PER_TARGET]
+          value: [A_LAST, B_MID, C_DIRECT, ID_ONLY, PER_TARGET]
 
   - it: probe - templateMarkers rewrites markers to templates only, escapes and other markers untouched
     set:
@@ -667,6 +668,7 @@ tests:
             DB_PATH: "@.instance@/@.host@"
             DB_SECRET: {default: "secret://@DB_PATH@", prod: "p://@DB_PATH@", targetContainer: main, service: X}
             PLAIN: "@ENV@"
+            DB_NAME: "@.@-db"
         resolve: [DB1..DB_SECRET]
     asserts:
       - equal:
@@ -682,6 +684,9 @@ tests:
           path: tokens["DB1..DB_SECRET"].targetContainer
       - notExists:
           path: tokens["DB1..DB_SECRET"].service
+      - equal:
+          path: tokens["DB1..DB_NAME"].default
+          value: "DB1-db"
       - notExists:
           path: tokens["DB1..PLAIN"]
       - notExists:
