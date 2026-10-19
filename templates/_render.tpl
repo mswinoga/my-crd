@@ -34,7 +34,8 @@ Implementation notes:
 - Field references: mycrd.serviceFields (templates/_fields.tpl) runs
   between the structural pass and mycrd.serviceTokens — the input it
   returns (relative markers rewritten) is what serviceTokens reads and
-  `ctx.mycrd.input` holds; its field tokens (`<ID>.<path>`) join the
+  `ctx.mycrd.input` holds; its field tokens (`<ID>.<path>`) and the
+  services' copies of the library templates (`<ID>..<T>`) join the
   consumer tokens.
 - tokens/system/defaults come from mycrd.serviceTokens
   (templates/_services.tpl).
@@ -46,13 +47,15 @@ Implementation notes:
 {{- $mode := include "mycrd.renderMode" (dict "context" . "diag" $diag) -}}
 {{- $schema := include "mycrd.schema" . | fromYaml -}}
 {{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value -}}
-{{- $fields := include "mycrd.serviceFields" (dict "input" $input "schema" $schema "diag" $diag) | fromYaml -}}
+{{- $system := include "mycrd.systemTokens" . | fromYaml -}}
+{{- $defaults := include "mycrd.defaultTokens" . | fromYaml -}}
+{{- $fields := include "mycrd.serviceFields" (dict "input" $input "schema" $schema "system" $system "defaults" $defaults "diag" $diag) | fromYaml -}}
 {{- $input = $fields.input -}}
 {{- $prepared := include "mycrd.serviceTokens" (dict
       "input" $input
       "diag" $diag
-      "system" (include "mycrd.systemTokens" . | fromYaml)
-      "defaults" (include "mycrd.defaultTokens" . | fromYaml)
+      "system" $system
+      "defaults" $defaults
     ) | fromYaml -}}
 {{- $output := include "crdkit.render" (dict
       "context" .

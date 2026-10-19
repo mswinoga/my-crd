@@ -609,3 +609,123 @@ tests:
       - equal:
           path: diag.errors
           value: []
+
+  - it: probe - templates finds direct, transitive and per-target templates, not plain library tokens
+    set:
+      helpersProbe:
+        templates:
+          system:
+            A_LAST: "a/@B_MID@"
+            B_MID: {default: "b", prod: "b/@C_DIRECT@"}
+            C_DIRECT: "c/@.instance@/@.bucket@"
+            PLAIN: "@ENV@/@LOG_LEVEL@"
+            ESCAPED: "@AT@.instance@AT@"
+          defaults:
+            PER_TARGET: {default: "d", prod: "p-@.bucket@"}
+            LOG_LEVEL: info
+    asserts:
+      - equal:
+          path: templates
+          value: [A_LAST, B_MID, C_DIRECT, PER_TARGET]
+
+  - it: probe - templateMarkers rewrites markers to templates only, escapes and other markers untouched
+    set:
+      helpersProbe:
+        templateMarkers:
+          - id: SVC
+            templates: [T1, T2]
+            value: "@T1@/@T2@/@ENV@/@AT@T1@AT@/@SVC.x@"
+          - id: SVC
+            templates: [T1]
+            value: {default: "@T1@", list: ["@T1@", 1], n: 2}
+    asserts:
+      - equal:
+          path: templateMarkers
+          value:
+            - "@SVC..T1@/@SVC..T2@/@ENV@/@AT@T1@AT@/@SVC.x@"
+            - {default: "@SVC..T1@", list: ["@SVC..T1@", 1], n: 2}
+
+  - it: probe - serviceFields declares a bound copy of every template per enabled service
+    set:
+      application:
+        services:
+          DB1:
+            type: db
+            instance: i1
+            host: h1
+            port: 1
+          DB2:
+            type: db
+            enabled: false
+            instance: i2
+            host: h2
+            port: 2
+      helpersProbe:
+        fields: true
+        library:
+          system:
+            DB_PATH: "@.instance@/@.host@"
+            DB_SECRET: {default: "secret://@DB_PATH@", prod: "p://@DB_PATH@", targetContainer: main, service: X}
+            PLAIN: "@ENV@"
+        resolve: [DB1..DB_SECRET]
+    asserts:
+      - equal:
+          path: tokens["DB1..DB_PATH"].default
+          value: "@DB1.instance@/@DB1.host@"
+      - equal:
+          path: tokens["DB1..DB_SECRET"].default
+          value: "secret://@DB1..DB_PATH@"
+      - equal:
+          path: tokens["DB1..DB_SECRET"].prod
+          value: "p://@DB1..DB_PATH@"
+      - notExists:
+          path: tokens["DB1..DB_SECRET"].targetContainer
+      - notExists:
+          path: tokens["DB1..DB_SECRET"].service
+      - notExists:
+          path: tokens["DB1..PLAIN"]
+      - notExists:
+          path: tokens["DB2..DB_PATH"]
+      - notExists:
+          path: tokens["DB2..DB_SECRET"]
+      - equal:
+          path: resolved["DB1..DB_SECRET"]
+          value: "p://i1/h1"
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - serviceFields with library declarations returns the template list and leaves services without templates alone
+    set:
+      helpersProbe:
+        serviceFields:
+          schema:
+            type: map
+            properties:
+              application:
+                type: map
+                properties:
+                  services:
+                    type: map
+                    values:
+                      type: map
+                      properties:
+                        type: {type: string, markers: false}
+                        name: {type: string}
+          input:
+            application:
+              services:
+                SVC1: {type: t, name: n}
+          system:
+            T: "@.name@"
+          defaults:
+            NOT_T: "x"
+    asserts:
+      - equal:
+          path: serviceFields.templates
+          value: [T]
+      - equal:
+          path: serviceFields.tokens
+          value:
+            SVC1.name: {default: n}
+            SVC1..T: {default: "@SVC1.name@"}

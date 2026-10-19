@@ -12,20 +12,30 @@ Input:  helpersProbe: { target: <string>, calls: [ {helper: <name after
         called for a service that was never added, which the dispatcher
         never allows end to end.
         With `fields: true`, mycrd.serviceFields runs first (as in
-        mycrd.render): ctx.tokens starts with the field tokens and
+        mycrd.render, over mycrd.systemTokens/mycrd.defaultTokens, or
+        over `library: {system, defaults}` when given): ctx.tokens
+        starts with the field tokens and template copies, and
         `mycrd.input` is the rewritten input.
+        `resolve: [<token name>]` resolves each token for the probe
+        target (crdkit.token.string) after the calls.
         With `references: true`, mycrd.integrations.references runs
         after the calls; with `schema: true`, mycrd.integrations.schema
         runs after that (the chain's order).
         `fieldMarkers: [{id, value}]` calls mycrd.fieldMarkers for each
         entry (no ctx involved); `serviceFields: {schema, input}` calls
-        mycrd.serviceFields with that schema and input as given (a
-        schema of the probe's own, so every node type is reachable).
+        mycrd.serviceFields with that schema and input (and optional
+        `system`/`defaults`) as given (a schema of the probe's own, so
+        every node type is reachable). `templates: {system, defaults}`
+        calls mycrd.templates; `templateMarkers: [{id, templates,
+        value}]` calls mycrd.templateMarkers for each entry.
 Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
         registry: <ctx.mycrd without schema/input>, diag: { errors, warnings }, results:
-        [<text each call returned, in call order>], fieldMarkers:
+        [<text each call returned, in call order>], resolved:
+        {<name>: <resolved text>}, fieldMarkers:
         [<rewritten value of each fieldMarkers entry>], serviceFields:
-        <mycrd.serviceFields result, when requested> }
+        <mycrd.serviceFields result, when requested>, templates:
+        <mycrd.templates list, when requested>, templateMarkers:
+        [<rewritten value of each templateMarkers entry>] }
 */ -}}
 {{- if .Values.helpersProbe }}
 {{- $probe := .Values.helpersProbe | toYaml | fromYaml }}
@@ -33,8 +43,12 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- $schema := include "mycrd.schema" . | fromYaml }}
 {{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value }}
 {{- $tokens := dict }}
+{{- $library := dict "system" (include "mycrd.systemTokens" . | fromYaml) "defaults" (include "mycrd.defaultTokens" . | fromYaml) }}
+{{- if $probe.library }}
+  {{- $library = dict "system" ($probe.library.system | default dict) "defaults" ($probe.library.defaults | default dict) }}
+{{- end }}
 {{- if $probe.fields }}
-  {{- $fields := include "mycrd.serviceFields" (dict "input" $input "schema" $schema "diag" $diag) | fromYaml }}
+  {{- $fields := include "mycrd.serviceFields" (dict "input" $input "schema" $schema "system" $library.system "defaults" $library.defaults "diag" $diag) | fromYaml }}
   {{- $input = $fields.input }}
   {{- $tokens = $fields.tokens }}
 {{- end }}
@@ -43,13 +57,25 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- range $call := ($probe.calls | default (list)) }}
   {{- $results = append $results (include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params)) }}
 {{- end }}
+{{- $resolved := dict }}
+{{- range $name := ($probe.resolve | default (list)) }}
+  {{- $_ := set $resolved $name (include "crdkit.token.string" (list $ctx $name)) }}
+{{- end }}
 {{- $fieldMarkers := list }}
 {{- range $entry := ($probe.fieldMarkers | default (list)) }}
   {{- $fieldMarkers = append $fieldMarkers (include "mycrd.fieldMarkers" (dict "id" $entry.id "value" $entry.value) | fromYaml).value }}
 {{- end }}
 {{- $serviceFields := dict }}
 {{- if $probe.serviceFields }}
-  {{- $serviceFields = include "mycrd.serviceFields" (dict "input" $probe.serviceFields.input "schema" $probe.serviceFields.schema "diag" $diag) | fromYaml }}
+  {{- $serviceFields = include "mycrd.serviceFields" (dict "input" $probe.serviceFields.input "schema" $probe.serviceFields.schema "system" $probe.serviceFields.system "defaults" $probe.serviceFields.defaults "diag" $diag) | fromYaml }}
+{{- end }}
+{{- $templates := list }}
+{{- if $probe.templates }}
+  {{- $templates = (include "mycrd.templates" (dict "system" $probe.templates.system "defaults" $probe.templates.defaults) | fromYaml).value }}
+{{- end }}
+{{- $templateMarkers := list }}
+{{- range $entry := ($probe.templateMarkers | default (list)) }}
+  {{- $templateMarkers = append $templateMarkers (include "mycrd.templateMarkers" (dict "id" $entry.id "templates" $entry.templates "value" $entry.value) | fromYaml).value }}
 {{- end }}
 {{- if $probe.references }}
   {{- include "mycrd.integrations.references" $ctx }}
@@ -57,5 +83,5 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- if $probe.schema }}
   {{- include "mycrd.integrations.schema" $ctx }}
 {{- end }}
-{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" (omit $ctx.mycrd "schema" "input") "diag" $diag "results" $results "fieldMarkers" $fieldMarkers "serviceFields" $serviceFields | toYaml }}
+{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" (omit $ctx.mycrd "schema" "input") "diag" $diag "results" $results "resolved" $resolved "fieldMarkers" $fieldMarkers "serviceFields" $serviceFields "templates" $templates "templateMarkers" $templateMarkers | toYaml }}
 {{- end }}
