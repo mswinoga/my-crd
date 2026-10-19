@@ -9,19 +9,22 @@ file `message` of that greeter's mount `<greeter>-config`.
 
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "service":
-  <the service declaration; reads `greeter`, a service ID> }
+  <the service declaration> }
 - Returns: nothing (mutates the model, ctx.tokens and ctx.mycrd through
   the mycrd.service.* helpers).
 
 Implementation notes:
 - A service without `greeter` generates nothing.
+- `greeter` (a service ID) is read through mycrd.service.value, so a
+  marker or a per-target value resolves for the render target.
 - The referenced greeter is not checked here: a reference to a missing
   node is dropped with an ERROR by mycrd.integrations.references, after
   every handler ran.
 */}}
 {{- define "mycrd.serviceType.leader" -}}
-{{- if hasKey .service "greeter" -}}
-  {{- $greeter := toString .service.greeter -}}
+{{- $greeter := (include "mycrd.service.value" (dict "ctx" .ctx "id" .id "field" (list "greeter")) | fromYaml).value -}}
+{{- if not (kindIs "invalid" $greeter) -}}
+  {{- $greeter = toString $greeter -}}
   {{- include "mycrd.service.addVar" (dict
         "ctx" .ctx
         "id" .id
@@ -58,6 +61,5 @@ properties:
   {{- include "mycrd.schema.serviceBase" . | nindent 2 }}
   greeter:
     type: string
-    markers: false
     doc: "ID of the greeter service to reference; absent → nothing generated."
 {{- end -}}

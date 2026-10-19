@@ -264,6 +264,12 @@ check "service-enabled-invalid.yaml: ERROR that 'enabled' must be a boolean" \
 check_count "service-enabled-invalid.yaml: the boolean ERROR is emitted exactly once and is the only diagnostic" \
   service-enabled-invalid.yaml '^# (ERROR|WARNING):' 1
 
+check "static-marker.yaml: ERROR for a marker in a static field" \
+  static-marker.yaml "^# ERROR: 'application.services.MARK.enabled' must not contain '@NAME@' markers — ignored" present
+
+check_count "static-marker.yaml: the marker ERROR is the only diagnostic" \
+  static-marker.yaml '^# (ERROR|WARNING):' 1
+
 check "schema-structure.yaml: WARNING for an unknown key under application" \
   schema-structure.yaml "^# WARNING: 'application.extra' is not a known key — ignored" present
 

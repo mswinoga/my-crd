@@ -177,6 +177,32 @@ tests:
       - exists:
           path: metadata.labels["app.kubernetes.io/instance"]
 
+  - it: a per-target label resolves for the render target (prod-01)
+    set:
+      target: prod-01
+      metadata:
+        labels:
+          tier: {default: std, prod: gold}
+          team: "t-@ENV@"
+    asserts:
+      - equal:
+          path: metadata.labels.tier
+          value: gold
+      - equal:
+          path: metadata.labels.team
+          value: t-prod
+
+  - it: a per-target label resolves for the render target (dev-01)
+    set:
+      target: dev-01
+      metadata:
+        labels:
+          tier: {default: std, prod: gold}
+    asserts:
+      - equal:
+          path: metadata.labels.tier
+          value: std
+
   - it: a numeric-looking release name stays a string label
     release:
       name: "123"

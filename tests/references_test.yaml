@@ -62,6 +62,45 @@ tests:
             - /spec/application/services/B_GREETER/environment/B_GREETER_GREETER
             - /spec/application/volumeMounts/B_GREETER-config/files/message
 
+  - it: a leader whose greeter is a per-target value references the greeter of the render target
+    template: call.yaml
+    set:
+      target: prod-01
+      application:
+        services:
+          LEAD:
+            type: leader
+            greeter: {default: DEV_G, prod: PROD_G}
+          DEV_G: {type: greeter, greeting: dev}
+          PROD_G: {type: greeter, greeting: prod}
+    asserts:
+      - equal:
+          path: spec.application.services.LEAD.references
+          value:
+            - /spec/application/services/PROD_G/environment/PROD_G_GREETER
+            - /spec/application/volumeMounts/PROD_G-config/files/message
+
+  - it: a leader whose greeter is a marker resolves it
+    template: call.yaml
+    set:
+      target: prod-01
+      application:
+        services:
+          PICK:
+            type: environment
+            environment:
+              PICK_GREETER: B_GREETER
+          LEAD:
+            type: leader
+            greeter: "@PICK_GREETER@"
+          B_GREETER: {type: greeter, greeting: hi}
+    asserts:
+      - equal:
+          path: spec.application.services.LEAD.references
+          value:
+            - /spec/application/services/B_GREETER/environment/B_GREETER_GREETER
+            - /spec/application/volumeMounts/B_GREETER-config/files/message
+
   - it: a leader without greeter generates nothing and has no references
     template: call.yaml
     set:

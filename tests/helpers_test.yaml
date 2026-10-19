@@ -483,8 +483,8 @@ tests:
                     values:
                       type: map
                       properties:
-                        type: {type: string, markers: false}
-                        enabled: {type: bool, markers: false}
+                        type: {type: string, static: true}
+                        enabled: {type: bool, static: true}
                         environment: {type: map, values: {type: scalar}}
                         name: {type: string}
                         port: {type: int}
@@ -715,7 +715,7 @@ tests:
                     values:
                       type: map
                       properties:
-                        type: {type: string, markers: false}
+                        type: {type: string, static: true}
                         name: {type: string}
           input:
             application:

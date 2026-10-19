@@ -27,11 +27,11 @@ values:
 properties:
   target:
     type: string
-    markers: false
+    static: true
     doc: "Render target: `<env>` or `<env>-<seq>` (e.g. `prod-01`). Selects every per-target value."
   renderMode:
     type: scalar
-    markers: false
+    static: true
     doc: "`validate` prints the render with its diagnostics; `deploy` (default) aborts on errors."
   metadata:
     type: map
@@ -42,8 +42,7 @@ properties:
         doc: "Labels copied onto the rendered object; standard labels win on a collision."
         values:
           type: string
-          tokens: false
-          doc: "Label value; may hold `@NAME@` markers."
+          doc: "Label value; may hold `@NAME@` markers or differ per target."
   application:
     type: map
     doc: "The application the object describes."
@@ -78,18 +77,18 @@ Interface:
 
 Implementation notes:
 - `type` is the switch key of the services map: a scalar type with
-  `markers: false` (crdkit's switch rule).
-- `enabled` is static (`markers: false`); a non-boolean is an ERROR and
+  `static: true` (crdkit's switch rule).
+- `enabled` is static (`static: true`); a non-boolean is an ERROR and
   the default `true` applies.
 */}}
 {{- define "mycrd.schema.serviceBase" -}}
 type:
   type: string
-  markers: false
+  static: true
   doc: "Service type; selects the handler and the keys below."
 enabled:
   type: bool
-  markers: false
+  static: true
   default: true
   doc: "`false` removes the service from the output."
 environment:
@@ -100,6 +99,5 @@ environment:
     label: "<NAME>"
   values:
     type: scalar
-    tokens: true
     doc: "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`)."
 {{- end -}}

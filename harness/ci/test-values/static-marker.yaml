@@ -1,0 +1,11 @@
+# 'enabled' is static: a @NAME@ marker in it is an ERROR ("'application.
+# services.MARK.enabled' must not contain '@NAME@' markers — ignored") and
+# the default (true) applies. Expect exactly that one diagnostic.
+target: prod-01
+
+application:
+  services:
+    MARK:
+      type: greeter
+      enabled: "@WHATEVER@"
+      greeting: hello

@@ -83,6 +83,7 @@ application:
 metadata:
   labels:                                  # merged into the CR's labels; @NAME@
     team: "payments-@ENV@"                 # markers resolve here too
+    tier: {default: std, prod: gold}       # ... and a label may differ per target
 ```
 
 Variable names must match `^[A-Z][A-Z0-9_]*$`, service IDs
@@ -151,8 +152,8 @@ application:
   (`port: "@.basePort@"` → `123`).
 - An absent field without a default, a typo (`@.instnace@`) or a field
   of a disabled service stays unresolved (the usual "possible typo"
-  `# WARNING:`). A field with `markers: false` (e.g. `type`, `enabled`,
-  `greeter`) rejects it with an `# ERROR:`.
+  `# WARNING:`). A `static: true` field (e.g. `type`, `enabled`)
+  rejects it with an `# ERROR:`.
 - Same service only. Text that would read as a marker
   (`@example.com@`) is escaped with `@AT@`: `@AT@example.com@`.
 
@@ -306,7 +307,7 @@ Adding a type:
    ```
 
    A scalar-type or list field is per-target by default (a token
-   declaration or `@NAME@` markers); `markers: false` makes it static.
+   declaration or `@NAME@` markers); `static: true` makes it static.
 2. Add the name to `mycrd.serviceTypes` (`templates/_services.tpl`).
 3. Add a service of the type to `harness/documentation/example.yaml`:
    its generated variables, references and rendered node become the

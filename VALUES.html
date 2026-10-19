@@ -849,16 +849,23 @@ tr:last-child td { border-bottom: 0; }
           "x-crdkit-type": "map"
         },
         "greeter": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
           "description": "ID of the greeter service to reference; absent → nothing generated.",
           "examples": [
             "APP"
           ],
           "markdownDescription": "ID of the greeter service to reference; absent → nothing generated.",
-          "not": {
-            "pattern": "@[A-Za-z0-9_.]+@"
-          },
-          "type": "string",
-          "x-crdkit-perTarget": "no",
+          "x-crdkit-perTarget": "yes",
           "x-crdkit-type": "string"
         },
         "type": {
@@ -1285,13 +1292,23 @@ tr:last-child td { border-bottom: 0; }
       "properties": {
         "labels": {
           "additionalProperties": {
-            "description": "Label value; may hold @NAME@ markers.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/definitions/tokenDeclaration"
+              },
+              {
+                "$ref": "#/definitions/markers"
+              }
+            ],
+            "description": "Label value; may hold @NAME@ markers or differ per target.",
             "examples": [
               "payments"
             ],
-            "markdownDescription": "Label value; may hold `@NAME@` markers.",
-            "type": "string",
-            "x-crdkit-perTarget": "markers",
+            "markdownDescription": "Label value; may hold `@NAME@` markers or differ per target.",
+            "x-crdkit-perTarget": "yes",
             "x-crdkit-type": "string"
           },
           "description": "Labels copied onto the rendered object; standard labels win on a collision.",

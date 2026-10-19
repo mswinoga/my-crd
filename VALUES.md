@@ -13,7 +13,7 @@ target:  # string
 renderMode:  # scalar
 metadata:  # map
   labels:  # map
-    <key>:  # string
+    <key>:  # string, per target
 application:  # map
   services:  # map
     <ID>:  # map, by type
@@ -33,7 +33,7 @@ application:  # map
       # enabled:  # bool
       # environment:  # map
       #   <NAME>:  # scalar, per target
-      # greeter:  # string
+      # greeter:  # string, per target
       # type: db
       # type:  # string
       # enabled:  # bool
@@ -82,7 +82,7 @@ Labels copied onto the rendered object; standard labels win on a collision.
 
 | Key | Type | Per target | Description |
 | --- | --- | --- | --- |
-| `<key>` | string | markers | Label value; may hold `@NAME@` markers. |
+| `<key>` | string | yes | Label value; may hold `@NAME@` markers or differ per target. |
 
 ## `application`
 
@@ -204,7 +204,7 @@ Example type: exports `<ID>_SEED` and references a greeter's variable and file.
 | `type` (shared) | string | no |  | Service type; selects the handler and the keys below. |
 | `enabled` (shared) | bool | no | `true` | `false` removes the service from the output. |
 | `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
-| `greeter` | string | no |  | ID of the greeter service to reference; absent → nothing generated. |
+| `greeter` | string | yes |  | ID of the greeter service to reference; absent → nothing generated. |
 
 **Example**
 
