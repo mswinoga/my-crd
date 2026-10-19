@@ -79,3 +79,38 @@ tests:
       - matchRegex:
           path: spec.application.volumeMounts.LOOP-config.files.message
           pattern: "@LOOP.greeting@$"
+
+  # ---- example type db ----
+
+  - it: db - the spec example renders its variables, fields chained and the list spliced
+    values:
+      - ../harness/ci/test-values/field-references-db.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.SVC1.environment
+          value:
+            SVC1_OPTS: {value: "opts=a,b", targetContainer: main}
+            SVC1_PASSWORD: {value: "secret://prod/i1/123/pwd", targetContainer: main}
+            SVC1_PORT: {value: "123", targetContainer: main}
+            SVC1_URL: {value: "http://h1/i1:123", targetContainer: main}
+
+  - it: db - the default password references the per-target instance
+    values:
+      - ../harness/ci/test-values/field-references-db.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.SVC2.environment.SVC2_PASSWORD.value
+          value: "secret://i2-prod/password"
+
+  - it: db - the default password for another target
+    values:
+      - ../harness/ci/test-values/field-references-db.yaml
+    set:
+      target: qa-01
+    asserts:
+      - equal:
+          path: spec.application.services.SVC2.environment.SVC2_PASSWORD.value
+          value: "secret://i2/password"
+      - equal:
+          path: spec.application.services.SVC1.environment.SVC1_PASSWORD.value
+          value: "secret://qa/i1/123/pwd"

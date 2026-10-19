@@ -11,6 +11,9 @@ Input:  helpersProbe: { target: <string>, calls: [ {helper: <name after
         calls run in order — so a helper can be
         called for a service that was never added, which the dispatcher
         never allows end to end.
+        With `fields: true`, mycrd.serviceFields runs first (as in
+        mycrd.render): ctx.tokens starts with the field tokens and
+        `mycrd.input` is the rewritten input.
         With `references: true`, mycrd.integrations.references runs
         after the calls; with `schema: true`, mycrd.integrations.schema
         runs after that (the chain's order).
@@ -29,7 +32,13 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- $diag := dict "errors" (list) "warnings" (list) }}
 {{- $schema := include "mycrd.schema" . | fromYaml }}
 {{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value }}
-{{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" (dict) "target" ($probe.target | default "prod-01") "gen" 0 "parentTargetTemplate" "mycrd.parentTarget" "mycrd" (dict "schema" $schema "input" $input) }}
+{{- $tokens := dict }}
+{{- if $probe.fields }}
+  {{- $fields := include "mycrd.serviceFields" (dict "input" $input "schema" $schema "diag" $diag) | fromYaml }}
+  {{- $input = $fields.input }}
+  {{- $tokens = $fields.tokens }}
+{{- end }}
+{{- $ctx := dict "root" . "diag" $diag "model" (dict) "tokens" $tokens "target" ($probe.target | default "prod-01") "gen" 0 "parentTargetTemplate" "mycrd.parentTarget" "mycrd" (dict "schema" $schema "input" $input) }}
 {{- $results := list }}
 {{- range $call := ($probe.calls | default (list)) }}
   {{- $results = append $results (include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params)) }}

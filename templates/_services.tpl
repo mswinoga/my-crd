@@ -19,6 +19,7 @@ value:
 - environment
 - greeter
 - leader
+- db
 {{- end -}}
 
 {{/*

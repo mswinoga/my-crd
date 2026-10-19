@@ -34,6 +34,18 @@ application:  # map
       # environment:  # map
       #   <NAME>:  # scalar, per target
       # greeter:  # string
+      # type: db
+      # type:  # string
+      # enabled:  # bool
+      # environment:  # map
+      #   <NAME>:  # scalar, per target
+      # instance:  # string, required, per target
+      # host:  # string, required, per target
+      # port:  # int, required, per target
+      # password:  # string, per target
+      # url:  # string, per target
+      # options:  # list of string, per target
+      #   - # string
 <key>:  # any
 ```
 
@@ -79,7 +91,7 @@ Services by ID.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `<ID>` | map, by `type`: environment, greeter, leader | One service; its keys depend on `type`. |
+| `<ID>` | map, by `type`: environment, greeter, leader, db | One service; its keys depend on `type`. |
 
 ## `application.services.*[type=environment]`
 
@@ -230,6 +242,74 @@ type: leader
 ```
 
 ## `application.services.*[type=leader].environment`
+
+Variables owned by the service, by name (`<ID>_`-prefixed by convention).
+
+| Key | Type | Per target | Description |
+| --- | --- | --- | --- |
+| `<NAME>` | scalar | yes | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
+
+## `application.services.*[type=db]`
+
+Example type: a database connection; exports `<ID>_PASSWORD` and `<ID>_PORT`. Fields may reference each other with `@.<field>@`.
+
+| Key | Type | Per target | Default | Required | Description |
+| --- | --- | --- | --- | --- | --- |
+| `type` (shared) | string | no |  |  | Service type; selects the handler and the keys below. |
+| `enabled` (shared) | bool | no | `true` |  | `false` removes the service from the output. |
+| `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
+| `instance` | string | yes |  | yes | Database instance name. |
+| `host` | string | yes |  | yes | Database host. |
+| `port` | int | yes |  | yes | Database port; exported as `<ID>_PORT`. |
+| `password` | string | yes | `"secret://@.instance@/password"` |  | Password reference; exported as `<ID>_PASSWORD`. |
+| `url` | string | yes |  |  | Connection URL, e.g. `http://@.host@/@.instance@:@.port@`; not exported, referable as `@.url@`. |
+| `options` | list of string | yes |  |  | Connection options; a reference `@.options@` splices them joined by `,`. |
+
+**Example**
+
+```yaml
+application:
+  services:
+    DB:
+      environment:
+        DB_URL:
+          default: '@.url@'
+          targetContainer: main
+      host: '@SHARED_DB_HOST@'
+      instance: orders
+      port: 5432
+      type: db
+      url: postgres://@.host@:@.port@/@.instance@
+```
+
+**Generated variables**
+
+Added to the service's `environment` by its handler.
+
+| Pattern | Example | Value | Container |
+| --- | --- | --- | --- |
+| <ID>_PASSWORD | DB_PASSWORD | secret://orders/password | main |
+| <ID>_PORT | DB_PORT | 5432 | main |
+
+**Example output**
+
+`spec.application.services.DB` as rendered.
+
+```yaml
+environment:
+  DB_PASSWORD:
+    targetContainer: main
+    value: secret://orders/password
+  DB_PORT:
+    targetContainer: main
+    value: "5432"
+  DB_URL:
+    targetContainer: main
+    value: postgres://db.prod.internal:5432/orders
+type: db
+```
+
+## `application.services.*[type=db].environment`
 
 Variables owned by the service, by name (`<ID>_`-prefixed by convention).
 

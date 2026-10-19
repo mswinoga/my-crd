@@ -532,3 +532,52 @@ tests:
       - equal:
           path: serviceFields.input.application.services.OFF
           value: {type: t, enabled: false, name: "@.port@", port: 1}
+
+  - it: probe - service.value returns a field reference into an int field as an int
+    set:
+      application:
+        services:
+          DB:
+            type: db
+            instance: i1
+            host: "6543"
+            port: "@.host@"
+      helpersProbe:
+        fields: true
+        calls:
+          - {helper: add, params: {id: DB}}
+          - {helper: value, params: {id: DB, field: [port]}}
+          - {helper: value, params: {id: DB, field: [password]}}
+    asserts:
+      - equal:
+          path: results[1]
+          value: "value:\n  6543"
+      - equal:
+          path: results[2]
+          value: "value:\n  secret://i1/password"
+      - equal:
+          path: diag.errors
+          value: []
+
+  - it: probe - a field reference that does not parse as the int field's type is an ERROR, returned as a string
+    set:
+      application:
+        services:
+          DB:
+            type: db
+            instance: i1
+            host: h1
+            port: "@.host@"
+      helpersProbe:
+        fields: true
+        calls:
+          - {helper: add, params: {id: DB}}
+          - {helper: value, params: {id: DB, field: [port]}}
+    asserts:
+      - equal:
+          path: results[1]
+          value: "value:\n  h1"
+      - equal:
+          path: diag.errors
+          value:
+            - "'application.services.DB.port' for target 'prod-01' must be of type 'int' — got 'h1'"

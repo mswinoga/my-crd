@@ -318,6 +318,15 @@ check "field-references-errors.yaml: a disabled service declares no field tokens
 check_count "field-references-errors.yaml: exactly these three diagnostics" \
   field-references-errors.yaml '^# (ERROR|WARNING):' 3
 
+check_count "field-references-db.yaml: the db example renders without diagnostics" \
+  field-references-db.yaml '^# (ERROR|WARNING):' 0
+
+check "field-references-db-missing.yaml: required ERROR for a missing db instance" \
+  field-references-db-missing.yaml "^# ERROR: 'application.services.DB.instance' is required$" present
+
+check_count "field-references-db-missing.yaml: the required ERROR and the unresolved default reference only" \
+  field-references-db-missing.yaml '^# (ERROR|WARNING):' 2
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always

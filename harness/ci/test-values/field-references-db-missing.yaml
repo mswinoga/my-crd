@@ -1,0 +1,13 @@
+# A `db` service without its required `instance`. Expect exactly:
+#  - "# ERROR: 'application.services.DB.instance' is required";
+#  - a "possible typo" WARNING for '@DB.instance@': the default
+#    `password` references the missing field, so DB_PASSWORD keeps the
+#    marker.
+target: prod-01
+
+application:
+  services:
+    DB:
+      type: db
+      host: h1
+      port: 5432

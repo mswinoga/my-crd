@@ -58,7 +58,7 @@ tests:
             - ["/spec/application/volumeMounts/<greeter>-config/files/message", "/spec/application/volumeMounts/APP-config/files/message"]
       - equal:
           path: missingTypes
-          value: [environment]
+          value: [environment, db]
       - equal:
           path: errors
           value: []
@@ -90,7 +90,7 @@ tests:
     asserts:
       - equal:
           path: missingTypes
-          value: [environment, leader]
+          value: [environment, leader, db]
 
   - it: a typo in the example lists the render's WARNING in errors
     template: documentation.json.yaml

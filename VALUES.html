@@ -146,6 +146,269 @@ tr:last-child td { border-bottom: 0; }
     "x-crdkit-type": "any"
   },
   "definitions": {
+    "application.services.*[type=db]": {
+      "additionalProperties": false,
+      "description": "Example type: a database connection; exports \u003cID\u003e_PASSWORD and \u003cID\u003e_PORT. Fields may reference each other with @.\u003cfield\u003e@.",
+      "examples": [
+        {
+          "environment": {
+            "DB_URL": {
+              "default": "@.url@",
+              "targetContainer": "main"
+            }
+          },
+          "host": "@SHARED_DB_HOST@",
+          "instance": "orders",
+          "port": 5432,
+          "type": "db",
+          "url": "postgres://@.host@:@.port@/@.instance@"
+        }
+      ],
+      "markdownDescription": "Example type: a database connection; exports `\u003cID\u003e_PASSWORD` and `\u003cID\u003e_PORT`. Fields may reference each other with `@.\u003cfield\u003e@`.\n\n**Generated variables**\n\nAdded to the service's `environment` by its handler.\n\n| Pattern | Example | Value | Container |\n| --- | --- | --- | --- |\n| \u003cID\u003e_PASSWORD | DB_PASSWORD | secret://orders/password | main |\n| \u003cID\u003e_PORT | DB_PORT | 5432 | main |\n\n**Example output**\n\n`spec.application.services.DB` as rendered.\n\n```yaml\nenvironment:\n  DB_PASSWORD:\n    targetContainer: main\n    value: secret://orders/password\n  DB_PORT:\n    targetContainer: main\n    value: \"5432\"\n  DB_URL:\n    targetContainer: main\n    value: postgres://db.prod.internal:5432/orders\ntype: db\n```",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "false removes the service from the output.",
+          "markdownDescription": "`false` removes the service from the output.",
+          "type": "boolean",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "bool"
+        },
+        "environment": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              {
+                "$ref": "#/definitions/tokenDeclaration"
+              },
+              {
+                "$ref": "#/definitions/markers"
+              }
+            ],
+            "description": "A variable: a scalar or a token declaration (target keys, default, match, annotation targetContainer).",
+            "examples": [
+              {
+                "default": "@.url@",
+                "targetContainer": "main"
+              }
+            ],
+            "markdownDescription": "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`).",
+            "x-crdkit-perTarget": "yes",
+            "x-crdkit-type": "scalar"
+          },
+          "description": "Variables owned by the service, by name (\u003cID\u003e_-prefixed by convention).",
+          "examples": [
+            {
+              "DB_URL": {
+                "default": "@.url@",
+                "targetContainer": "main"
+              }
+            }
+          ],
+          "markdownDescription": "Variables owned by the service, by name (`\u003cID\u003e_`-prefixed by convention).",
+          "propertyNames": {
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "type": "object",
+          "x-crdkit-keyLabel": "\u003cNAME\u003e",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "map"
+        },
+        "host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Database host.",
+          "examples": [
+            "@SHARED_DB_HOST@"
+          ],
+          "markdownDescription": "Database host.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "string"
+        },
+        "instance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Database instance name.",
+          "examples": [
+            "orders"
+          ],
+          "markdownDescription": "Database instance name.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "string"
+        },
+        "options": {
+          "anyOf": [
+            {
+              "items": {
+                "description": "One option, e.g. sslmode=require.",
+                "markdownDescription": "One option, e.g. `sslmode=require`.",
+                "type": "string",
+                "x-crdkit-perTarget": "markers",
+                "x-crdkit-type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Connection options; a reference @.options@ splices them joined by ,.",
+          "markdownDescription": "Connection options; a reference `@.options@` splices them joined by `,`.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "list"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "default": "secret://@.instance@/password",
+          "description": "Password reference; exported as \u003cID\u003e_PASSWORD.",
+          "markdownDescription": "Password reference; exported as `\u003cID\u003e_PASSWORD`.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Database port; exported as \u003cID\u003e_PORT.",
+          "examples": [
+            5432
+          ],
+          "markdownDescription": "Database port; exported as `\u003cID\u003e_PORT`.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "int"
+        },
+        "type": {
+          "description": "Service type; selects the handler and the keys below.",
+          "examples": [
+            "db"
+          ],
+          "markdownDescription": "Service type; selects the handler and the keys below.",
+          "not": {
+            "pattern": "@[A-Za-z0-9_.]+@"
+          },
+          "type": "string",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Connection URL, e.g. http://@.host@/@.instance@:@.port@; not exported, referable as @.url@.",
+          "examples": [
+            "postgres://@.host@:@.port@/@.instance@"
+          ],
+          "markdownDescription": "Connection URL, e.g. `http://@.host@/@.instance@:@.port@`; not exported, referable as `@.url@`.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "string"
+        }
+      },
+      "required": [
+        "instance",
+        "host",
+        "port"
+      ],
+      "type": "object",
+      "x-crdkit-order": [
+        "type",
+        "enabled",
+        "environment",
+        "instance",
+        "host",
+        "port",
+        "password",
+        "url",
+        "options"
+      ],
+      "x-crdkit-path": "application.services.*[type=db]",
+      "x-crdkit-sections": [
+        {
+          "columns": [
+            "Pattern",
+            "Example",
+            "Value",
+            "Container"
+          ],
+          "doc": "Added to the service's `environment` by its handler.",
+          "rows": [
+            [
+              "\u003cID\u003e_PASSWORD",
+              "DB_PASSWORD",
+              "secret://orders/password",
+              "main"
+            ],
+            [
+              "\u003cID\u003e_PORT",
+              "DB_PORT",
+              "5432",
+              "main"
+            ]
+          ],
+          "title": "Generated variables"
+        },
+        {
+          "code": "environment:\n  DB_PASSWORD:\n    targetContainer: main\n    value: secret://orders/password\n  DB_PORT:\n    targetContainer: main\n    value: \"5432\"\n  DB_URL:\n    targetContainer: main\n    value: postgres://db.prod.internal:5432/orders\ntype: db",
+          "doc": "`spec.application.services.DB` as rendered.",
+          "title": "Example output"
+        }
+      ],
+      "x-crdkit-type": "map"
+    },
     "application.services.*[type=environment]": {
       "additionalProperties": false,
       "description": "A service that only declares variables.",
@@ -533,6 +796,19 @@ tr:last-child td { border-bottom: 0; }
             },
             "type": "greeter"
           },
+          "DB": {
+            "environment": {
+              "DB_URL": {
+                "default": "@.url@",
+                "targetContainer": "main"
+              }
+            },
+            "host": "@SHARED_DB_HOST@",
+            "instance": "orders",
+            "port": 5432,
+            "type": "db",
+            "url": "postgres://@.host@:@.port@/@.instance@"
+          },
           "LEAD": {
             "greeter": "APP",
             "type": "leader"
@@ -571,6 +847,19 @@ tr:last-child td { border-bottom: 0; }
                 "prod": "hello from production"
               },
               "type": "greeter"
+            },
+            "DB": {
+              "environment": {
+                "DB_URL": {
+                  "default": "@.url@",
+                  "targetContainer": "main"
+                }
+              },
+              "host": "@SHARED_DB_HOST@",
+              "instance": "orders",
+              "port": 5432,
+              "type": "db",
+              "url": "postgres://@.host@:@.port@/@.instance@"
             },
             "LEAD": {
               "greeter": "APP",
@@ -638,6 +927,21 @@ tr:last-child td { border-bottom: 0; }
                 "then": {
                   "$ref": "#/definitions/application.services.*%5Btype=leader%5D"
                 }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "db"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/application.services.*%5Btype=db%5D"
+                }
               }
             ],
             "description": "One service; its keys depend on type.",
@@ -648,6 +952,19 @@ tr:last-child td { border-bottom: 0; }
                   "prod": "hello from production"
                 },
                 "type": "greeter"
+              },
+              {
+                "environment": {
+                  "DB_URL": {
+                    "default": "@.url@",
+                    "targetContainer": "main"
+                  }
+                },
+                "host": "@SHARED_DB_HOST@",
+                "instance": "orders",
+                "port": 5432,
+                "type": "db",
+                "url": "postgres://@.host@:@.port@/@.instance@"
               },
               {
                 "greeter": "APP",
@@ -670,7 +987,8 @@ tr:last-child td { border-bottom: 0; }
                 "enum": [
                   "environment",
                   "greeter",
-                  "leader"
+                  "leader",
+                  "db"
                 ]
               }
             },
@@ -683,9 +1001,11 @@ tr:last-child td { border-bottom: 0; }
               "cases": [
                 "environment",
                 "greeter",
-                "leader"
+                "leader",
+                "db"
               ],
               "refs": {
+                "db": "#/definitions/application.services.*%5Btype=db%5D",
                 "environment": "#/definitions/application.services.*%5Btype=environment%5D",
                 "greeter": "#/definitions/application.services.*%5Btype=greeter%5D",
                 "leader": "#/definitions/application.services.*%5Btype=leader%5D"
@@ -702,6 +1022,19 @@ tr:last-child td { border-bottom: 0; }
                   "prod": "hello from production"
                 },
                 "type": "greeter"
+              },
+              "DB": {
+                "environment": {
+                  "DB_URL": {
+                    "default": "@.url@",
+                    "targetContainer": "main"
+                  }
+                },
+                "host": "@SHARED_DB_HOST@",
+                "instance": "orders",
+                "port": 5432,
+                "type": "db",
+                "url": "postgres://@.host@:@.port@/@.instance@"
               },
               "LEAD": {
                 "greeter": "APP",

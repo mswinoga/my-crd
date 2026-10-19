@@ -24,3 +24,13 @@ application:
     LEAD:
       type: leader
       greeter: APP
+    DB:
+      type: db
+      instance: orders
+      host: "@SHARED_DB_HOST@"
+      port: 5432
+      url: "postgres://@.host@:@.port@/@.instance@"
+      environment:
+        DB_URL:
+          targetContainer: main
+          default: "@.url@"

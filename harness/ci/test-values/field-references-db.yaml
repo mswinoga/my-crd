@@ -1,0 +1,33 @@
+# Field references with the example type `db` (the spec's example).
+# Expect no diagnostics:
+#  - SVC1 overrides `password` with references (and the locked token
+#    ENV); `url` chains three fields; SVC1_URL references `url`,
+#    SVC1_OPTS splices the list `options` as "a,b";
+#  - SVC2 keeps the default `password`, built from its per-target
+#    `instance`.
+target: prod-01
+
+application:
+  services:
+    SVC1:
+      type: db
+      instance: i1
+      host: h1
+      port: 123
+      url: "http://@.host@/@.instance@:@.port@"
+      password: "secret://@ENV@/@.instance@/@.port@/pwd"
+      options: [a, b]
+      environment:
+        SVC1_URL:
+          default: "@.url@"
+          targetContainer: main
+        SVC1_OPTS:
+          default: "opts=@.options@"
+          targetContainer: main
+    SVC2:
+      type: db
+      instance:
+        default: i2
+        prod: i2-prod
+      host: h2
+      port: 5432
