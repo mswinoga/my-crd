@@ -15,6 +15,12 @@
 harness/
 tests/
 
+# Generated documentation (make docs): for readers and editors, never
+# read by a render.
+input.schema.json
+VALUES.html
+VALUES.md
+
 # Common VCS dirs
 .git/
 .gitignore
