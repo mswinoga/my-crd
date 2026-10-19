@@ -54,9 +54,9 @@ Implementation notes:
       {{- end -}}
     {{- end -}}
     {{- if or (eq $pointer $ownPointer) (eq (get $ctx.mycrd.owners $pointer | default "") $id) (and (eq (len $contributors) 1) (hasKey $contributors $id)) -}}
-      {{- $_ := set $ctx.diag "warnings" (append $ctx.diag.warnings (printf "service '%s' references '%s', which it defines itself — dropped" $id $pointer)) -}}
+      {{- include "crdkit.diag.warning" (list $ctx.diag (printf "service '%s' references '%s', which it defines itself — dropped" $id $pointer)) -}}
     {{- else if $disabledOwner -}}
-      {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' references '%s', which belongs to disabled service '%s' — dropped" $id $pointer $disabledOwner)) -}}
+      {{- include "crdkit.diag.error" (list $ctx.diag (printf "service '%s' references '%s', which belongs to disabled service '%s' — dropped" $id $pointer $disabledOwner)) -}}
     {{- else if include "crdkit.model.hasPath" (concat (list $ctx.model) $descriptor.segments) -}}
       {{- $kept = append $kept $pointer -}}
     {{- else -}}
@@ -68,9 +68,9 @@ Implementation notes:
         {{- end -}}
       {{- end -}}
       {{- if $notExported -}}
-        {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' references '%s': variable '%s' is not exported (targetContainer none) — dropped" $id $pointer $descriptor.var.name)) -}}
+        {{- include "crdkit.diag.error" (list $ctx.diag (printf "service '%s' references '%s': variable '%s' is not exported (targetContainer none) — dropped" $id $pointer $descriptor.var.name)) -}}
       {{- else -}}
-        {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' references '%s', which does not exist — dropped" $id $pointer)) -}}
+        {{- include "crdkit.diag.error" (list $ctx.diag (printf "service '%s' references '%s', which does not exist — dropped" $id $pointer)) -}}
       {{- end -}}
     {{- end -}}
   {{- end -}}

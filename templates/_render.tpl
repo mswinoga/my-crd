@@ -142,7 +142,7 @@ Implementation notes:
   {{- if and (kindIs "string" $values.renderMode) (has $values.renderMode (list "validate" "deploy")) -}}
     {{- $mode = $values.renderMode -}}
   {{- else -}}
-    {{- $_ := set .diag "errors" (append .diag.errors "values key 'renderMode' must be 'validate' or 'deploy' — rendering in deploy mode") -}}
+    {{- include "crdkit.diag.error" (list .diag "values key 'renderMode' must be 'validate' or 'deploy' — rendering in deploy mode") -}}
   {{- end -}}
 {{- end -}}
 {{- $mode -}}

@@ -136,12 +136,12 @@ Implementation notes:
       {{- $_ := set $final $key $want -}}
     {{- else if ne (toString $have) "none" -}}
       {{- if ne (toString $want) (toString $have) -}}
-        {{- $_ := set $diag "warnings" (append $diag.warnings (printf "variable '%s' tries to narrow library targetContainer '%v' to '%v' — library value kept" $name $have $want)) -}}
+        {{- include "crdkit.diag.warning" (list $diag (printf "variable '%s' tries to narrow library targetContainer '%v' to '%v' — library value kept" $name $have $want)) -}}
       {{- end -}}
     {{- end -}}
   {{- else if hasKey $library $key -}}
     {{- if ne (toString (index $library $key)) (toString $want) -}}
-      {{- $_ := set $diag "warnings" (append $diag.warnings (printf "variable '%s' tries to change library annotation '%s' — library value kept" $name $key)) -}}
+      {{- include "crdkit.diag.warning" (list $diag (printf "variable '%s' tries to change library annotation '%s' — library value kept" $name $key)) -}}
     {{- end -}}
   {{- else -}}
     {{- $_ := set $final $key $want -}}
@@ -200,7 +200,7 @@ Implementation notes:
 {{- $defaults := include "mycrd.normalizeDeclarations" (dict "decls" .defaults) | fromYaml -}}
 
 {{- if get $input "tokens" -}}
-  {{- $_ := set $diag "warnings" (append $diag.warnings "values key 'tokens' is not read — declare variables under application.services.<ID>.environment") -}}
+  {{- include "crdkit.diag.warning" (list $diag "values key 'tokens' is not read — declare variables under application.services.<ID>.environment") -}}
 {{- end -}}
 
 {{- $tokens := dict -}}
@@ -218,15 +218,15 @@ Implementation notes:
         {{- $decl = deepCopy $raw -}}
       {{- end -}}
       {{- if hasKey $decl "service" -}}
-        {{- $_ := set $diag "warnings" (append $diag.warnings (printf "variable '%s' in service '%s' sets 'service' explicitly — ignored" $name $id)) -}}
+        {{- include "crdkit.diag.warning" (list $diag (printf "variable '%s' in service '%s' sets 'service' explicitly — ignored" $name $id)) -}}
       {{- end -}}
       {{- $_ := set $decl "service" $id -}}
       {{- if hasKey $owners $name -}}
-        {{- $_ := set $diag "errors" (append $diag.errors (printf "variable '%s' is declared by services '%s' and '%s' — keeping '%s'" $name (index $owners $name) $id (index $owners $name))) -}}
+        {{- include "crdkit.diag.error" (list $diag (printf "variable '%s' is declared by services '%s' and '%s' — keeping '%s'" $name (index $owners $name) $id (index $owners $name))) -}}
       {{- else -}}
         {{- $_ := set $owners $name $id -}}
         {{- if and (hasKey $decl "targetContainer") (not (has $decl.targetContainer $containers)) -}}
-          {{- $_ := set $diag "errors" (append $diag.errors (printf "invalid targetContainer '%v' for '%s' — must be one of main/side-car/both/none" $decl.targetContainer $name)) -}}
+          {{- include "crdkit.diag.error" (list $diag (printf "invalid targetContainer '%v' for '%s' — must be one of main/side-car/both/none" $decl.targetContainer $name)) -}}
           {{- $_ := set $decl "targetContainer" "none" -}}
         {{- end -}}
         {{- $_ := set $tokens $name $decl -}}
@@ -253,7 +253,7 @@ Implementation notes:
     {{- $mine := include "mycrd.splitAnnotations" (dict "decl" (index $tokens $name)) | fromYaml -}}
     {{- $lib := include "mycrd.splitAnnotations" (dict "decl" (index $system $name)) | fromYaml -}}
     {{- if $mine.values -}}
-      {{- $_ := set $diag "warnings" (append $diag.warnings (printf "token '%s' is reserved by the library — only annotations were applied" $name)) -}}
+      {{- include "crdkit.diag.warning" (list $diag (printf "token '%s' is reserved by the library — only annotations were applied" $name)) -}}
     {{- end -}}
     {{- $final := include "mycrd.annotationPolicy" (dict "name" $name "library" $lib.annotations "requested" $mine.annotations "diag" $diag) | fromYaml -}}
     {{- $decl := deepCopy (index $system $name) -}}
@@ -363,7 +363,7 @@ Implementation notes:
 {{- if hasKey $ctx.mycrd.added (toString .id) -}}
 true
 {{- else -}}
-  {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' was not added — helper '%s' ignored" (toString .id) .helper)) -}}
+  {{- include "crdkit.diag.error" (list $ctx.diag (printf "service '%s' was not added — helper '%s' ignored" (toString .id) .helper)) -}}
 {{- end -}}
 {{- end -}}
 
@@ -487,7 +487,7 @@ Implementation notes:
     {{- $owner = get (index $ctx.tokens .name) "service" | default "" -}}
   {{- end -}}
   {{- if and $owner (ne (toString $owner) (toString .id)) -}}
-    {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "service '%s' generates variable '%s', already owned by service '%s' — generated value ignored" .id .name $owner)) -}}
+    {{- include "crdkit.diag.error" (list $ctx.diag (printf "service '%s' generates variable '%s', already owned by service '%s' — generated value ignored" .id .name $owner)) -}}
   {{- else -}}
     {{- $annotations := dict "service" .id -}}
     {{- if .targetContainer -}}
@@ -546,10 +546,10 @@ Implementation notes:
     {{- $have := get $node "source" -}}
     {{- if ne (toString $have) (toString .source) -}}
       {{- $add = false -}}
-      {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "mount '%s' has source '%s', service '%s' asked for '%s' — file '%s' not added" .mount $have $id .source .file)) -}}
+      {{- include "crdkit.diag.error" (list $ctx.diag (printf "mount '%s' has source '%s', service '%s' asked for '%s' — file '%s' not added" .mount $have $id .source .file)) -}}
     {{- else if include "crdkit.model.hasPath" (concat (list $ctx.model) $fileSegments) -}}
       {{- $add = false -}}
-      {{- $_ := set $ctx.diag "errors" (append $ctx.diag.errors (printf "file '%s' in mount '%s' is already defined by service '%s'" .file .mount (get $ctx.mycrd.owners $filePointer))) -}}
+      {{- include "crdkit.diag.error" (list $ctx.diag (printf "file '%s' in mount '%s' is already defined by service '%s'" .file .mount (get $ctx.mycrd.owners $filePointer))) -}}
     {{- end -}}
   {{- else -}}
     {{- include "crdkit.dictMerge" (concat (list $ctx.model) $mountSegments (list (dict "source" .source))) -}}
