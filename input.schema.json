@@ -3,14 +3,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": {
     "description": "The consumer chart's own values; not read by my-crd.",
-    "examples": [
-      {
-        "crdkit": {
-          "global": {}
-        },
-        "global": {}
-      }
-    ],
     "markdownDescription": "The consumer chart's own values; not read by my-crd.",
     "x-crdkit-type": "any"
   },
@@ -422,12 +414,6 @@
         "labels": {
           "team": "payments"
         }
-      },
-      "my-crd": {
-        "crdkit": {
-          "global": {}
-        },
-        "global": {}
       },
       "target": "prod-01"
     }

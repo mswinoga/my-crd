@@ -149,6 +149,10 @@ Implementation notes:
 - `documentation` and `renderMode` are left out of the example: the
   first is the switch that renders these templates, the second comes
   from harness/values.yaml, not from the example file.
+- Helm injects `global` and one key per subchart (the chart's declared
+  dependencies, alias first) into `.Values`; they are dropped too, so the
+  example holds only what the values file sets. Read from the declared
+  dependencies, not a hand-kept list.
 - The JSON Schema `$id` is the committed `input.schema.json` at the
   release tag `v<my-crd chart version>` (version via
   crdkit.dependencyVersion, like the library-version label); no `$id`
@@ -158,7 +162,10 @@ Implementation notes:
 {{- $base := "https://raw.githubusercontent.com/mswinoga/my-crd" -}}
 {{- $version := include "crdkit.dependencyVersion" (dict "name" "my-crd" "context" .root) -}}
 {{- $id := ternary "" (printf "%s/v%s/input.schema.json" $base $version) (eq $version "unknown") -}}
-{{- $example := omit (.root.Values | toYaml | fromYaml) "documentation" "renderMode" -}}
+{{- $example := omit (.root.Values | toYaml | fromYaml) "documentation" "renderMode" "global" -}}
+{{- range .root.Chart.Metadata.Dependencies -}}
+  {{- $example = omit $example (.Alias | default .Name) -}}
+{{- end -}}
 {{- include "crdkit.schema.document" (dict "format" .format "schemaText" (include "mycrd.schema" .root) "example" $example "sections" .sections.sections "title" "my-crd values" "htmlLink" "VALUES.html" "id" $id "diag" .diag) -}}
 {{- end -}}
 

@@ -96,6 +96,20 @@ for key in errors missingTypes undocumented; do
   fi
 done
 
+# The generated schema's examples hold only what example.yaml sets: no
+# Helm-injected `global` or subchart keys, no harness-only keys. Only
+# `examples` entries are checked: the same names are legitimate property
+# names elsewhere in the schema.
+if command -v jq >/dev/null 2>&1; then
+  injected=$(docs_block json json | jq -r '[.. | objects | .examples? // empty | .[] | .. | objects | keys[] | select(. == "crdkit" or . == "my-crd" or . == "global" or . == "documentation" or . == "renderMode")] | unique | join(",")')
+  if [ -z "$injected" ]; then
+    echo "ok: input.schema.json examples hold no injected keys"
+  else
+    echo "FAIL: input.schema.json examples contain injected keys: $injected"
+    fail=1
+  fi
+fi
+
 # The viewer script must parse; skipped without node.
 if command -v node >/dev/null 2>&1; then
   scratch=$(mktemp -d)
