@@ -146,6 +146,160 @@ tr:last-child td { border-bottom: 0; }
     "x-crdkit-type": "any"
   },
   "definitions": {
+    "application.services.*[type=cos]": {
+      "additionalProperties": false,
+      "description": "Example type: an object-storage bucket; exports \u003cID\u003e_TOKEN, built by the library templates COS_BUCKET_PATH and COS_TOKEN from instance and bucket.",
+      "examples": [
+        {
+          "bucket": {
+            "default": "orders-dev",
+            "prod": "orders-prod"
+          },
+          "instance": "objstore",
+          "type": "cos"
+        }
+      ],
+      "markdownDescription": "Example type: an object-storage bucket; exports `\u003cID\u003e_TOKEN`, built by the library templates `COS_BUCKET_PATH` and `COS_TOKEN` from `instance` and `bucket`.\n\n**Generated variables**\n\nAdded to the service's `environment` by its handler.\n\n| Pattern | Example | Value | Container |\n| --- | --- | --- | --- |\n| \u003cID\u003e_TOKEN | STORE_TOKEN | secret://objsto/objstore/orders-prod/token | main |\n\n**Example output**\n\n`spec.application.services.STORE` as rendered.\n\n```yaml\nenvironment:\n  STORE_TOKEN:\n    targetContainer: main\n    value: secret://objsto/objstore/orders-prod/token\ntype: cos\n```",
+      "properties": {
+        "bucket": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Bucket name.",
+          "examples": [
+            {
+              "default": "orders-dev",
+              "prod": "orders-prod"
+            }
+          ],
+          "markdownDescription": "Bucket name.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "description": "false removes the service from the output.",
+          "markdownDescription": "`false` removes the service from the output.",
+          "type": "boolean",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "bool"
+        },
+        "environment": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              {
+                "$ref": "#/definitions/tokenDeclaration"
+              },
+              {
+                "$ref": "#/definitions/markers"
+              }
+            ],
+            "description": "A variable: a scalar or a token declaration (target keys, default, match, annotation targetContainer).",
+            "markdownDescription": "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`).",
+            "x-crdkit-perTarget": "yes",
+            "x-crdkit-type": "scalar"
+          },
+          "description": "Variables owned by the service, by name (\u003cID\u003e_-prefixed by convention).",
+          "markdownDescription": "Variables owned by the service, by name (`\u003cID\u003e_`-prefixed by convention).",
+          "propertyNames": {
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "type": "object",
+          "x-crdkit-keyLabel": "\u003cNAME\u003e",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "map"
+        },
+        "instance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Object-storage instance name.",
+          "examples": [
+            "objstore"
+          ],
+          "markdownDescription": "Object-storage instance name.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "string"
+        },
+        "type": {
+          "description": "Service type; selects the handler and the keys below.",
+          "examples": [
+            "cos"
+          ],
+          "markdownDescription": "Service type; selects the handler and the keys below.",
+          "not": {
+            "pattern": "@[A-Za-z0-9_.]+@"
+          },
+          "type": "string",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "string"
+        }
+      },
+      "required": [
+        "instance",
+        "bucket"
+      ],
+      "type": "object",
+      "x-crdkit-order": [
+        "type",
+        "enabled",
+        "environment",
+        "instance",
+        "bucket"
+      ],
+      "x-crdkit-path": "application.services.*[type=cos]",
+      "x-crdkit-sections": [
+        {
+          "columns": [
+            "Pattern",
+            "Example",
+            "Value",
+            "Container"
+          ],
+          "doc": "Added to the service's `environment` by its handler.",
+          "rows": [
+            [
+              "\u003cID\u003e_TOKEN",
+              "STORE_TOKEN",
+              "secret://objsto/objstore/orders-prod/token",
+              "main"
+            ]
+          ],
+          "title": "Generated variables"
+        },
+        {
+          "code": "environment:\n  STORE_TOKEN:\n    targetContainer: main\n    value: secret://objsto/objstore/orders-prod/token\ntype: cos",
+          "doc": "`spec.application.services.STORE` as rendered.",
+          "title": "Example output"
+        }
+      ],
+      "x-crdkit-type": "map"
+    },
     "application.services.*[type=db]": {
       "additionalProperties": false,
       "description": "Example type: a database connection; exports \u003cID\u003e_PASSWORD and \u003cID\u003e_PORT. Fields may reference each other with @.\u003cfield\u003e@.",
@@ -822,6 +976,14 @@ tr:last-child td { border-bottom: 0; }
               }
             },
             "type": "environment"
+          },
+          "STORE": {
+            "bucket": {
+              "default": "orders-dev",
+              "prod": "orders-prod"
+            },
+            "instance": "objstore",
+            "type": "cos"
           }
         }
       },
@@ -874,6 +1036,14 @@ tr:last-child td { border-bottom: 0; }
                 }
               },
               "type": "environment"
+            },
+            "STORE": {
+              "bucket": {
+                "default": "orders-dev",
+                "prod": "orders-prod"
+              },
+              "instance": "objstore",
+              "type": "cos"
             }
           }
         }
@@ -942,6 +1112,21 @@ tr:last-child td { border-bottom: 0; }
                 "then": {
                   "$ref": "#/definitions/application.services.*%5Btype=db%5D"
                 }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "cos"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/application.services.*%5Btype=cos%5D"
+                }
               }
             ],
             "description": "One service; its keys depend on type.",
@@ -979,6 +1164,14 @@ tr:last-child td { border-bottom: 0; }
                   }
                 },
                 "type": "environment"
+              },
+              {
+                "bucket": {
+                  "default": "orders-dev",
+                  "prod": "orders-prod"
+                },
+                "instance": "objstore",
+                "type": "cos"
               }
             ],
             "markdownDescription": "One service; its keys depend on `type`.",
@@ -988,7 +1181,8 @@ tr:last-child td { border-bottom: 0; }
                   "environment",
                   "greeter",
                   "leader",
-                  "db"
+                  "db",
+                  "cos"
                 ]
               }
             },
@@ -1002,9 +1196,11 @@ tr:last-child td { border-bottom: 0; }
                 "environment",
                 "greeter",
                 "leader",
-                "db"
+                "db",
+                "cos"
               ],
               "refs": {
+                "cos": "#/definitions/application.services.*%5Btype=cos%5D",
                 "db": "#/definitions/application.services.*%5Btype=db%5D",
                 "environment": "#/definitions/application.services.*%5Btype=environment%5D",
                 "greeter": "#/definitions/application.services.*%5Btype=greeter%5D",
@@ -1049,6 +1245,14 @@ tr:last-child td { border-bottom: 0; }
                   }
                 },
                 "type": "environment"
+              },
+              "STORE": {
+                "bucket": {
+                  "default": "orders-dev",
+                  "prod": "orders-prod"
+                },
+                "instance": "objstore",
+                "type": "cos"
               }
             }
           ],

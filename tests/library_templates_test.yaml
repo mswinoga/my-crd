@@ -1,0 +1,57 @@
+# Library templates (`COS_BUCKET_PATH`, `COS_TOKEN` in
+# mycrd.systemTokens) with the example type `cos`: each service binds
+# the templates' relative markers to its own fields. End to end through
+# mycrd.render (call.yaml). Diagnostic comments are covered by
+# diagnostics_test.sh.
+suite: my-crd library templates
+templates:
+  - call.yaml
+tests:
+  - it: two cos services each build their token from their own fields
+    values:
+      - ../harness/ci/test-values/library-templates.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.COS_01.environment.COS_01_TOKEN
+          value: {value: "secret://objsto/store1/logs/token", targetContainer: main}
+      - equal:
+          path: spec.application.services.COS_02.environment.COS_02_TOKEN.value
+          value: "secret://objsto/store2/data-prod/token"
+
+  - it: a per-target field used by a template resolves for the render target
+    values:
+      - ../harness/ci/test-values/library-templates.yaml
+    set:
+      target: dev-01
+    asserts:
+      - equal:
+          path: spec.application.services.COS_02.environment.COS_02_TOKEN.value
+          value: "secret://objsto/store2/data-dev/token"
+      - equal:
+          path: spec.application.services.COS_01.environment.COS_01_TOKEN.value
+          value: "secret://objsto/store1/logs/token"
+
+  - it: a service of another type is unaffected by the unused template copies
+    values:
+      - ../harness/ci/test-values/library-templates.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.APP
+          value:
+            type: greeter
+            environment:
+              APP_GREETER: {value: APP, targetContainer: main}
+
+  - it: a consumer override of the generated variable wins over the template
+    values:
+      - ../harness/ci/test-values/library-templates.yaml
+    set:
+      application:
+        services:
+          COS_01:
+            environment:
+              COS_01_TOKEN: "secret://custom/@.bucket@"
+    asserts:
+      - equal:
+          path: spec.application.services.COS_01.environment.COS_01_TOKEN.value
+          value: "secret://custom/logs"

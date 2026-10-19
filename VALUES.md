@@ -46,6 +46,13 @@ application:  # map
       # url:  # string, per target
       # options:  # list of string, per target
       #   - # string
+      # type: cos
+      # type:  # string
+      # enabled:  # bool
+      # environment:  # map
+      #   <NAME>:  # scalar, per target
+      # instance:  # string, required, per target
+      # bucket:  # string, required, per target
 <key>:  # any
 ```
 
@@ -91,7 +98,7 @@ Services by ID.
 
 | Key | Type | Description |
 | --- | --- | --- |
-| `<ID>` | map, by `type`: environment, greeter, leader, db | One service; its keys depend on `type`. |
+| `<ID>` | map, by `type`: environment, greeter, leader, db, cos | One service; its keys depend on `type`. |
 
 ## `application.services.*[type=environment]`
 
@@ -310,6 +317,59 @@ type: db
 ```
 
 ## `application.services.*[type=db].environment`
+
+Variables owned by the service, by name (`<ID>_`-prefixed by convention).
+
+| Key | Type | Per target | Description |
+| --- | --- | --- | --- |
+| `<NAME>` | scalar | yes | A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`). |
+
+## `application.services.*[type=cos]`
+
+Example type: an object-storage bucket; exports `<ID>_TOKEN`, built by the library templates `COS_BUCKET_PATH` and `COS_TOKEN` from `instance` and `bucket`.
+
+| Key | Type | Per target | Default | Required | Description |
+| --- | --- | --- | --- | --- | --- |
+| `type` (shared) | string | no |  |  | Service type; selects the handler and the keys below. |
+| `enabled` (shared) | bool | no | `true` |  | `false` removes the service from the output. |
+| `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
+| `instance` | string | yes |  | yes | Object-storage instance name. |
+| `bucket` | string | yes |  | yes | Bucket name. |
+
+**Example**
+
+```yaml
+application:
+  services:
+    STORE:
+      bucket:
+        default: orders-dev
+        prod: orders-prod
+      instance: objstore
+      type: cos
+```
+
+**Generated variables**
+
+Added to the service's `environment` by its handler.
+
+| Pattern | Example | Value | Container |
+| --- | --- | --- | --- |
+| <ID>_TOKEN | STORE_TOKEN | secret://objsto/objstore/orders-prod/token | main |
+
+**Example output**
+
+`spec.application.services.STORE` as rendered.
+
+```yaml
+environment:
+  STORE_TOKEN:
+    targetContainer: main
+    value: secret://objsto/objstore/orders-prod/token
+type: cos
+```
+
+## `application.services.*[type=cos].environment`
 
 Variables owned by the service, by name (`<ID>_`-prefixed by convention).
 

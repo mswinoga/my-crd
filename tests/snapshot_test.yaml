@@ -29,3 +29,9 @@ tests:
       - ../harness/ci/test-values/references-basic.yaml
     asserts:
       - matchSnapshot: {}
+
+  - it: library templates example matches snapshot
+    values:
+      - ../harness/ci/test-values/library-templates.yaml
+    asserts:
+      - matchSnapshot: {}

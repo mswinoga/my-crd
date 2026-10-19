@@ -20,6 +20,7 @@ value:
 - greeter
 - leader
 - db
+- cos
 {{- end -}}
 
 {{/*

@@ -1,3 +1,41 @@
+library templates example matches snapshot:
+  1: |
+    apiVersion: platform.company.io/v1
+    kind: SomeCR
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: harness
+        helm.sh/chart: harness-0.0.0
+        platform.company.io/library-version: 0.1.0
+      name: RELEASE-NAME
+    spec:
+      application:
+        services:
+          APP:
+            environment:
+              APP_GREETER:
+                targetContainer: main
+                value: APP
+            type: greeter
+          COS_01:
+            environment:
+              COS_01_TOKEN:
+                targetContainer: main
+                value: secret://objsto/store1/logs/token
+            type: cos
+          COS_02:
+            environment:
+              COS_02_TOKEN:
+                targetContainer: main
+                value: secret://objsto/store2/data-prod/token
+            type: cos
+        volumeMounts:
+          APP-config:
+            files:
+              message: hello
+            source: configMap
 minimal values render matches the committed example snapshot:
   1: |
     apiVersion: platform.company.io/v1

@@ -1,0 +1,12 @@
+# A library template used by a service that lacks a referenced field.
+# Expect exactly:
+#  - the required ERROR for COS_01's missing `bucket`;
+#  - a "possible typo" WARNING for `@COS_01.bucket@`, the absolute
+#    name the template's `@.bucket@` was bound to.
+target: prod-01
+
+application:
+  services:
+    COS_01:
+      type: cos
+      instance: store1

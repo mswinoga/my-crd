@@ -34,3 +34,9 @@ application:
         DB_URL:
           targetContainer: main
           default: "@.url@"
+    STORE:
+      type: cos
+      instance: objstore
+      bucket:
+        default: orders-dev
+        prod: orders-prod

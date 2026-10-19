@@ -1,0 +1,23 @@
+# Library templates with the example type `cos`. Expect no diagnostics:
+#  - COS_01 and COS_02 each export `<ID>_TOKEN` built by the library
+#    templates COS_TOKEN → COS_BUCKET_PATH from their own fields;
+#  - COS_02's per-target `bucket` resolves for the target;
+#  - APP (greeter) has neither `instance` nor `bucket`: its template
+#    copies are never used, so they report nothing.
+target: prod-01
+
+application:
+  services:
+    COS_01:
+      type: cos
+      instance: store1
+      bucket: logs
+    COS_02:
+      type: cos
+      instance: store2
+      bucket:
+        default: data-dev
+        prod: data-prod
+    APP:
+      type: greeter
+      greeting: hello

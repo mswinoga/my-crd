@@ -327,6 +327,15 @@ check "field-references-db-missing.yaml: required ERROR for a missing db instanc
 check_count "field-references-db-missing.yaml: the required ERROR and the unresolved default reference only" \
   field-references-db-missing.yaml '^# (ERROR|WARNING):' 2
 
+check_count "library-templates.yaml: library templates resolve without diagnostics (unused copies report nothing)" \
+  library-templates.yaml '^# (ERROR|WARNING):' 0
+
+check "library-templates-missing.yaml: possible-typo WARNING for the field a template binds to the service" \
+  library-templates-missing.yaml "^# WARNING: '@COS_01.bucket@' in the rendered model does not match any known token after resolution — possible typo" present
+
+check_count "library-templates-missing.yaml: the required ERROR and the unresolved template reference only" \
+  library-templates-missing.yaml '^# (ERROR|WARNING):' 2
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always
