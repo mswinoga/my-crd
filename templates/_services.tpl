@@ -453,8 +453,9 @@ the model when the token's final targetContainer is main/side-car/both.
 
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "name":
-  <token name>, "value": <generated value, may hold "@ref@" markers or
-  be a structure>, "targetContainer": <string, optional> }
+  <token name>, "value": <generated value, may hold "@ref@" markers —
+  `@.<field>@` included — or be a structure>, "targetContainer":
+  <string, optional> }
 - Returns: nothing (mutates ctx.tokens, ctx.model, ctx.mycrd and
   ctx.diag in place).
 
@@ -470,6 +471,9 @@ Implementation notes:
   final one.
 - Exporting writes `environment.<name>` and records the service as the
   owner of that variable (mycrd.service.exportVar).
+- Relative markers in `value` are rewritten for `id`
+  (mycrd.fieldMarkers): a handler may generate values that reference
+  its service's fields.
 */}}
 {{- define "mycrd.service.addVar" -}}
 {{- $ctx := .ctx -}}
@@ -485,7 +489,8 @@ Implementation notes:
     {{- if .targetContainer -}}
       {{- $_ := set $annotations "targetContainer" .targetContainer -}}
     {{- end -}}
-    {{- include "crdkit.token.underlay" (list $ctx .name .value $annotations) -}}
+    {{- $value := (include "mycrd.fieldMarkers" (dict "id" .id "value" .value) | fromYaml).value -}}
+    {{- include "crdkit.token.underlay" (list $ctx .name $value $annotations) -}}
     {{- include "mycrd.service.exportVar" (dict "ctx" $ctx "id" .id "name" .name) -}}
   {{- end -}}
 {{- end -}}
@@ -500,7 +505,8 @@ creates the mount when absent and adds the file under its `files`.
 Interface:
 - Params (dict): { "ctx": <chain ctx>, "id": <service ID>, "mount":
   <mount name>, "source": <mount source, e.g. configMap>, "file": <file
-  name>, "content": <file content, may hold "@TOKEN@" markers> }
+  name>, "content": <file content, may hold "@TOKEN@" markers —
+  `@.<field>@` included> }
 - Returns: nothing (mutates ctx.model, ctx.mycrd and ctx.diag in place).
 
 Implementation notes:
@@ -512,7 +518,8 @@ Implementation notes:
   file is not added.
 - A file that already exists in the mount records an ERROR naming its
   owner; the first definition is kept.
-- `content` is resolved by crdkit.render's single substitution pass.
+- `content` is resolved by crdkit.render's single substitution pass;
+  its relative markers are rewritten for `id` first (mycrd.fieldMarkers).
 - Records the file's owner and the mount's contributor in ctx.mycrd.
 */}}
 {{- define "mycrd.service.addFile" -}}
@@ -541,7 +548,8 @@ Implementation notes:
     {{- include "crdkit.dictMerge" (concat (list $ctx.model) $mountSegments (list (dict "source" .source))) -}}
   {{- end -}}
   {{- if $add -}}
-    {{- include "crdkit.dictMerge" (concat (list $ctx.model) $mountSegments (list "files") (list (dict .file .content))) -}}
+    {{- $content := (include "mycrd.fieldMarkers" (dict "id" $id "value" .content) | fromYaml).value -}}
+    {{- include "crdkit.dictMerge" (concat (list $ctx.model) $mountSegments (list "files") (list (dict .file $content))) -}}
     {{- $_ := set $ctx.mycrd.owners $filePointer $id -}}
     {{- if not (hasKey $ctx.mycrd.contributors $mountPointer) -}}
       {{- $_ := set $ctx.mycrd.contributors $mountPointer (dict) -}}

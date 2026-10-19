@@ -581,3 +581,31 @@ tests:
           path: diag.errors
           value:
             - "'application.services.DB.port' for target 'prod-01' must be of type 'int' — got 'h1'"
+
+  - it: probe - addVar and addFile rewrite relative markers for their service
+    set:
+      application:
+        services:
+          DB:
+            type: db
+            instance: i1
+            host: h1
+            port: 5432
+      helpersProbe:
+        fields: true
+        calls:
+          - {helper: add, params: {id: DB}}
+          - {helper: addVar, params: {id: DB, name: DB_HOST, value: "@.host@", targetContainer: main}}
+          - {helper: addFile, params: {id: DB, mount: DB-config, source: configMap, file: dsn, content: "@.host@:@.port@/@.instance@"}}
+    asserts:
+      - equal:
+          path: tokens.DB_HOST._generated
+          value: {prod-01: "@DB.host@"}
+      - equal:
+          path: model.spec.application.volumeMounts.DB-config.files.dsn
+          value: "@DB.host@:@DB.port@/@DB.instance@"
+      - exists:
+          path: tokens["DB.host"]
+      - equal:
+          path: diag.errors
+          value: []
