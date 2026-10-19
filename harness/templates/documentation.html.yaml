@@ -1,0 +1,14 @@
+{{- /*
+Values reference as one self-contained page (crdkit.schema.document, html).
+Renders ONLY when .Values.documentation is set; `make docs` writes `html`
+to VALUES.html.
+
+Input:  documentation: true
+Output: a YAML document { html: <the page> }
+*/ -}}
+{{- if .Values.documentation }}
+{{- $sections := include "harness.documentation.sections" . | fromYaml }}
+{{- $diag := dict "errors" (list) "warnings" (list) }}
+html: |
+  {{- include "harness.documentation.document" (dict "root" . "format" "html" "sections" $sections "diag" $diag) | nindent 2 }}
+{{- end }}

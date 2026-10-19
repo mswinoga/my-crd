@@ -65,14 +65,51 @@ for f in harness/ci/test-values/*.yaml; do
     "$(basename "$f")" '^# ERROR: schema invalid' absent
 done
 
-# VALUES.md is generated (`make docs`): it must match the documentation template.
-if helm template harness --set documentation=true \
-    --show-only templates/documentation.md.yaml \
-    | sed -n '/^markdown: |$/,$p' | sed '1d; s/^  //' | diff -q - VALUES.md >/dev/null; then
-  echo "ok: VALUES.md matches the values reference (make docs)"
+# The generated references (`make docs`) must match the committed files,
+# and the example they are built from must render clean. `--show-only`
+# output starts with `---` and a `# Source:` line: only the block scalar
+# is compared.
+docs_block() { # KEY FORMAT
+  helm template harness -f harness/documentation/example.yaml --set documentation=true \
+    --show-only "templates/documentation.$2.yaml" \
+    | sed -n "/^$1: |$/,\$p" | sed '1d; s/^  //'
+}
+for pair in json:json:input.schema.json html:html:VALUES.html markdown:md:VALUES.md; do
+  IFS=: read -r key fmt file <<<"$pair"
+  if docs_block "$key" "$fmt" | diff -q - "$file" >/dev/null; then
+    echo "ok: $file matches the values reference (make docs)"
+  else
+    echo "FAIL: $file is out of date — run make docs"
+    fail=1
+  fi
+done
+
+example_json=$(helm template harness -f harness/documentation/example.yaml --set documentation=true \
+  --show-only templates/documentation.json.yaml)
+for key in errors missingTypes undocumented; do
+  if echo "$example_json" | grep -qE "^$key: \[\]$"; then
+    echo "ok: documentation example has empty $key"
+  else
+    echo "FAIL: documentation example: $key is not empty:"
+    echo "$example_json" | grep -E "^$key:"
+    fail=1
+  fi
+done
+
+# The viewer script must parse; skipped without node.
+if command -v node >/dev/null 2>&1; then
+  scratch=$(mktemp -d)
+  script="$scratch/viewer.js"
+  sed -n '/^<script>$/,/^<\/script>$/p' VALUES.html | sed '1d;$d' >"$script"
+  if node --check "$script"; then
+    echo "ok: VALUES.html viewer script parses"
+  else
+    echo "FAIL: VALUES.html viewer script does not parse"
+    fail=1
+  fi
+  rm -rf "$scratch"
 else
-  echo "FAIL: VALUES.md is out of date — run make docs"
-  fail=1
+  echo "skip: node not available, viewer script not checked"
 fi
 
 check "render-deploy-clean.yaml: deploy mode renders when only warnings exist" \

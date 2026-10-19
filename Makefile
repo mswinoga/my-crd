@@ -37,10 +37,16 @@ test: update-deps
 test-diagnostics: update-deps
 	./tests/diagnostics_test.sh
 
-# Writes the values reference (crdkit.schema.document over mycrd.schema) to
-# VALUES.md through harness/templates/documentation.md.yaml; tests/docs_test.yaml
-# snapshots the same text. Commit the result.
+# Writes the values reference through harness/templates/documentation.<fmt>.yaml
+# (crdkit.schema.document over mycrd.schema and the example file):
+# input.schema.json (JSON Schema for editors), VALUES.html (viewer),
+# VALUES.md. `--show-only` output starts with `---` and a `# Source:` line;
+# the sed keeps only the block scalar. tests/docs_test.yaml and
+# tests/diagnostics_test.sh check the committed files. Commit the result.
 docs: update-deps
-	helm template harness --set documentation=true \
-		--show-only templates/documentation.md.yaml \
-		| sed -n '/^markdown: |$$/,$$p' | sed '1d; s/^  //' > VALUES.md
+	@for pair in json:input.schema.json html:VALUES.html markdown:VALUES.md; do \
+		key=$${pair%%:*}; file=$${pair#*:}; fmt=$$key; [ $$key = markdown ] && fmt=md; \
+		helm template harness -f harness/documentation/example.yaml --set documentation=true \
+			--show-only templates/documentation.$$fmt.yaml \
+			| sed -n "/^$$key: |$$/,\$$p" | sed '1d; s/^  //' > $$file; \
+	done

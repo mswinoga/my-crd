@@ -1,0 +1,690 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": {
+    "description": "The consumer chart's own values; not read by my-crd.",
+    "examples": [
+      {
+        "crdkit": {
+          "global": {}
+        },
+        "global": {}
+      }
+    ],
+    "markdownDescription": "The consumer chart's own values; not read by my-crd.",
+    "x-crdkit-type": "any"
+  },
+  "definitions": {
+    "application.services.*[type=environment]": {
+      "additionalProperties": false,
+      "description": "A service that only declares variables.",
+      "examples": [
+        {
+          "environment": {
+            "SHARED_DB_HOST": {
+              "default": "db.internal",
+              "prod": "db.prod.internal",
+              "targetContainer": "main"
+            }
+          },
+          "type": "environment"
+        }
+      ],
+      "markdownDescription": "A service that only declares variables.\n\n**Example output**\n\n`spec.application.services.SHARED` as rendered.\n\n```yaml\nenvironment:\n  SHARED_DB_HOST:\n    targetContainer: main\n    value: db.prod.internal\ntype: environment\n```",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "false removes the service from the output.",
+          "markdownDescription": "`false` removes the service from the output.",
+          "type": "boolean",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "bool"
+        },
+        "environment": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              {
+                "$ref": "#/definitions/tokenDeclaration"
+              },
+              {
+                "$ref": "#/definitions/markers"
+              }
+            ],
+            "description": "A variable: a scalar or a token declaration (target keys, default, match, annotation targetContainer).",
+            "examples": [
+              {
+                "default": "db.internal",
+                "prod": "db.prod.internal",
+                "targetContainer": "main"
+              }
+            ],
+            "markdownDescription": "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`).",
+            "x-crdkit-perTarget": "yes",
+            "x-crdkit-type": "scalar"
+          },
+          "description": "Variables owned by the service, by name (\u003cID\u003e_-prefixed by convention).",
+          "examples": [
+            {
+              "SHARED_DB_HOST": {
+                "default": "db.internal",
+                "prod": "db.prod.internal",
+                "targetContainer": "main"
+              }
+            }
+          ],
+          "markdownDescription": "Variables owned by the service, by name (`\u003cID\u003e_`-prefixed by convention).",
+          "propertyNames": {
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "type": "object",
+          "x-crdkit-keyLabel": "\u003cNAME\u003e",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "map"
+        },
+        "type": {
+          "description": "Service type; selects the handler and the keys below.",
+          "examples": [
+            "environment"
+          ],
+          "markdownDescription": "Service type; selects the handler and the keys below.",
+          "not": {
+            "pattern": "@[A-Za-z0-9_]+@"
+          },
+          "type": "string",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "string"
+        }
+      },
+      "type": "object",
+      "x-crdkit-order": [
+        "type",
+        "enabled",
+        "environment"
+      ],
+      "x-crdkit-path": "application.services.*[type=environment]",
+      "x-crdkit-sections": [
+        {
+          "code": "environment:\n  SHARED_DB_HOST:\n    targetContainer: main\n    value: db.prod.internal\ntype: environment",
+          "doc": "`spec.application.services.SHARED` as rendered.",
+          "title": "Example output"
+        }
+      ],
+      "x-crdkit-type": "map"
+    },
+    "application.services.*[type=greeter]": {
+      "additionalProperties": false,
+      "description": "Example type: exports \u003cID\u003e_GREETER and a configMap mount \u003cID\u003e-config.",
+      "examples": [
+        {
+          "greeting": {
+            "default": "hello from @ENV@",
+            "prod": "hello from production"
+          },
+          "type": "greeter"
+        }
+      ],
+      "markdownDescription": "Example type: exports `\u003cID\u003e_GREETER` and a configMap mount `\u003cID\u003e-config`.\n\n**Generated variables**\n\nAdded to the service's `environment` by its handler.\n\n| Pattern | Example | Value | Container |\n| --- | --- | --- | --- |\n| \u003cID\u003e_GREETER | APP_GREETER | APP | main |\n\n**Example output**\n\n`spec.application.services.APP` as rendered.\n\n```yaml\nenvironment:\n  APP_GREETER:\n    targetContainer: main\n    value: APP\ntype: greeter\n```",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "false removes the service from the output.",
+          "markdownDescription": "`false` removes the service from the output.",
+          "type": "boolean",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "bool"
+        },
+        "environment": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              {
+                "$ref": "#/definitions/tokenDeclaration"
+              },
+              {
+                "$ref": "#/definitions/markers"
+              }
+            ],
+            "description": "A variable: a scalar or a token declaration (target keys, default, match, annotation targetContainer).",
+            "markdownDescription": "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`).",
+            "x-crdkit-perTarget": "yes",
+            "x-crdkit-type": "scalar"
+          },
+          "description": "Variables owned by the service, by name (\u003cID\u003e_-prefixed by convention).",
+          "markdownDescription": "Variables owned by the service, by name (`\u003cID\u003e_`-prefixed by convention).",
+          "propertyNames": {
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "type": "object",
+          "x-crdkit-keyLabel": "\u003cNAME\u003e",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "map"
+        },
+        "greeting": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/tokenDeclaration"
+            },
+            {
+              "$ref": "#/definitions/markers"
+            }
+          ],
+          "description": "Content of the file message; absent → nothing generated.",
+          "examples": [
+            {
+              "default": "hello from @ENV@",
+              "prod": "hello from production"
+            }
+          ],
+          "markdownDescription": "Content of the file `message`; absent → nothing generated.",
+          "x-crdkit-perTarget": "yes",
+          "x-crdkit-type": "string"
+        },
+        "type": {
+          "description": "Service type; selects the handler and the keys below.",
+          "examples": [
+            "greeter"
+          ],
+          "markdownDescription": "Service type; selects the handler and the keys below.",
+          "not": {
+            "pattern": "@[A-Za-z0-9_]+@"
+          },
+          "type": "string",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "string"
+        }
+      },
+      "type": "object",
+      "x-crdkit-order": [
+        "type",
+        "enabled",
+        "environment",
+        "greeting"
+      ],
+      "x-crdkit-path": "application.services.*[type=greeter]",
+      "x-crdkit-sections": [
+        {
+          "columns": [
+            "Pattern",
+            "Example",
+            "Value",
+            "Container"
+          ],
+          "doc": "Added to the service's `environment` by its handler.",
+          "rows": [
+            [
+              "\u003cID\u003e_GREETER",
+              "APP_GREETER",
+              "APP",
+              "main"
+            ]
+          ],
+          "title": "Generated variables"
+        },
+        {
+          "code": "environment:\n  APP_GREETER:\n    targetContainer: main\n    value: APP\ntype: greeter",
+          "doc": "`spec.application.services.APP` as rendered.",
+          "title": "Example output"
+        }
+      ],
+      "x-crdkit-type": "map"
+    },
+    "application.services.*[type=leader]": {
+      "additionalProperties": false,
+      "description": "Example type: exports \u003cID\u003e_SEED and references a greeter's variable and file.",
+      "examples": [
+        {
+          "greeter": "APP",
+          "type": "leader"
+        }
+      ],
+      "markdownDescription": "Example type: exports `\u003cID\u003e_SEED` and references a greeter's variable and file.\n\n**Generated variables**\n\nAdded to the service's `environment` by its handler.\n\n| Pattern | Example | Value | Container |\n| --- | --- | --- | --- |\n| \u003cID\u003e_SEED | LEAD_SEED | 5 | main |\n\n**References**\n\nNodes the service points the controller at.\n\n| Pattern | Example |\n| --- | --- |\n| /spec/application/services/\u003cgreeter\u003e/environment/\u003cgreeter\u003e_GREETER | /spec/application/services/APP/environment/APP_GREETER |\n| /spec/application/volumeMounts/\u003cgreeter\u003e-config/files/message | /spec/application/volumeMounts/APP-config/files/message |\n\n**Example output**\n\n`spec.application.services.LEAD` as rendered.\n\n```yaml\nenvironment:\n  LEAD_SEED:\n    targetContainer: main\n    value: \"5\"\nreferences:\n- /spec/application/services/APP/environment/APP_GREETER\n- /spec/application/volumeMounts/APP-config/files/message\ntype: leader\n```",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "false removes the service from the output.",
+          "markdownDescription": "`false` removes the service from the output.",
+          "type": "boolean",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "bool"
+        },
+        "environment": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              {
+                "$ref": "#/definitions/tokenDeclaration"
+              },
+              {
+                "$ref": "#/definitions/markers"
+              }
+            ],
+            "description": "A variable: a scalar or a token declaration (target keys, default, match, annotation targetContainer).",
+            "markdownDescription": "A variable: a scalar or a token declaration (target keys, `default`, `match`, annotation `targetContainer`).",
+            "x-crdkit-perTarget": "yes",
+            "x-crdkit-type": "scalar"
+          },
+          "description": "Variables owned by the service, by name (\u003cID\u003e_-prefixed by convention).",
+          "markdownDescription": "Variables owned by the service, by name (`\u003cID\u003e_`-prefixed by convention).",
+          "propertyNames": {
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "type": "object",
+          "x-crdkit-keyLabel": "\u003cNAME\u003e",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "map"
+        },
+        "greeter": {
+          "description": "ID of the greeter service to reference; absent → nothing generated.",
+          "examples": [
+            "APP"
+          ],
+          "markdownDescription": "ID of the greeter service to reference; absent → nothing generated.",
+          "not": {
+            "pattern": "@[A-Za-z0-9_]+@"
+          },
+          "type": "string",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-type": "string"
+        },
+        "type": {
+          "description": "Service type; selects the handler and the keys below.",
+          "examples": [
+            "leader"
+          ],
+          "markdownDescription": "Service type; selects the handler and the keys below.",
+          "not": {
+            "pattern": "@[A-Za-z0-9_]+@"
+          },
+          "type": "string",
+          "x-crdkit-perTarget": "no",
+          "x-crdkit-shared": true,
+          "x-crdkit-type": "string"
+        }
+      },
+      "type": "object",
+      "x-crdkit-order": [
+        "type",
+        "enabled",
+        "environment",
+        "greeter"
+      ],
+      "x-crdkit-path": "application.services.*[type=leader]",
+      "x-crdkit-sections": [
+        {
+          "columns": [
+            "Pattern",
+            "Example",
+            "Value",
+            "Container"
+          ],
+          "doc": "Added to the service's `environment` by its handler.",
+          "rows": [
+            [
+              "\u003cID\u003e_SEED",
+              "LEAD_SEED",
+              "5",
+              "main"
+            ]
+          ],
+          "title": "Generated variables"
+        },
+        {
+          "columns": [
+            "Pattern",
+            "Example"
+          ],
+          "doc": "Nodes the service points the controller at.",
+          "rows": [
+            [
+              "/spec/application/services/\u003cgreeter\u003e/environment/\u003cgreeter\u003e_GREETER",
+              "/spec/application/services/APP/environment/APP_GREETER"
+            ],
+            [
+              "/spec/application/volumeMounts/\u003cgreeter\u003e-config/files/message",
+              "/spec/application/volumeMounts/APP-config/files/message"
+            ]
+          ],
+          "title": "References"
+        },
+        {
+          "code": "environment:\n  LEAD_SEED:\n    targetContainer: main\n    value: \"5\"\nreferences:\n- /spec/application/services/APP/environment/APP_GREETER\n- /spec/application/volumeMounts/APP-config/files/message\ntype: leader",
+          "doc": "`spec.application.services.LEAD` as rendered.",
+          "title": "Example output"
+        }
+      ],
+      "x-crdkit-type": "map"
+    },
+    "markers": {
+      "pattern": "@[A-Za-z0-9_]+@",
+      "type": "string"
+    },
+    "tokenDeclaration": {
+      "minProperties": 1,
+      "type": "object"
+    }
+  },
+  "description": "Consumer values of my-crd.",
+  "examples": [
+    {
+      "application": {
+        "services": {
+          "APP": {
+            "greeting": {
+              "default": "hello from @ENV@",
+              "prod": "hello from production"
+            },
+            "type": "greeter"
+          },
+          "LEAD": {
+            "greeter": "APP",
+            "type": "leader"
+          },
+          "SHARED": {
+            "environment": {
+              "SHARED_DB_HOST": {
+                "default": "db.internal",
+                "prod": "db.prod.internal",
+                "targetContainer": "main"
+              }
+            },
+            "type": "environment"
+          }
+        }
+      },
+      "metadata": {
+        "labels": {
+          "team": "payments"
+        }
+      },
+      "my-crd": {
+        "crdkit": {
+          "global": {}
+        },
+        "global": {}
+      },
+      "target": "prod-01"
+    }
+  ],
+  "markdownDescription": "Consumer values of my-crd.",
+  "properties": {
+    "application": {
+      "additionalProperties": false,
+      "description": "The application the object describes.",
+      "examples": [
+        {
+          "services": {
+            "APP": {
+              "greeting": {
+                "default": "hello from @ENV@",
+                "prod": "hello from production"
+              },
+              "type": "greeter"
+            },
+            "LEAD": {
+              "greeter": "APP",
+              "type": "leader"
+            },
+            "SHARED": {
+              "environment": {
+                "SHARED_DB_HOST": {
+                  "default": "db.internal",
+                  "prod": "db.prod.internal",
+                  "targetContainer": "main"
+                }
+              },
+              "type": "environment"
+            }
+          }
+        }
+      ],
+      "markdownDescription": "The application the object describes.",
+      "properties": {
+        "services": {
+          "additionalProperties": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "environment"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/application.services.*%5Btype=environment%5D"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "greeter"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/application.services.*%5Btype=greeter%5D"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "leader"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/application.services.*%5Btype=leader%5D"
+                }
+              }
+            ],
+            "description": "One service; its keys depend on type.",
+            "examples": [
+              {
+                "greeting": {
+                  "default": "hello from @ENV@",
+                  "prod": "hello from production"
+                },
+                "type": "greeter"
+              },
+              {
+                "greeter": "APP",
+                "type": "leader"
+              },
+              {
+                "environment": {
+                  "SHARED_DB_HOST": {
+                    "default": "db.internal",
+                    "prod": "db.prod.internal",
+                    "targetContainer": "main"
+                  }
+                },
+                "type": "environment"
+              }
+            ],
+            "markdownDescription": "One service; its keys depend on `type`.",
+            "properties": {
+              "type": {
+                "enum": [
+                  "environment",
+                  "greeter",
+                  "leader"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object",
+            "x-crdkit-switch": {
+              "by": "type",
+              "cases": [
+                "environment",
+                "greeter",
+                "leader"
+              ],
+              "refs": {
+                "environment": "#/definitions/application.services.*%5Btype=environment%5D",
+                "greeter": "#/definitions/application.services.*%5Btype=greeter%5D",
+                "leader": "#/definitions/application.services.*%5Btype=leader%5D"
+              }
+            },
+            "x-crdkit-type": "map"
+          },
+          "description": "Services by ID.",
+          "examples": [
+            {
+              "APP": {
+                "greeting": {
+                  "default": "hello from @ENV@",
+                  "prod": "hello from production"
+                },
+                "type": "greeter"
+              },
+              "LEAD": {
+                "greeter": "APP",
+                "type": "leader"
+              },
+              "SHARED": {
+                "environment": {
+                  "SHARED_DB_HOST": {
+                    "default": "db.internal",
+                    "prod": "db.prod.internal",
+                    "targetContainer": "main"
+                  }
+                },
+                "type": "environment"
+              }
+            }
+          ],
+          "markdownDescription": "Services by ID.",
+          "propertyNames": {
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "type": "object",
+          "x-crdkit-keyLabel": "\u003cID\u003e",
+          "x-crdkit-type": "map"
+        }
+      },
+      "type": "object",
+      "x-crdkit-order": [
+        "services"
+      ],
+      "x-crdkit-type": "map"
+    },
+    "metadata": {
+      "additionalProperties": false,
+      "description": "Metadata of the rendered object.",
+      "examples": [
+        {
+          "labels": {
+            "team": "payments"
+          }
+        }
+      ],
+      "markdownDescription": "Metadata of the rendered object.",
+      "properties": {
+        "labels": {
+          "additionalProperties": {
+            "description": "Label value; may hold @NAME@ markers.",
+            "examples": [
+              "payments"
+            ],
+            "markdownDescription": "Label value; may hold `@NAME@` markers.",
+            "type": "string",
+            "x-crdkit-perTarget": "markers",
+            "x-crdkit-type": "string"
+          },
+          "description": "Labels copied onto the rendered object; standard labels win on a collision.",
+          "examples": [
+            {
+              "team": "payments"
+            }
+          ],
+          "markdownDescription": "Labels copied onto the rendered object; standard labels win on a collision.",
+          "type": "object",
+          "x-crdkit-keyLabel": "\u003ckey\u003e",
+          "x-crdkit-type": "map"
+        }
+      },
+      "type": "object",
+      "x-crdkit-order": [
+        "labels"
+      ],
+      "x-crdkit-type": "map"
+    },
+    "renderMode": {
+      "description": "validate prints the render with its diagnostics; deploy (default) aborts on errors.",
+      "markdownDescription": "`validate` prints the render with its diagnostics; `deploy` (default) aborts on errors.",
+      "not": {
+        "pattern": "@[A-Za-z0-9_]+@"
+      },
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ],
+      "x-crdkit-perTarget": "no",
+      "x-crdkit-type": "scalar"
+    },
+    "target": {
+      "description": "Render target: \u003cenv\u003e or \u003cenv\u003e-\u003cseq\u003e (e.g. prod-01). Selects every per-target value.",
+      "examples": [
+        "prod-01"
+      ],
+      "markdownDescription": "Render target: `\u003cenv\u003e` or `\u003cenv\u003e-\u003cseq\u003e` (e.g. `prod-01`). Selects every per-target value.",
+      "not": {
+        "pattern": "@[A-Za-z0-9_]+@"
+      },
+      "type": "string",
+      "x-crdkit-perTarget": "no",
+      "x-crdkit-type": "string"
+    }
+  },
+  "title": "my-crd values",
+  "type": "object",
+  "x-crdkit-keyLabel": "\u003ckey\u003e",
+  "x-crdkit-order": [
+    "target",
+    "renderMode",
+    "metadata",
+    "application"
+  ],
+  "x-crdkit-type": "map"
+}

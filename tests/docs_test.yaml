@@ -1,8 +1,11 @@
-# The values reference (VALUES.md) through
-# harness/templates/documentation.md.yaml (renders only when .Values.documentation
-# is set). `make docs` writes the same Markdown to VALUES.md.
+# The values reference through harness/templates/documentation.{json,html,md}.yaml
+# (render only when .Values.documentation is set). `make docs` writes the
+# three files; tests/diagnostics_test.sh checks them against the real
+# example. This suite uses small inline examples.
 suite: my-crd values reference
 templates:
+  - documentation.json.yaml
+  - documentation.html.yaml
   - documentation.md.yaml
 tests:
   - it: renders nothing when documentation is unset
@@ -11,6 +14,7 @@ tests:
           count: 0
 
   - it: every schema node has a doc (except a switch case's switch key)
+    template: documentation.json.yaml
     set:
       documentation: true
     asserts:
@@ -19,8 +23,86 @@ tests:
           value: []
 
   - it: the Markdown reference matches the snapshot
+    template: documentation.md.yaml
     set:
       documentation: true
     asserts:
       - matchSnapshot:
           path: markdown
+
+  - it: greeter and leader yield generated variables and references as patterns
+    template: documentation.json.yaml
+    set:
+      documentation: true
+      application:
+        services:
+          APP:
+            type: greeter
+            greeting: hello
+          LEAD:
+            type: leader
+            greeter: APP
+    asserts:
+      - equal:
+          path: sections["application.services.*[type=greeter]"][0]
+          value:
+            title: Generated variables
+            doc: Added to the service's `environment` by its handler.
+            columns: [Pattern, Example, Value, Container]
+            rows:
+              - ["<ID>_GREETER", APP_GREETER, APP, main]
+      - equal:
+          path: sections["application.services.*[type=leader]"][1].rows
+          value:
+            - ["/spec/application/services/<greeter>/environment/<greeter>_GREETER", "/spec/application/services/APP/environment/APP_GREETER"]
+            - ["/spec/application/volumeMounts/<greeter>-config/files/message", "/spec/application/volumeMounts/APP-config/files/message"]
+      - equal:
+          path: missingTypes
+          value: [environment]
+      - equal:
+          path: errors
+          value: []
+
+  - it: a plain field value is never replaced by a placeholder
+    template: documentation.json.yaml
+    set:
+      documentation: true
+      application:
+        services:
+          APP:
+            type: greeter
+            greeting: APP
+    asserts:
+      - equal:
+          path: sections["application.services.*[type=greeter]"][0].rows
+          value:
+            - ["<ID>_GREETER", APP_GREETER, APP, main]
+
+  - it: a type without an example service is listed in missingTypes
+    template: documentation.json.yaml
+    set:
+      documentation: true
+      application:
+        services:
+          APP:
+            type: greeter
+            greeting: hello
+    asserts:
+      - equal:
+          path: missingTypes
+          value: [environment, leader]
+
+  - it: a typo in the example lists the render's WARNING in errors
+    template: documentation.json.yaml
+    set:
+      documentation: true
+      application:
+        services:
+          APP:
+            type: greeter
+            greeting: hello
+            greting: oops
+    asserts:
+      - matchRegex:
+          path: errors[0]
+          pattern: "^# WARNING:.*greting"

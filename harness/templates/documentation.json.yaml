@@ -1,0 +1,28 @@
+{{- /*
+Values reference as JSON Schema (crdkit.schema.document, json, over
+mycrd.schema and the example file). Renders ONLY when .Values.documentation
+is set (never in harness/values.yaml or a fixture), so `make dev` and
+snapshots are unaffected. `make docs` renders it with `--set
+documentation=true` and writes `json` to input.schema.json.
+
+Input:  documentation: true
+Output: a YAML document { undocumented: [<schema path of every node
+        without a `doc`>], errors: [<the example render's and the
+        document's ERROR/WARNING lines>], missingTypes: [<service types
+        with no example service>], sections: <harness.documentation.sections>,
+        json: <the JSON Schema text> }
+*/ -}}
+{{- if .Values.documentation }}
+{{- $schema := include "mycrd.schema" . | fromYaml }}
+{{- $acc := dict "list" (list) }}
+{{- include "harness.undocumented" (dict "node" $schema "path" "(root)" "acc" $acc) }}
+{{- $sections := include "harness.documentation.sections" . | fromYaml }}
+{{- $diag := dict "errors" (list) "warnings" (list) }}
+{{- $text := include "harness.documentation.document" (dict "root" . "format" "json" "sections" $sections "diag" $diag) }}
+undocumented: {{ $acc.list | toJson }}
+errors: {{ concat ($sections.errors | default (list)) $diag.errors $diag.warnings | default (list) | toJson }}
+missingTypes: {{ $sections.missingTypes | toJson }}
+sections: {{ $sections.sections | toJson }}
+json: |
+  {{- $text | nindent 2 }}
+{{- end }}

@@ -1,5 +1,7 @@
 # my-crd values
 
+[HTML reference](VALUES.html)
+
 ```yaml
 target:  # string
 renderMode:  # scalar
@@ -83,15 +85,30 @@ A service that only declares variables.
 | `enabled` (shared) | bool | no | `true` | `false` removes the service from the output. |
 | `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
 
-**Example** (generated)
+**Example**
 
 ```yaml
 application:
   services:
-    <ID>:
-      enabled: true
-      environment: {}
+    SHARED:
+      environment:
+        SHARED_DB_HOST:
+          default: db.internal
+          prod: db.prod.internal
+          targetContainer: main
       type: environment
+```
+
+**Example output**
+
+`spec.application.services.SHARED` as rendered.
+
+```yaml
+environment:
+  SHARED_DB_HOST:
+    targetContainer: main
+    value: db.prod.internal
+type: environment
 ```
 
 ## `application.services.*[type=environment].environment`
@@ -113,18 +130,36 @@ Example type: exports `<ID>_GREETER` and a configMap mount `<ID>-config`.
 | `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
 | `greeting` | string | yes |  | Content of the file `message`; absent → nothing generated. |
 
-**Example** (generated)
+**Example**
 
 ```yaml
 application:
   services:
-    <ID>:
-      enabled: true
-      environment: {}
+    APP:
       greeting:
-        default: text
-        prod: text
+        default: hello from @ENV@
+        prod: hello from production
       type: greeter
+```
+
+**Generated variables**
+
+Added to the service's `environment` by its handler.
+
+| Pattern | Example | Value | Container |
+| --- | --- | --- | --- |
+| <ID>_GREETER | APP_GREETER | APP | main |
+
+**Example output**
+
+`spec.application.services.APP` as rendered.
+
+```yaml
+environment:
+  APP_GREETER:
+    targetContainer: main
+    value: APP
+type: greeter
 ```
 
 ## `application.services.*[type=greeter].environment`
@@ -146,16 +181,46 @@ Example type: exports `<ID>_SEED` and references a greeter's variable and file.
 | `environment` (shared) | map, keys match `^[A-Z][A-Z0-9_]*$` |  |  | Variables owned by the service, by name (`<ID>_`-prefixed by convention). |
 | `greeter` | string | no |  | ID of the greeter service to reference; absent → nothing generated. |
 
-**Example** (generated)
+**Example**
 
 ```yaml
 application:
   services:
-    <ID>:
-      enabled: true
-      environment: {}
-      greeter: text
+    LEAD:
+      greeter: APP
       type: leader
+```
+
+**Generated variables**
+
+Added to the service's `environment` by its handler.
+
+| Pattern | Example | Value | Container |
+| --- | --- | --- | --- |
+| <ID>_SEED | LEAD_SEED | 5 | main |
+
+**References**
+
+Nodes the service points the controller at.
+
+| Pattern | Example |
+| --- | --- |
+| /spec/application/services/<greeter>/environment/<greeter>_GREETER | /spec/application/services/APP/environment/APP_GREETER |
+| /spec/application/volumeMounts/<greeter>-config/files/message | /spec/application/volumeMounts/APP-config/files/message |
+
+**Example output**
+
+`spec.application.services.LEAD` as rendered.
+
+```yaml
+environment:
+  LEAD_SEED:
+    targetContainer: main
+    value: "5"
+references:
+- /spec/application/services/APP/environment/APP_GREETER
+- /spec/application/volumeMounts/APP-config/files/message
+type: leader
 ```
 
 ## `application.services.*[type=leader].environment`
