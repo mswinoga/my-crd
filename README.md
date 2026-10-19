@@ -321,15 +321,23 @@ a switch on `type` with one case per entry of `mycrd.serviceTypes`
 
 #### Editor support
 
-`input.schema.json` is a JSON Schema (draft-07) for editors. Add a
-modeline to the consuming chart's values file, pinned to a release tag:
+`input.schema.json` is a JSON Schema (draft-07) for editors. Its `$id`
+is its own URL at the release tag of the version it was generated for.
+Copy the modeline from `input.schema.json`'s `$id`, or from the "Editor
+support" block of `VALUES.html` / `VALUES.md`, to the top of the
+consuming chart's values file:
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/<tag>/input.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/v0.0.7/input.schema.json
 target: prod
 ```
 
-- `<tag>` is the library version you depend on (e.g. `0.0.7`).
+- Release tags are `v<chart version>` (`v0.0.7` for `version: 0.0.7`).
+- Release order: bump `version` in `Chart.yaml` → `make docs` → commit →
+  tag `v<version>`. The `$id` embeds the chart version, so the tag must
+  point at a commit whose generated files were built for that version.
+- `tests/diagnostics_test.sh` fails when the committed generated files
+  differ from `make docs` (a forgotten regeneration or version bump).
 - The editor flags unknown keys and wrong static types; per-target
   declarations and `@NAME@` markers are accepted unchecked. The render
   stays the authority.

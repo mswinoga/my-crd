@@ -1,4 +1,5 @@
 {
+  "$id": "https://raw.githubusercontent.com/mswinoga/my-crd/v0.0.7/input.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": {
     "description": "The consumer chart's own values; not read by my-crd.",

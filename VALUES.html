@@ -138,6 +138,7 @@ tr:last-child td { border-bottom: 0; }
   </div>
 </div>
 <script type="application/json" id="crdkit-schema">{
+  "$id": "https://raw.githubusercontent.com/mswinoga/my-crd/v0.0.7/input.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": {
     "description": "The consumer chart's own values; not read by my-crd.",
@@ -1316,6 +1317,7 @@ function renderDetail() {
       "<h3>" + esc(it.label) + "</h3>" +
       (docOf(n) ? '<div class="prose">' + md(docOf(n)) + "</div>" : "") +
       '<dl class="facts">' + facts.map(function (f) { return "<dt>" + f[0] + "</dt><dd>" + f[1] + "</dd>"; }).join("") + "</dl>" +
+      (it.isRoot && typeof SCHEMA.$id === "string" && SCHEMA.$id ? block("Editor support", "<pre>" + esc("# yaml-language-server: $schema=" + SCHEMA.$id) + "</pre>") : "") +
       keyExamples(it) + sectionsHtml(n["x-crdkit-sections"]);
   }
   detail.innerHTML = html;

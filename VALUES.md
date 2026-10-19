@@ -2,6 +2,12 @@
 
 [HTML reference](VALUES.html)
 
+**Editor support** — first line of a values file:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/v0.0.7/input.schema.json
+```
+
 ```yaml
 target:  # string
 renderMode:  # scalar
