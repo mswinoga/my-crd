@@ -1,0 +1,81 @@
+# Field references (`@.<field>@`): rewritten to `@<ID>.<field>@` by
+# mycrd.serviceFields, resolved by crdkit as field tokens. End to end
+# through mycrd.render (call.yaml). Diagnostic comments (cycle, possible
+# typo) are covered by diagnostics_test.sh.
+suite: my-crd field references
+templates:
+  - call.yaml
+tests:
+  - it: a field reference in environment resolves the field for the render target
+    values:
+      - ../harness/ci/test-values/field-references.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.HELLO.environment.HELLO_MSG.value
+          value: "msg=hello prod"
+      - equal:
+          path: spec.application.volumeMounts.HELLO-config.files.message
+          value: "hello prod"
+
+  - it: a per-target field falls back to its default for another target, chained through a library token
+    values:
+      - ../harness/ci/test-values/field-references.yaml
+    set:
+      target: dev-01
+    asserts:
+      - equal:
+          path: spec.application.services.HELLO.environment.HELLO_MSG.value
+          value: "msg=hi from dev"
+      - equal:
+          path: spec.application.services.HELLO.environment.HELLO_DEV.value
+          value: "dev=hi from dev"
+
+  - it: two services with the same field names resolve their own values
+    values:
+      - ../harness/ci/test-values/field-references.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.BYE.environment.BYE_MSG.value
+          value: "msg=bye"
+      - equal:
+          path: spec.application.volumeMounts.BYE-config.files.message
+          value: "bye"
+
+  - it: field tokens are never exported
+    values:
+      - ../harness/ci/test-values/field-references.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.HELLO.environment
+          value:
+            HELLO_DEV: {value: x, targetContainer: main}
+            HELLO_GREETER: {value: HELLO, targetContainer: main}
+            HELLO_MSG: {value: "msg=hello prod", targetContainer: main}
+
+  - it: annotations written into a per-target field never export it
+    set:
+      target: prod-01
+      application:
+        services:
+          HELLO:
+            type: greeter
+            greeting: {default: hi, service: HELLO, targetContainer: main}
+    asserts:
+      - equal:
+          path: spec.application.services.HELLO.environment
+          value:
+            HELLO_GREETER: {value: HELLO, targetContainer: main}
+
+  - it: a typo, a self-reference and a disabled service's field stay markers
+    values:
+      - ../harness/ci/test-values/field-references-errors.yaml
+    asserts:
+      - equal:
+          path: spec.application.services.LOOP.environment.LOOP_TYPO.value
+          value: "@LOOP.nope@"
+      - equal:
+          path: spec.application.services.LOOP.environment.LOOP_PAUSED.value
+          value: "@PAUSED.greeting@"
+      - matchRegex:
+          path: spec.application.volumeMounts.LOOP-config.files.message
+          pattern: "@LOOP.greeting@$"

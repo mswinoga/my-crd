@@ -23,13 +23,19 @@ Implementation notes:
   the one deliberate `fail` in a render: crdkit and every helper only
   collect diagnostics, and this final decision turns them into an abort.
 - The `diag` dict is created here, first recorded into by the
-  structural schema pass and mycrd.serviceTokens (pre-render), then
+  structural schema pass, mycrd.serviceFields and mycrd.serviceTokens
+  (pre-render), then
   seeded into crdkit.render, which appends to it and emits everything.
 - Schema: the values are validated against mycrd.schema before the
   chain (crdkit.schema.validate); the schema and the normalized input
   are seeded into `ctx.mycrd` (`schema`, `input`) through crdkit.render's
   `state`. mycrd.integrations.schema, last in the chain, runs the value
   pass.
+- Field references: mycrd.serviceFields (templates/_fields.tpl) runs
+  between the structural pass and mycrd.serviceTokens — the input it
+  returns (relative markers rewritten) is what serviceTokens reads and
+  `ctx.mycrd.input` holds; its field tokens (`<ID>.<path>`) join the
+  consumer tokens.
 - tokens/system/defaults come from mycrd.serviceTokens
   (templates/_services.tpl).
 - apiVersion/kind aren't passed here — mycrd.integrations.preamble sets
@@ -40,6 +46,8 @@ Implementation notes:
 {{- $mode := include "mycrd.renderMode" (dict "context" . "diag" $diag) -}}
 {{- $schema := include "mycrd.schema" . | fromYaml -}}
 {{- $input := (include "crdkit.schema.validate" (dict "schema" $schema "values" (.Values | toYaml | fromYaml) "diag" $diag) | fromYaml).value -}}
+{{- $fields := include "mycrd.serviceFields" (dict "input" $input "schema" $schema "diag" $diag) | fromYaml -}}
+{{- $input = $fields.input -}}
 {{- $prepared := include "mycrd.serviceTokens" (dict
       "input" $input
       "diag" $diag
@@ -48,7 +56,7 @@ Implementation notes:
     ) | fromYaml -}}
 {{- $output := include "crdkit.render" (dict
       "context" .
-      "tokens" $prepared.tokens
+      "tokens" (merge (dict) ($prepared.tokens | default dict) ($fields.tokens | default dict))
       "target" .Values.target
       "system" $prepared.system
       "defaults" $prepared.defaults

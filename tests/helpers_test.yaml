@@ -467,3 +467,68 @@ tests:
             - "user@AT@example.com @.@ @AT@.x@AT@ plain @ENV@ @OTHER.x@"
             - 5
             - false
+
+  - it: probe - serviceFields declares field tokens by node type and rewrites enabled services only
+    set:
+      helpersProbe:
+        serviceFields:
+          schema:
+            type: map
+            properties:
+              application:
+                type: map
+                properties:
+                  services:
+                    type: map
+                    values:
+                      type: map
+                      properties:
+                        type: {type: string, markers: false}
+                        enabled: {type: bool, markers: false}
+                        environment: {type: map, values: {type: scalar}}
+                        name: {type: string}
+                        port: {type: int}
+                        hosts: {type: list, items: {type: string}}
+                        extra: {type: any}
+                        tls:
+                          type: map
+                          properties:
+                            cert: {type: string}
+                            opts: {type: map, values: {type: scalar}}
+                        unset: {type: string}
+          input:
+            application:
+              services:
+                SVC1:
+                  type: t
+                  enabled: true
+                  name: {default: "n-@.port@", prod: p, targetContainer: main, service: SVC1}
+                  port: 80
+                  hosts: ["@.name@", b]
+                  extra: {k: "@.name@"}
+                  tls:
+                    cert: "c-@.name@"
+                    opts: {a: 1}
+                  environment:
+                    SVC1_X: "@.tls.cert@"
+                OFF:
+                  type: t
+                  enabled: false
+                  name: "@.port@"
+                  port: 1
+    asserts:
+      - equal:
+          path: serviceFields.tokens
+          value:
+            SVC1.name: {default: "n-@SVC1.port@", prod: p}
+            SVC1.port: {default: 80}
+            SVC1.hosts: {default: ["@SVC1.name@", b]}
+            SVC1.extra: {default: {k: "@SVC1.name@"}}
+            SVC1.tls.cert: {default: "c-@SVC1.name@"}
+            SVC1.tls.opts.a: {default: 1}
+      - equal:
+          path: serviceFields.input.application.services.SVC1.environment
+          value: {SVC1_X: "@SVC1.tls.cert@"}
+      - equal:
+          path: serviceFields.input.application.services.OFF
+          value: {type: t, enabled: false, name: "@.port@", port: 1}

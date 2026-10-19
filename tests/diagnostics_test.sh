@@ -303,6 +303,21 @@ check "schema-values.yaml: the value pass skips a disabled service" \
 check_count "schema-values.yaml: exactly this one diagnostic" \
   schema-values.yaml '^# (ERROR|WARNING):' 1
 
+check_count "field-references.yaml: field references resolve without diagnostics" \
+  field-references.yaml '^# (ERROR|WARNING):' 0
+
+check "field-references-errors.yaml: cycle ERROR for a field referencing itself" \
+  field-references-errors.yaml "^# ERROR: token 'LOOP.greeting' references '@LOOP.greeting@', which is already being resolved — cycle" present
+
+check "field-references-errors.yaml: possible-typo WARNING for a reference to a missing field" \
+  field-references-errors.yaml "^# WARNING: '@LOOP.nope@' in the rendered model does not match any known token after resolution — possible typo" present
+
+check "field-references-errors.yaml: a disabled service declares no field tokens" \
+  field-references-errors.yaml "^# WARNING: '@PAUSED.greeting@' in the rendered model does not match any known token after resolution — possible typo" present
+
+check_count "field-references-errors.yaml: exactly these three diagnostics" \
+  field-references-errors.yaml '^# (ERROR|WARNING):' 3
+
 # check_fails DESC FIXTURE_PATH PATTERN
 # Separate from `check` above: this asserts the render itself FAILS
 # (non-zero exit), unlike everything else in this library, which always

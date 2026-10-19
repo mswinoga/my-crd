@@ -1,0 +1,23 @@
+# Field reference problems. Expect exactly:
+#  - a cycle ERROR for LOOP's greeting, which references itself;
+#  - a "possible typo" WARNING for LOOP_TYPO (`@.nope@`, no such field);
+#  - a "possible typo" WARNING for LOOP_PAUSED: PAUSED is disabled, so
+#    it declares no field tokens.
+target: prod-01
+
+application:
+  services:
+    LOOP:
+      type: greeter
+      greeting: "again @.greeting@"
+      environment:
+        LOOP_TYPO:
+          default: "@.nope@"
+          targetContainer: main
+        LOOP_PAUSED:
+          default: "@PAUSED.greeting@"
+          targetContainer: main
+    PAUSED:
+      type: greeter
+      enabled: false
+      greeting: "zzz"

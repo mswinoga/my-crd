@@ -1,0 +1,32 @@
+# Field references: `@.<field>@` in a field or an `environment`
+# declaration refers to a field of the same service. Expect no
+# diagnostics:
+#  - HELLO's greeting is per-target (prod for prod-01) and references the
+#    locked token ENV by default; HELLO_MSG references the greeting, so
+#    it is resolved for the target too;
+#  - BYE has a field of the same name: its references resolve to its own
+#    value.
+target: prod-01
+
+application:
+  services:
+    HELLO:
+      type: greeter
+      greeting:
+        default: "hi from @ENV@"
+        prod: "hello prod"
+      environment:
+        HELLO_MSG:
+          default: "msg=@.greeting@"
+          targetContainer: main
+        HELLO_DEV:
+          default: "x"
+          dev: "dev=@.greeting@"
+          targetContainer: main
+    BYE:
+      type: greeter
+      greeting: "bye"
+      environment:
+        BYE_MSG:
+          default: "msg=@.greeting@"
+          targetContainer: main
