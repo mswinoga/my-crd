@@ -91,6 +91,8 @@ must match '<re>' — ignored`) and the variable or service is dropped.
 
 `@AT@` is crdkit's one reserved built-in marker — always resolves to a
 literal `@`; a variable named `AT` is discarded with a `# WARNING:`.
+A marker name is made of `A-Z a-z 0-9 _ .`; a token resolving to a list
+splices its elements joined by `,`, a dict its JSON.
 `@ENV@` is NOT a crdkit concept — it's an ordinary locked token this
 library defines itself (see "Library-owned tokens" below); consumers
 can't override it because it's in `system`, not because crdkit reserves
@@ -114,6 +116,45 @@ as generated variables are.
 
 Reserved service keys: `type`, `environment`, `enabled`. Every other key
 belongs to the service type (e.g. `greeting`, `greeter`).
+
+#### Field references
+
+A service field or `environment` declaration may reference another
+field of the SAME service: `@.<field>@` (`@.tls.cert@` for a key of a
+map field).
+
+```yaml
+application:
+  services:
+    SVC1:
+      type: db
+      instance: i1
+      host: h1
+      port: 123
+      url: "http://@.host@/@.instance@:@.port@"
+      password: "secret://@ENV@/@.instance@/@.port@/pwd"   # overrides the default
+      environment:                                         # secret://@.instance@/password
+        SVC1_URL: {default: "@.url@", targetContainer: main}
+```
+
+- Resolved like any marker: per target (a per-target field is resolved
+  for the render target first), chained, cycle-checked (a cycle records
+  an `# ERROR:`).
+- Usable in fields, `environment`, a schema `default` and values a
+  type handler generates.
+- Referable: every field except `type`, `enabled`, `environment`; a map
+  field by its keys only (`@.tls@` stays unresolved).
+- A list field spliced into text is its elements joined by `,` (no
+  space), a dict is JSON.
+- A reference in an `int` / `number` / `bool` field is checked as the
+  resolved value and handed to the type handler converted
+  (`port: "@.basePort@"` → `123`).
+- An absent field without a default, a typo (`@.instnace@`) or a field
+  of a disabled service stays unresolved (the usual "possible typo"
+  `# WARNING:`). A field with `markers: false` (e.g. `type`, `enabled`,
+  `greeter`) rejects it with an `# ERROR:`.
+- Same service only. Text that would read as a marker
+  (`@example.com@`) is escaped with `@AT@`: `@AT@example.com@`.
 
 #### Disabled services
 
@@ -230,6 +271,11 @@ in that order, services of one type alphabetically).
   references the greeter's `<greeter>_GREETER` variable and the file
   `message` of its `<greeter>-config` mount. Without `greeter` nothing
   is generated.
+- `db` — `instance`, `host`, `port` (int) required; `password`
+  defaults to `secret://@.instance@/password`; optional `url` and
+  `options` (list) to reference. Generates `<ID>_PASSWORD` and
+  `<ID>_PORT` (main container) from the resolved fields. See "Field
+  references".
 
 A consumer declaration of a generated variable under the service's
 `environment` overrides it; its `default` too. Every type accepts
@@ -278,7 +324,8 @@ Adding a type:
    | `mycrd.service.referenceMount` | `mount` | records a reference to a whole mount |
    | `mycrd.service.referenceFile` | `mount, file` | records a reference to a file in a mount |
 
-   `value` and `content` may hold `@TOKEN@` markers. Node locations
+   `value` and `content` may hold `@TOKEN@` markers and `@.<field>@`
+   references to the service's own fields. Node locations
    come from `mycrd.paths.*` (`templates/_paths.tpl`), the only place
    that knows where a node lives in the model.
 
@@ -525,7 +572,8 @@ make docs               # writes input.schema.json, VALUES.html, VALUES.md
 ```
 
 Suites under `tests/`: `token_resolution_test.yaml`,
-`services_test.yaml`, `references_test.yaml`, `helpers_test.yaml`,
+`services_test.yaml`, `references_test.yaml`, `field_references_test.yaml`,
+`helpers_test.yaml`,
 `paths_test.yaml`, `values_test.yaml`, `annotation_policy_test.yaml`,
 `render_mode_test.yaml`, `docs_test.yaml`, `snapshot_test.yaml`. `harness/values.yaml` sets `renderMode: validate`,
 so fixtures with deliberate errors keep rendering; deploy-mode fixtures
