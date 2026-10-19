@@ -5,7 +5,7 @@
 **Editor support** — first line of a values file:
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/v0.0.7/input.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/v0.1.0/input.schema.json
 ```
 
 ```yaml

@@ -328,11 +328,11 @@ support" block of `VALUES.html` / `VALUES.md`, to the top of the
 consuming chart's values file:
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/v0.0.7/input.schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/v0.1.0/input.schema.json
 target: prod
 ```
 
-- Release tags are `v<chart version>` (`v0.0.7` for `version: 0.0.7`).
+- Release tags are `v<chart version>` (`v0.1.0` for `version: 0.1.0`).
 - Release order: bump `version` in `Chart.yaml` → `make docs` → commit →
   tag `v<version>`. The `$id` embeds the chart version, so the tag must
   point at a commit whose generated files were built for that version.

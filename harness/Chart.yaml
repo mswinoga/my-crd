@@ -5,5 +5,5 @@ type: application
 version: 0.0.0
 dependencies:
   - name: my-crd
-    version: 0.0.7
+    version: 0.1.0
     repository: file://../
