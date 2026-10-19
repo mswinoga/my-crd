@@ -36,7 +36,8 @@ Implementation notes:
   returns (relative markers rewritten) is what serviceTokens reads and
   `ctx.mycrd.input` holds; its field tokens (`<ID>.<path>`) and the
   services' copies of the library templates (`<ID>..<T>`) join the
-  consumer tokens.
+  consumer tokens; its template list is seeded as `ctx.mycrd.templates`
+  (read by mycrd.service.addVar/addFile).
 - tokens/system/defaults come from mycrd.serviceTokens
   (templates/_services.tpl).
 - apiVersion/kind aren't passed here — mycrd.integrations.preamble sets
@@ -66,7 +67,7 @@ Implementation notes:
       "parentTargetTemplate" "mycrd.parentTarget"
       "annotations" (include "mycrd.annotationNames" . | fromYaml).value
       "diag" $diag
-      "state" (dict "mycrd" (dict "schema" $schema "input" $input))
+      "state" (dict "mycrd" (dict "schema" $schema "input" $input "templates" $fields.templates))
       "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.services" "mycrd.integrations.references" "mycrd.integrations.schema")
     ) -}}
 {{- if and (eq $mode "deploy") $diag.errors -}}

@@ -278,12 +278,13 @@ Interface:
 
 Implementation notes:
 - `ctx.mycrd` is a my-crd-owned key on crdkit's context:
-  { schema: <root schema node>, input: <normalized values>, added:
+  { schema: <root schema node>, input: <normalized values>, templates:
+  [<library template names>], added:
   {<id>: true}, disabled: {<id>: true}, owners: {<pointer>: <id>},
   contributors: {<mount pointer>: {<id>: true}}, references: {<id>:
   {<pointer>: <descriptor>}}, validated: {<path>|<target>: true} }
-  (descriptor: see mycrd.service.reference). `schema`/`input` are
-  seeded by mycrd.render (crdkit.render's `state`), `disabled` is
+  (descriptor: see mycrd.service.reference). `schema`/`input`/
+  `templates` are seeded by mycrd.render (crdkit.render's `state`), `disabled` is
   filled by mycrd.integrations.services, `validated` is the `seen` dict
   of the schema value checks. crdkit never uses the key `mycrd`.
 - Internal bookkeeping only — never emitted.
@@ -295,7 +296,7 @@ Implementation notes:
 {{- if not (hasKey $ctx "mycrd") -}}
   {{- $_ := set $ctx "mycrd" (dict) -}}
 {{- end -}}
-{{/* key by key: mycrd.render seeds ctx.mycrd with schema/input before any of these exist. */}}
+{{/* key by key: mycrd.render seeds ctx.mycrd with schema/input/templates before any of these exist. */}}
 {{- range $key := list "added" "disabled" "owners" "contributors" "references" "validated" -}}
   {{- if not (hasKey $ctx.mycrd $key) -}}
     {{- $_ := set $ctx.mycrd $key (dict) -}}
@@ -473,7 +474,9 @@ Implementation notes:
   owner of that variable (mycrd.service.exportVar).
 - Relative markers in `value` are rewritten for `id`
   (mycrd.fieldMarkers): a handler may generate values that reference
-  its service's fields.
+  its service's fields. Then every marker to a library template `@T@`
+  is rewritten to the service's copy `@<id>..T@` (mycrd.templateMarkers
+  over `ctx.mycrd.templates`).
 */}}
 {{- define "mycrd.service.addVar" -}}
 {{- $ctx := .ctx -}}
@@ -490,6 +493,7 @@ Implementation notes:
       {{- $_ := set $annotations "targetContainer" .targetContainer -}}
     {{- end -}}
     {{- $value := (include "mycrd.fieldMarkers" (dict "id" .id "value" .value) | fromYaml).value -}}
+    {{- $value = (include "mycrd.templateMarkers" (dict "id" .id "templates" (get $ctx.mycrd "templates") "value" $value) | fromYaml).value -}}
     {{- include "crdkit.token.underlay" (list $ctx .name $value $annotations) -}}
     {{- include "mycrd.service.exportVar" (dict "ctx" $ctx "id" .id "name" .name) -}}
   {{- end -}}
@@ -519,7 +523,9 @@ Implementation notes:
 - A file that already exists in the mount records an ERROR naming its
   owner; the first definition is kept.
 - `content` is resolved by crdkit.render's single substitution pass;
-  its relative markers are rewritten for `id` first (mycrd.fieldMarkers).
+  its relative markers are rewritten for `id` first (mycrd.fieldMarkers),
+  then its markers to library templates (mycrd.templateMarkers, as in
+  mycrd.service.addVar).
 - Records the file's owner and the mount's contributor in ctx.mycrd.
 */}}
 {{- define "mycrd.service.addFile" -}}
@@ -549,6 +555,7 @@ Implementation notes:
   {{- end -}}
   {{- if $add -}}
     {{- $content := (include "mycrd.fieldMarkers" (dict "id" $id "value" .content) | fromYaml).value -}}
+    {{- $content = (include "mycrd.templateMarkers" (dict "id" $id "templates" (get $ctx.mycrd "templates") "value" $content) | fromYaml).value -}}
     {{- include "crdkit.dictMerge" (concat (list $ctx.model) $mountSegments (list "files") (list (dict .file $content))) -}}
     {{- $_ := set $ctx.mycrd.owners $filePointer $id -}}
     {{- if not (hasKey $ctx.mycrd.contributors $mountPointer) -}}

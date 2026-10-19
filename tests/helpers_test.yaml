@@ -729,3 +729,47 @@ tests:
           value:
             SVC1.name: {default: n}
             SVC1..T: {default: "@SVC1.name@"}
+
+  - it: probe - addVar and addFile rewrite markers to library templates to the service's copy
+    set:
+      application:
+        services:
+          DB1:
+            type: db
+            instance: i1
+            host: h1
+            port: 1
+          DB2:
+            type: db
+            instance: i2
+            host: h2
+            port: 2
+      helpersProbe:
+        fields: true
+        library:
+          system:
+            DB_PATH: "@.instance@/@.host@"
+            PLAIN: "plain"
+        calls:
+          - {helper: add, params: {id: DB1}}
+          - {helper: add, params: {id: DB2}}
+          - {helper: addVar, params: {id: DB1, name: DB1_PATH, value: "@DB_PATH@|@PLAIN@", targetContainer: main}}
+          - {helper: addVar, params: {id: DB2, name: DB2_PATH, value: "@DB_PATH@", targetContainer: main}}
+          - {helper: addFile, params: {id: DB2, mount: DB2-config, source: configMap, file: path, content: "@DB_PATH@ @AT@DB_PATH@AT@"}}
+        resolve: [DB1_PATH, DB2_PATH]
+    asserts:
+      - equal:
+          path: tokens.DB1_PATH._generated
+          value: {prod-01: "@DB1..DB_PATH@|@PLAIN@"}
+      - equal:
+          path: tokens.DB2_PATH._generated
+          value: {prod-01: "@DB2..DB_PATH@"}
+      - equal:
+          path: model.spec.application.volumeMounts.DB2-config.files.path
+          value: "@DB2..DB_PATH@ @AT@DB_PATH@AT@"
+      - equal:
+          path: resolved.DB1_PATH
+          value: "i1/h1|@PLAIN@"
+      - equal:
+          path: resolved.DB2_PATH
+          value: "i2/h2"
