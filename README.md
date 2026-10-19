@@ -258,8 +258,13 @@ Adding a type:
    A scalar-type or list field is per-target by default (a token
    declaration or `@NAME@` markers); `markers: false` makes it static.
 2. Add the name to `mycrd.serviceTypes` (`templates/_services.tpl`).
-3. Run `make docs` and commit `VALUES.md`.
-4. Read fields through `mycrd.service.value` and contribute output
+3. Add a service of the type to `harness/documentation/example.yaml`:
+   its generated variables, references and rendered node become the
+   type's section in the reference, and `make test-diagnostics` fails
+   while a type has no example service.
+4. Run `make docs` and commit `input.schema.json`, `VALUES.html` and
+   `VALUES.md`.
+5. Read fields through `mycrd.service.value` and contribute output
    through the service helpers (params always include `ctx` and `id`;
    the dispatcher has already added the service):
 
@@ -301,9 +306,35 @@ a switch on `type` with one case per entry of `mycrd.serviceTypes`
   skipped. A variable is checked as its token.
 - `mycrd.service.value` checks a field for any target; each
   `(path, target)` pair is reported once.
-- `make docs` writes the Markdown reference to [`VALUES.md`](VALUES.md);
-  `make test` snapshots it, `make test-diagnostics` checks the committed
-  file is current.
+- `make docs` writes three generated references from the schema and
+  [`harness/documentation/example.yaml`](harness/documentation/example.yaml)
+  (one service of every type): [`input.schema.json`](input.schema.json),
+  [`VALUES.html`](VALUES.html) and [`VALUES.md`](VALUES.md). `make test`
+  snapshots them, `make test-diagnostics` checks the committed files are
+  current.
+
+#### Reading the reference
+
+- Open `VALUES.html` from disk in a browser (self-contained, no server):
+  key tree, a page per service type, search, shareable `#` fragments.
+- `VALUES.md` is the same reference as Markdown.
+
+#### Editor support
+
+`input.schema.json` is a JSON Schema (draft-07) for editors. Add a
+modeline to the consuming chart's values file, pinned to a release tag:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mswinoga/my-crd/<tag>/input.schema.json
+target: prod
+```
+
+- `<tag>` is the library version you depend on (e.g. `0.0.7`).
+- The editor flags unknown keys and wrong static types; per-target
+  declarations and `@NAME@` markers are accepted unchecked. The render
+  stays the authority.
+- The file is deliberately not named `values.schema.json`: Helm would
+  validate a chart's own values against it.
 
 ### References
 
@@ -482,7 +513,7 @@ make test-diagnostics   # ./tests/diagnostics_test.sh — greps raw output
 make dev                # plain-renders every harness/ci/test-values/*.yaml
                         # fixture for quick manual/visual inspection
 make render VALUES=path/to/wip.yaml   # render one arbitrary values file
-make docs               # writes VALUES.md (the values reference)
+make docs               # writes input.schema.json, VALUES.html, VALUES.md
 ```
 
 Suites under `tests/`: `token_resolution_test.yaml`,
@@ -496,8 +527,10 @@ Harness probes (`annotation_policy_probe.yaml` via `policyProbe`,
 `paths_probe.yaml` via `pathsProbe`, `values_probe.yaml` via
 `valuesProbe`, `helpers_probe.yaml` via `helpersProbe`, all under
 `harness/templates/`) render only when their values key is set, and
-cover paths no end-to-end input reaches. `harness/templates/documentation.md.yaml`
-(`--set documentation=true`) generates `VALUES.md` the same way. Fixtures
+cover paths no end-to-end input reaches.
+`harness/templates/documentation.{json,html,md}.yaml`
+(`--set documentation=true -f harness/documentation/example.yaml`)
+generate the references the same way. Fixtures
 that set a probe key live in `harness/ci/probe-values/`, which
 `make dev` does not scan.
 
@@ -513,7 +546,6 @@ bottom-up, automatically — see `../CLAUDE.md`'s "Layout" section.
 
 ## Out of scope for now
 
-ArgoCD CMP wiring, GitLab CI pipeline files, a JSON Schema export of
-`mycrd.schema` for editors, real integration implementations,
+ArgoCD CMP wiring, GitLab CI pipeline files, real integration implementations,
 and the real CRD's `apiVersion`/`kind`/`spec` shape (currently a
 placeholder — see `templates/integrations/_preamble.tpl`).
