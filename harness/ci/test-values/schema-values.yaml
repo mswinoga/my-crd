@@ -2,9 +2,9 @@
 # Expect exactly:
 #  - "# ERROR: 'application.services.HELLO.greeting' for target
 #    'prod-01' must be a scalar" (a list for prod, a string by default);
-#  - an ERROR for APP_LIST, a variable whose value is a structure;
-# and nothing for PAUSED (disabled: not checked by the value pass) nor
-# for APP_OK.
+# and nothing for PAUSED (disabled: not checked by the value pass), for
+# APP_OK, nor for APP_LIST (a list variable, spliced into its marker as
+# "a,b").
 target: prod-01
 
 application:
@@ -26,3 +26,4 @@ application:
         APP_OK: fine
         APP_LIST:
           default: [a, b]
+          targetContainer: main

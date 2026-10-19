@@ -428,3 +428,42 @@ tests:
           path: diag.errors
           value:
             - "service 'HELLO' was not added — helper 'mycrd.service.value' ignored"
+
+  - it: probe - fieldMarkers rewrites relative markers in every string leaf, keys and non-strings untouched
+    set:
+      helpersProbe:
+        fieldMarkers:
+          - id: SVC1
+            value: "http://@.host@/@.instance@:@.port@"
+          - id: SVC1
+            value:
+              "@.key@": "@.tls.cert@"
+              list: ["@.a@", 3, true, {deep: "x-@.b@"}]
+          - id: SVC1
+            value:
+              default: "@.instance@"
+              prod: "p-@.instance@"
+              match:
+                - "qa-(.*)": "qa-$1-@.host@"
+              targetContainer: main
+          - id: SVC1
+            value: "user@AT@example.com @.@ @AT@.x@AT@ plain @ENV@ @OTHER.x@"
+          - id: SVC1
+            value: 5
+          - id: SVC1
+            value: false
+    asserts:
+      - equal:
+          path: fieldMarkers
+          value:
+            - "http://@SVC1.host@/@SVC1.instance@:@SVC1.port@"
+            - "@.key@": "@SVC1.tls.cert@"
+              list: ["@SVC1.a@", 3, true, {deep: "x-@SVC1.b@"}]
+            - default: "@SVC1.instance@"
+              prod: "p-@SVC1.instance@"
+              match:
+                - "qa-(.*)": "qa-$1-@SVC1.host@"
+              targetContainer: main
+            - "user@AT@example.com @.@ @AT@.x@AT@ plain @ENV@ @OTHER.x@"
+            - 5
+            - false

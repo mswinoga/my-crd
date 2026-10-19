@@ -227,7 +227,7 @@ tr:last-child td { border-bottom: 0; }
           ],
           "markdownDescription": "Service type; selects the handler and the keys below.",
           "not": {
-            "pattern": "@[A-Za-z0-9_]+@"
+            "pattern": "@[A-Za-z0-9_.]+@"
           },
           "type": "string",
           "x-crdkit-perTarget": "no",
@@ -336,7 +336,7 @@ tr:last-child td { border-bottom: 0; }
           ],
           "markdownDescription": "Service type; selects the handler and the keys below.",
           "not": {
-            "pattern": "@[A-Za-z0-9_]+@"
+            "pattern": "@[A-Za-z0-9_.]+@"
           },
           "type": "string",
           "x-crdkit-perTarget": "no",
@@ -438,7 +438,7 @@ tr:last-child td { border-bottom: 0; }
           ],
           "markdownDescription": "ID of the greeter service to reference; absent → nothing generated.",
           "not": {
-            "pattern": "@[A-Za-z0-9_]+@"
+            "pattern": "@[A-Za-z0-9_.]+@"
           },
           "type": "string",
           "x-crdkit-perTarget": "no",
@@ -451,7 +451,7 @@ tr:last-child td { border-bottom: 0; }
           ],
           "markdownDescription": "Service type; selects the handler and the keys below.",
           "not": {
-            "pattern": "@[A-Za-z0-9_]+@"
+            "pattern": "@[A-Za-z0-9_.]+@"
           },
           "type": "string",
           "x-crdkit-perTarget": "no",
@@ -513,7 +513,7 @@ tr:last-child td { border-bottom: 0; }
       "x-crdkit-type": "map"
     },
     "markers": {
-      "pattern": "@[A-Za-z0-9_]+@",
+      "pattern": "@[A-Za-z0-9_.]+@",
       "type": "string"
     },
     "tokenDeclaration": {
@@ -779,7 +779,7 @@ tr:last-child td { border-bottom: 0; }
       "description": "validate prints the render with its diagnostics; deploy (default) aborts on errors.",
       "markdownDescription": "`validate` prints the render with its diagnostics; `deploy` (default) aborts on errors.",
       "not": {
-        "pattern": "@[A-Za-z0-9_]+@"
+        "pattern": "@[A-Za-z0-9_.]+@"
       },
       "type": [
         "string",
@@ -796,7 +796,7 @@ tr:last-child td { border-bottom: 0; }
       ],
       "markdownDescription": "Render target: `\u003cenv\u003e` or `\u003cenv\u003e-\u003cseq\u003e` (e.g. `prod-01`). Selects every per-target value.",
       "not": {
-        "pattern": "@[A-Za-z0-9_]+@"
+        "pattern": "@[A-Za-z0-9_.]+@"
       },
       "type": "string",
       "x-crdkit-perTarget": "no",

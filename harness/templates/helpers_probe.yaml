@@ -14,9 +14,12 @@ Input:  helpersProbe: { target: <string>, calls: [ {helper: <name after
         With `references: true`, mycrd.integrations.references runs
         after the calls; with `schema: true`, mycrd.integrations.schema
         runs after that (the chain's order).
+        `fieldMarkers: [{id, value}]` calls mycrd.fieldMarkers for each
+        entry (no ctx involved).
 Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
         registry: <ctx.mycrd without schema/input>, diag: { errors, warnings }, results:
-        [<text each call returned, in call order>] }
+        [<text each call returned, in call order>], fieldMarkers:
+        [<rewritten value of each fieldMarkers entry>] }
 */ -}}
 {{- if .Values.helpersProbe }}
 {{- $probe := .Values.helpersProbe | toYaml | fromYaml }}
@@ -28,11 +31,15 @@ Output: a YAML document { model: <ctx.model>, tokens: <ctx.tokens>,
 {{- range $call := ($probe.calls | default (list)) }}
   {{- $results = append $results (include (printf "mycrd.service.%s" $call.helper) (merge (dict "ctx" $ctx) $call.params)) }}
 {{- end }}
+{{- $fieldMarkers := list }}
+{{- range $entry := ($probe.fieldMarkers | default (list)) }}
+  {{- $fieldMarkers = append $fieldMarkers (include "mycrd.fieldMarkers" (dict "id" $entry.id "value" $entry.value) | fromYaml).value }}
+{{- end }}
 {{- if $probe.references }}
   {{- include "mycrd.integrations.references" $ctx }}
 {{- end }}
 {{- if $probe.schema }}
   {{- include "mycrd.integrations.schema" $ctx }}
 {{- end }}
-{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" (omit $ctx.mycrd "schema" "input") "diag" $diag "results" $results | toYaml }}
+{{- dict "model" $ctx.model "tokens" $ctx.tokens "registry" (omit $ctx.mycrd "schema" "input") "diag" $diag "results" $results "fieldMarkers" $fieldMarkers | toYaml }}
 {{- end }}
