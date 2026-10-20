@@ -15,8 +15,8 @@ Implementation notes:
 - Thin wrapper supplying crdkit.render everything it can't know itself:
   system/default tokens, the integration chain (mycrd.integrations.*,
   preamble always first), this library's own target-escalation
-  taxonomy (mycrd.parentTarget, templates/_target.tpl), the annotation
-  names it owns (service, targetContainer) and a fresh diagnostics seed.
+  taxonomy (mycrd.parentTarget, templates/_target.tpl), the token
+  annotation names it owns (service, targetContainer) and a fresh diagnostics seed.
 - The mode comes from the values key `renderMode` (mycrd.renderMode):
   `validate` always prints the output (CI greps it for `# ERROR:`);
   `deploy` (default) aborts on errors, warnings never abort. This is
@@ -65,7 +65,7 @@ Implementation notes:
       "system" $prepared.system
       "defaults" $prepared.defaults
       "parentTargetTemplate" "mycrd.parentTarget"
-      "annotations" (include "mycrd.annotationNames" . | fromYaml).value
+      "tokenAnnotations" (include "mycrd.tokenAnnotationNames" . | fromYaml).value
       "diag" $diag
       "state" (dict "mycrd" (dict "schema" $schema "input" $input "templates" $fields.templates))
       "chain" (list "mycrd.integrations.preamble" "mycrd.integrations.services" "mycrd.integrations.references" "mycrd.integrations.schema")

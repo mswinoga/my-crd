@@ -159,7 +159,7 @@ Implementation notes:
   every other type → a dict as written (a token declaration), anything
   else `{default: <value>}`.
 - A key without a node (none after the structural pass) is skipped.
-- Annotation keys (mycrd.annotationNames) are dropped from a
+- Annotation keys (mycrd.tokenAnnotationNames) are dropped from a
   declaration: a field token is never exported.
 */}}
 {{- define "mycrd.serviceFields.declare" -}}
@@ -177,7 +177,7 @@ Implementation notes:
   {{- end -}}
 {{- else if and $type (kindIs "map" $value) (ne $type "any") -}}
   {{- $decl := deepCopy $value -}}
-  {{- range $annotation := (include "mycrd.annotationNames" (dict) | fromYaml).value -}}
+  {{- range $annotation := (include "mycrd.tokenAnnotationNames" (dict) | fromYaml).value -}}
     {{- $_ := unset $decl $annotation -}}
   {{- end -}}
   {{- $_ := set .tokens .name $decl -}}
@@ -334,7 +334,7 @@ Implementation notes:
   {{- $_ := set $library $name $decl -}}
 {{- end -}}
 {{- $decls := include "mycrd.normalizeDeclarations" (dict "decls" $library) | fromYaml -}}
-{{- $annotations := (include "mycrd.annotationNames" (dict) | fromYaml).value -}}
+{{- $annotations := (include "mycrd.tokenAnnotationNames" (dict) | fromYaml).value -}}
 {{- range $t := .templates -}}
   {{- $decl := index $decls $t -}}
   {{- range $annotation := $annotations -}}

@@ -48,18 +48,18 @@ Interface:
 {{- end -}}
 
 {{/*
-mycrd.annotationNames (internal)
+mycrd.tokenAnnotationNames (internal)
 
-The annotation names this library owns on token declarations: `service`
+The token annotation names this library owns: `service`
 (the owning service ID) and `targetContainer`. mycrd.render hands the
-same list to crdkit.render, which treats each as a reserved key (never a
+same list to crdkit.render as `tokenAnnotations`, which treats each as a reserved key (never a
 target entry).
 
 Interface:
 - Params: none (any value is ignored).
 - Returns YAML: { "value": [<annotation name>, ...] }
 */}}
-{{- define "mycrd.annotationNames" -}}
+{{- define "mycrd.tokenAnnotationNames" -}}
 value:
 - service
 - targetContainer
@@ -69,7 +69,7 @@ value:
 mycrd.splitAnnotations (internal)
 
 Splits a token declaration into this library's annotations
-(mycrd.annotationNames) and everything else (target entries, `match`),
+(mycrd.tokenAnnotationNames) and everything else (target entries, `match`),
 so the annotation policy can treat the two parts separately.
 
 Interface:
@@ -77,7 +77,7 @@ Interface:
 - Returns YAML: { "annotations": <dict>, "values": <dict> }
 */}}
 {{- define "mycrd.splitAnnotations" -}}
-{{- $names := (include "mycrd.annotationNames" . | fromYaml).value -}}
+{{- $names := (include "mycrd.tokenAnnotationNames" . | fromYaml).value -}}
 {{- $annotations := dict -}}
 {{- $values := dict -}}
 {{- range $key, $v := (.decl | default dict) -}}
